@@ -863,7 +863,9 @@
         if (isEditMode) return;
         const params = new URLSearchParams({ uid:currentUser.lineUid, name:currentUser.name, role:currentUser.role, token:authToken, from:'portal' });
         const base = CONFIG.BASE_URL.endsWith('/') ? CONFIG.BASE_URL : CONFIG.BASE_URL+'/';
-        currentModuleUrl = `${base}${mod.url}?${params}`;
+        currentModuleUrl = mod.url.startsWith('http') 
+        ? `${mod.url}?${params}` 
+        : `${base}${mod.url}?${params}`;
         document.getElementById('moduleIcon').textContent = mod.icon;
         document.getElementById('moduleTitle').textContent = mod.name;
         const loading = document.getElementById('moduleLoading'); loading.classList.remove('hide');
