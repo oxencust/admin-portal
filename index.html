@@ -107,6 +107,23 @@
 
         /* Section header with edit button */
         .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px; }
+
+        /* Pending Items List */
+        .pending-section { margin-bottom: 20px; }
+        .pending-list { display: flex; flex-direction: column; gap: 8px; }
+        .pending-item {
+            border-radius: 14px; padding: 12px 14px;
+            display: flex; align-items: flex-start; gap: 12px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .pending-item:hover { transform: translateX(2px); }
+        .pending-item:active { transform: scale(0.98); }
+        .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; margin-top: 6px; }
+        .pending-info { flex: 1; min-width: 0; }
+        .pending-title { font-size: 13px; font-weight: 600; color: #2d3436; margin-bottom: 2px; }
+        .pending-meta { font-size: 11px; color: #999; }
+        .pending-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; background: rgba(224,82,82,0.1); color: var(--danger); margin-left: 4px; }
+        .pending-empty { text-align: center; padding: 16px; font-size: 13px; color: #bbb; }
         .section-title { font-size: 13px; font-weight: 600; color: #636e72; letter-spacing: 1px; margin: 0; }
         .section-edit-btn { font-size: 12px; font-weight: 600; color: var(--green); cursor: pointer; padding: 4px 10px; border-radius: 8px; transition: all 0.2s; border: none; background: none; font-family: inherit; }
         .section-edit-btn:hover { background: rgba(122,193,154,0.1); }
@@ -338,18 +355,26 @@
                 <div class="stat-card glass">
                     <div class="stat-icon">👤</div>
                     <div class="stat-value" id="statMembers">-</div>
-                    <div class="stat-label">會員數</div>
+                    <div class="stat-label">會員總數</div>
                 </div>
                 <div class="stat-card glass">
-                    <div class="stat-icon">👨‍🏫</div>
-                    <div class="stat-value" id="statCoaches">-</div>
-                    <div class="stat-label">教練數</div>
+                    <div class="stat-icon">🆕</div>
+                    <div class="stat-value" id="statNewMembers">-</div>
+                    <div class="stat-label">本月新會員</div>
                 </div>
                 <div class="stat-card glass">
                     <div class="stat-icon">📋</div>
                     <div class="stat-value" id="statPending">-</div>
                     <div class="stat-label">待處理</div>
                 </div>
+            </div>
+
+            <!-- Pending Items List -->
+            <div class="pending-section" id="pendingSection" style="display:none;">
+                <div class="section-header">
+                    <div class="section-title">⚠️ 待處理事項</div>
+                </div>
+                <div class="pending-list" id="pendingList"></div>
             </div>
 
             <!-- Module section with edit toggle -->
@@ -421,7 +446,7 @@
     const MODULES = [
         { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理', url:'member.html', permission:'member_view', color:'green', roles:['super_admin','admin'] },
         { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、權限設定', url:'coach-manage.html', permission:'coach_view', color:'blue', roles:['super_admin','admin'] },
-        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調', url:'admin.html', permission:'substitute_view', color:'pink', roles:['super_admin','admin'], badge:'pendingSubstitute' },
+        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調', url:'admin.html', permission:'substitute_view', color:'pink', roles:['super_admin','admin'], badge:'pendingCount' },
         { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定', url:'schedule-admin.html', permission:'staff_schedule_view', color:'yellow', roles:['super_admin','admin'] },
         { id:'punch', icon:'⏰', name:'上下班打卡', desc:'打卡紀錄、出勤統計', url:'punch.html', permission:'attendance_view', color:'green', roles:['super_admin','admin','staff'] },
         { id:'report', icon:'📊', name:'報表統計', desc:'營運數據、分析報表', url:'report.html', permission:'report_view', color:'blue', roles:['super_admin','admin'] },
@@ -881,14 +906,60 @@
             if (result.success) {
                 window.dashboardData = result.data;
                 document.getElementById('statMembers').textContent = result.data.memberCount||'0';
-                document.getElementById('statCoaches').textContent = result.data.coachCount||'0';
+                document.getElementById('statNewMembers').textContent = result.data.newMemberCount||'0';
                 document.getElementById('statPending').textContent = result.data.pendingCount||'0';
+                renderPendingList(result.data.pendingItems||[]);
             }
         } catch(e) {
-            document.getElementById('statMembers').textContent = '923';
-            document.getElementById('statCoaches').textContent = '12';
+            // Dev mode fallback
+            document.getElementById('statMembers').textContent = '973';
+            document.getElementById('statNewMembers').textContent = '8';
             document.getElementById('statPending').textContent = '3';
+            renderPendingList([
+                { id:1, member_name:'王小明', coach_name:'陳教練', class_date:'2026-02-05', class_time:'14:00', class_type:'pilates', incident_types:'遲到,身體不適' },
+                { id:2, member_name:'李美玲', coach_name:'林教練', class_date:'2026-02-05', class_time:'10:00', class_type:'strength_training', incident_types:'情緒低落' },
+                { id:3, member_name:'張大華', coach_name:'王教練', class_date:'2026-02-04', class_time:'16:00', class_type:'stretching', incident_types:'受傷' }
+            ]);
         }
+    }
+
+    function renderPendingList(items) {
+        const section = document.getElementById('pendingSection');
+        const list = document.getElementById('pendingList');
+        list.innerHTML = '';
+
+        if (!items || items.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        const typeLabels = { ai_analysis:'AI分析', pilates:'皮拉提斯', strength_training:'重訓', stretching:'伸展' };
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'pending-item glass';
+            const dateStr = item.class_date ? formatDate(item.class_date) : '';
+            const timeStr = item.class_time ? item.class_time.substring(0,5) : '';
+            const typeStr = typeLabels[item.class_type] || item.class_type || '';
+            const tags = (item.incident_types||'').split(',').filter(Boolean).map(t => `<span class="pending-tag">${t.trim()}</span>`).join('');
+
+            div.innerHTML = `
+                <div class="pending-dot"></div>
+                <div class="pending-info">
+                    <div class="pending-title">${item.member_name||'未知'} — ${item.coach_name||''} ${tags}</div>
+                    <div class="pending-meta">${dateStr} ${timeStr}　${typeStr}</div>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function formatDate(dateStr) {
+        try {
+            const d = new Date(dateStr);
+            return `${d.getMonth()+1}/${d.getDate()}`;
+        } catch { return dateStr; }
     }
 
     async function refreshData() { showToast('🔄 更新中...'); await loadDashboardData(); renderModules(); showToast('✅ 已更新'); }
