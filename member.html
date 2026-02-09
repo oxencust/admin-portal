@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>學員管理 — 衡點健身</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #7ac19a;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --yellow: #ffe08b;
+            --blue: #9fcccc;
+            --danger: #e05252;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+            background-attachment: fixed;
+            color: #2d3436;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; top: -20%; right: -10%;
+            width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(122,193,154,0.25) 0%, transparent 60%);
+            border-radius: 50%; z-index: 0;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .glass-strong {
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* ===== Container ===== */
+        .container {
+            position: relative; z-index: 1;
+            max-width: 600px; margin: 0 auto;
+            padding: 12px 12px 80px;
+        }
+
+        /* ===== Search Bar ===== */
+        .search-bar {
+            border-radius: 16px; padding: 10px 14px;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 10px;
+        }
+        .search-bar input {
+            flex: 1; border: none; background: transparent;
+            font-size: 14px; font-family: inherit; color: #2d3436;
+            outline: none;
+        }
+        .search-bar input::placeholder { color: #bbb; }
+        .search-icon { font-size: 16px; color: #999; flex-shrink: 0; }
+        .search-count { font-size: 12px; color: #999; flex-shrink: 0; white-space: nowrap; }
+
+        /* ===== Filter Chips ===== */
+        .filter-row {
+            display: flex; gap: 6px; overflow-x: auto;
+            padding: 0 2px 10px; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .filter-row::-webkit-scrollbar { display: none; }
+        .filter-chip {
+            flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 500; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.4); color: #888;
+            transition: all 0.2s;
+        }
+        .filter-chip.active {
+            background: var(--chip-active-bg, var(--green)); color: #fff;
+            border-color: var(--chip-active-bg, var(--green)); font-weight: 600;
+        }
+
+        /* ===== Member Cards ===== */
+        .member-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .member-card {
+            border-radius: 14px; padding: 14px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .member-card:active { transform: scale(0.98); }
+
+        .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .card-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .card-avatar.m { background: var(--blue); }
+        .card-avatar.f { background: var(--pink); }
+        .card-avatar.o { background: var(--yellow); color: #b08c3a; }
+
+        .card-name-area { flex: 1; min-width: 0; }
+        .card-name { font-size: 15px; font-weight: 600; }
+        .card-nickname { font-size: 11px; color: #999; }
+        .card-id { font-size: 11px; color: #bbb; font-weight: 400; }
+
+        .card-status {
+            padding: 2px 10px; border-radius: 8px;
+            font-size: 11px; font-weight: 600; flex-shrink: 0;
+        }
+        .status-ok { background: rgba(122,193,154,0.15); color: var(--green-dark); }
+        .status-past { background: rgba(0,0,0,0.06); color: #999; }
+        .status-vip { background: rgba(242,172,152,0.2); color: #c0735c; }
+        .status-friend { background: rgba(255,224,139,0.3); color: #b08c3a; }
+
+        .card-grade {
+            display: inline-block; padding: 2px 8px; border-radius: 8px;
+            font-size: 10px; font-weight: 600; margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .card-meta {
+            display: flex; flex-wrap: wrap; gap: 6px 12px;
+            font-size: 12px; color: #888;
+        }
+        .meta-item { display: flex; align-items: center; gap: 4px; }
+        .meta-icon { font-size: 11px; }
+
+        /* ===== Pagination ===== */
+        .pagination {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin-top: 16px; padding: 10px 0;
+        }
+        .page-btn {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            border: none; background: rgba(255,255,255,0.4); color: #888;
+            transition: all 0.2s;
+        }
+        .page-btn.active { background: var(--green); color: #fff; }
+        .page-btn:disabled { opacity: 0.3; cursor: default; }
+        .page-info { font-size: 12px; color: #999; }
+
+        /* ===== Detail Panel (slide up) ===== */
+        .detail-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.3);
+            opacity: 0; visibility: hidden;
+            transition: all 0.3s;
+        }
+        .detail-overlay.show { opacity: 1; visibility: visible; }
+
+        .detail-panel {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 101;
+            max-height: 90vh; border-radius: 20px 20px 0 0;
+            padding: 0; overflow: hidden;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .detail-panel.show { transform: translateY(0); }
+
+        .detail-handle {
+            text-align: center; padding: 12px 0 8px; cursor: pointer;
+        }
+        .detail-handle::after {
+            content: ''; display: inline-block;
+            width: 36px; height: 4px; border-radius: 2px;
+            background: rgba(0,0,0,0.12);
+        }
+
+        .detail-header {
+            display: flex; align-items: center; gap: 14px;
+            padding: 0 20px 16px;
+        }
+        .detail-avatar {
+            width: 52px; height: 52px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .detail-name { font-size: 20px; font-weight: 700; }
+        .detail-sub { font-size: 12px; color: #999; margin-top: 2px; }
+
+        .detail-body {
+            padding: 0 20px 30px;
+            max-height: calc(90vh - 140px);
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+        }
+
+        .detail-section { margin-bottom: 20px; }
+        .detail-section-title {
+            font-size: 13px; font-weight: 700; color: var(--green-dark);
+            margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+        }
+
+        .detail-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .detail-field {
+            border-radius: 10px; padding: 10px 12px;
+            background: rgba(255,255,255,0.4);
+        }
+        .detail-field.full { grid-column: 1 / -1; }
+        .field-label { font-size: 11px; color: #999; margin-bottom: 2px; }
+        .field-value { font-size: 13px; font-weight: 500; word-break: break-all; }
+        .field-value.empty { color: #ccc; font-style: italic; }
+
+        /* ===== Loading ===== */
+        .loading-bar {
+            text-align: center; padding: 40px 0;
+            font-size: 13px; color: #999;
+        }
+        .loading-bar::before {
+            content: ''; display: block; margin: 0 auto 12px;
+            width: 28px; height: 28px;
+            border: 3px solid rgba(122,193,154,0.2);
+            border-top-color: var(--green);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Empty ===== */
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            font-size: 14px; color: #bbb;
+        }
+        .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+            padding: 10px 24px; border-radius: 12px;
+            font-size: 13px; font-weight: 500; color: #fff;
+            background: rgba(45,52,54,0.85); backdrop-filter: blur(10px);
+            z-index: 200; opacity: 0; transition: all 0.35s;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Search -->
+    <div class="search-bar glass-strong">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="搜尋姓名、暱稱、電話、編號..." oninput="onSearch()">
+        <span class="search-count" id="searchCount"></span>
+    </div>
+
+    <!-- Filters: Status -->
+    <div class="filter-row" id="filterRow">
+        <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部</div>
+        <div class="filter-chip" data-filter="ok" onclick="setFilter('ok')">OK</div>
+        <div class="filter-chip" data-filter="vip" onclick="setFilter('vip')">VIP</div>
+        <div class="filter-chip" data-filter="friend" onclick="setFilter('friend')">親友</div>
+        <div class="filter-chip" data-filter="past" onclick="setFilter('past')">過去夥伴</div>
+    </div>
+
+    <!-- Filters: Grade (dynamic, hidden if no grades) -->
+    <div class="filter-row" id="gradeFilterRow" style="display:none;"></div>
+
+    <!-- Member List -->
+    <div class="member-list" id="memberList">
+        <div class="loading-bar">載入中...</div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none;"></div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel glass-strong" id="detailPanel">
+    <div class="detail-handle" onclick="closeDetail()"></div>
+    <div class="detail-header" id="detailHeader"></div>
+    <div class="detail-body" id="detailBody"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ====================================================================
+    //  CONFIG
+    // ====================================================================
+    const CONFIG = {
+        WEBHOOK_URL: 'YOUR_PORTAL_WEBHOOK',
+        PAGE_SIZE: 20
+    };
+
+    // Try to get webhook URL from parent (portal iframe)
+    try {
+        if (window.parent && window.parent.CONFIG) {
+            CONFIG.WEBHOOK_URL = window.parent.CONFIG.WEBHOOK_URL;
+        }
+    } catch(e) {}
+
+    // ====================================================================
+    //  STATE
+    // ====================================================================
+    let allMembers = [];
+    let filteredMembers = [];
+    let currentPage = 1;
+    let currentFilter = 'all';
+    let currentGradeFilter = 'all';
+    let searchTerm = '';
+
+    // Dynamic color grade palette (auto-assigned)
+    const GRADE_PALETTE = [
+        { bg: 'rgba(231,76,60,0.15)', color: '#c0392b', border: 'rgba(231,76,60,0.3)' },   // 紅
+        { bg: 'rgba(243,156,18,0.15)', color: '#d68910', border: 'rgba(243,156,18,0.3)' },   // 橙
+        { bg: 'rgba(241,196,15,0.15)', color: '#b7950b', border: 'rgba(241,196,15,0.3)' },   // 黃
+        { bg: 'rgba(46,204,113,0.15)', color: '#1e8449', border: 'rgba(46,204,113,0.3)' },   // 綠
+        { bg: 'rgba(52,152,219,0.15)', color: '#2471a3', border: 'rgba(52,152,219,0.3)' },   // 藍
+        { bg: 'rgba(155,89,182,0.15)', color: '#7d3c98', border: 'rgba(155,89,182,0.3)' },   // 紫
+        { bg: 'rgba(149,165,166,0.15)', color: '#717d7e', border: 'rgba(149,165,166,0.3)' },  // 灰
+        { bg: 'rgba(242,172,152,0.15)', color: '#c0735c', border: 'rgba(242,172,152,0.3)' },  // 粉
+    ];
+    let gradeColorMap = {}; // { gradeName: paletteIndex }
+
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    document.addEventListener('DOMContentLoaded', loadMembers);
+
+    async function loadMembers() {
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module: 'member', action: 'getList' })
+            });
+            const result = await r.json();
+            if (result.success && result.data) {
+                allMembers = result.data;
+                initGradeColors();
+                renderGradeChips();
+                applyFilters();
+            }
+        } catch(e) {
+            allMembers = generateSampleData();
+            initGradeColors();
+            renderGradeChips();
+            applyFilters();
+        }
+    }
+
+    // Build dynamic color map from actual data
+    function initGradeColors() {
+        gradeColorMap = {};
+        let idx = 0;
+        allMembers.forEach(m => {
+            const g = (m.color_grade || '').trim();
+            if (g && !(g in gradeColorMap)) {
+                gradeColorMap[g] = idx % GRADE_PALETTE.length;
+                idx++;
+            }
+        });
+    }
+
+    function getGradeStyle(grade) {
+        if (!grade || !(grade in gradeColorMap)) return null;
+        return GRADE_PALETTE[gradeColorMap[grade]];
+    }
+
+    // Render grade filter chips
+    function renderGradeChips() {
+        const container = document.getElementById('gradeFilterRow');
+        const grades = Object.keys(gradeColorMap);
+        if (grades.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+        let html = `<div class="filter-chip active" data-grade="all" onclick="setGradeFilter('all')">全部等級</div>`;
+        grades.forEach(g => {
+            const style = GRADE_PALETTE[gradeColorMap[g]];
+            html += `<div class="filter-chip" data-grade="${g}" onclick="setGradeFilter('${g}')" style="--chip-active-bg:${style.color}">${g}</div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // ====================================================================
+    //  FILTER & SEARCH
+    // ====================================================================
+    function setFilter(filter) {
+        currentFilter = filter;
+        currentPage = 1;
+        document.querySelectorAll('#filterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === filter));
+        applyFilters();
+    }
+
+    function setGradeFilter(grade) {
+        currentGradeFilter = grade;
+        currentPage = 1;
+        document.querySelectorAll('#gradeFilterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.grade === grade));
+        applyFilters();
+    }
+
+    function onSearch() {
+        searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+        currentPage = 1;
+        applyFilters();
+    }
+
+    function applyFilters() {
+        let list = [...allMembers];
+
+        // Status filter
+        if (currentFilter !== 'all') {
+            list = list.filter(m => {
+                const s = (m.member_status || '').toLowerCase();
+                if (currentFilter === 'ok') return s.includes('ok') && !s.includes('過去');
+                if (currentFilter === 'vip') return s.includes('vip');
+                if (currentFilter === 'friend') return s.includes('親友');
+                if (currentFilter === 'past') return s.includes('過去') && !s.includes('ok');
+                return true;
+            });
+        }
+
+        // Grade filter
+        if (currentGradeFilter !== 'all') {
+            list = list.filter(m => (m.color_grade || '').trim() === currentGradeFilter);
+        }
+
+        // Search
+        if (searchTerm) {
+            list = list.filter(m =>
+                (m.name || '').toLowerCase().includes(searchTerm) ||
+                (m.nickname || '').toLowerCase().includes(searchTerm) ||
+                (m.phone || '').includes(searchTerm) ||
+                (m.id || '').toString().includes(searchTerm)
+            );
+        }
+
+        filteredMembers = list;
+        document.getElementById('searchCount').textContent = `${list.length} 位`;
+        renderList();
+        renderPagination();
+    }
+
+    // ====================================================================
+    //  RENDER LIST
+    // ====================================================================
+    function renderList() {
+        const container = document.getElementById('memberList');
+        const start = (currentPage - 1) * CONFIG.PAGE_SIZE;
+        const pageData = filteredMembers.slice(start, start + CONFIG.PAGE_SIZE);
+
+        if (filteredMembers.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">😶</div>沒有找到符合條件的學員</div>`;
+            return;
+        }
+
+        container.innerHTML = pageData.map(m => {
+            const genderClass = m.gender === '男' ? 'm' : m.gender === '女' ? 'f' : 'o';
+            const initial = (m.name || '?')[0];
+            const statusClass = getStatusClass(m.member_status);
+            const statusLabel = getStatusLabel(m.member_status);
+            const age = calcAge(m.birth_date);
+            const gradeTag = getGradeTag(m.color_grade);
+
+            return `
+                <div class="member-card glass-strong" onclick="showDetail('${m.id}')">
+                    <div class="card-top">
+                        <div class="card-avatar ${genderClass}">${initial}</div>
+                        <div class="card-name-area">
+                            <div class="card-name">${m.name || '—'} <span class="card-id">#${m.id}</span>${gradeTag}</div>
+                            ${m.nickname ? `<div class="card-nickname">${m.nickname}</div>` : ''}
+                        </div>
+                        <div class="card-status ${statusClass}">${statusLabel}</div>
+                    </div>
+                    <div class="card-meta">
+                        ${m.phone ? `<span class="meta-item"><span class="meta-icon">📱</span>${m.phone}</span>` : ''}
+                        ${age !== null ? `<span class="meta-item"><span class="meta-icon">🎂</span>${age}歲</span>` : ''}
+                        ${m.pilates_coach ? `<span class="meta-item"><span class="meta-icon">🧘</span>${m.pilates_coach}</span>` : ''}
+                        ${m.weight_coach ? `<span class="meta-item"><span class="meta-icon">🏋️</span>${m.weight_coach}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ====================================================================
+    //  PAGINATION
+    // ====================================================================
+    function renderPagination() {
+        const container = document.getElementById('pagination');
+        const totalPages = Math.ceil(filteredMembers.length / CONFIG.PAGE_SIZE);
+
+        if (totalPages <= 1) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'flex';
+        let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+        // Show max 5 page buttons
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+        }
+
+        html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+        html += `<span class="page-info">${currentPage}/${totalPages}</span>`;
+        container.innerHTML = html;
+    }
+
+    function goPage(page) {
+        const totalPages = Math.ceil(filteredMembers.length / CONFIG.PAGE_SIZE);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderList();
+        renderPagination();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ====================================================================
+    //  DETAIL PANEL
+    // ====================================================================
+    function showDetail(id) {
+        const m = allMembers.find(x => String(x.id) === String(id));
+        if (!m) return;
+
+        const genderClass = m.gender === '男' ? 'm' : m.gender === '女' ? 'f' : 'o';
+        const initial = (m.name || '?')[0];
+        const age = calcAge(m.birth_date);
+
+        document.getElementById('detailHeader').innerHTML = `
+            <div class="detail-avatar ${genderClass}">${initial}</div>
+            <div>
+                <div class="detail-name">${m.name || '—'}</div>
+                <div class="detail-sub">#${m.id}${m.nickname ? ' · ' + m.nickname : ''}${age !== null ? ' · ' + age + '歲' : ''}</div>
+            </div>
+        `;
+
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-section">
+                <div class="detail-section-title">👤 基本資料</div>
+                <div class="detail-grid">
+                    ${field('編號', m.id)}
+                    ${field('狀態', m.member_status)}
+                    ${field('等級', m.color_grade)}
+                    ${field('性別', m.gender)}
+                    ${field('生日', formatDate(m.birth_date))}
+                    ${field('年齡', age !== null ? age + '歲' : null)}
+                    ${field('電話', m.phone)}
+                    ${field('Email', m.email, true)}
+                    ${field('職業', m.occupation)}
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">🏋️ 課程資訊</div>
+                <div class="detail-grid">
+                    ${field('皮拉提斯教練', m.pilates_coach)}
+                    ${field('重訓教練', m.weight_coach)}
+                    ${field('伸展課程', m.stretch_course)}
+                    ${field('近30日預約', m.booking_record_30d)}
+                    ${field('加入時間', formatJoinDate(m.join_year, m.join_month))}
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">📋 其他資訊</div>
+                <div class="detail-grid">
+                    ${field('病史', m.medical_history, true)}
+                    ${field('目標', m.goals, true)}
+                    ${field('運動經驗', m.exercise_exp, true)}
+                    ${field('備註', m.notes, true)}
+                    ${field('諮詢紀錄', m.consultation_notes, true)}
+                    ${field('關聯學員', m.related_member)}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('detailOverlay').classList.add('show');
+        document.getElementById('detailPanel').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+        document.getElementById('detailOverlay').classList.remove('show');
+        document.getElementById('detailPanel').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    function field(label, value, full) {
+        const cls = full ? 'detail-field full' : 'detail-field';
+        const val = (value !== null && value !== undefined && value !== '') ? value : '—';
+        const valCls = val === '—' ? 'field-value empty' : 'field-value';
+        return `<div class="${cls}"><div class="field-label">${label}</div><div class="${valCls}">${val}</div></div>`;
+    }
+
+    // ====================================================================
+    //  HELPERS
+    // ====================================================================
+    function calcAge(birth) {
+        if (!birth) return null;
+        const d = new Date(birth);
+        if (isNaN(d)) return null;
+        const today = new Date();
+        let age = today.getFullYear() - d.getFullYear();
+        const mDiff = today.getMonth() - d.getMonth();
+        if (mDiff < 0 || (mDiff === 0 && today.getDate() < d.getDate())) age--;
+        return age;
+    }
+
+    function formatDate(d) {
+        if (!d) return null;
+        try {
+            const date = new Date(d);
+            return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}`;
+        } catch { return d; }
+    }
+
+    function formatJoinDate(y, m) {
+        if (!y) return null;
+        return m ? `${y}年${m}月` : `${y}年`;
+    }
+
+    function getStatusClass(s) {
+        if (!s) return 'status-ok';
+        const l = s.toLowerCase();
+        if (l.includes('vip')) return 'status-vip';
+        if (l.includes('親友')) return 'status-friend';
+        if (l.includes('過去') && !l.includes('ok')) return 'status-past';
+        return 'status-ok';
+    }
+
+    function getStatusLabel(s) {
+        if (!s) return '—';
+        return s;
+    }
+
+    function getGradeTag(grade) {
+        if (!grade || !grade.trim()) return '';
+        const style = getGradeStyle(grade.trim());
+        if (!style) return '';
+        return `<span class="card-grade" style="background:${style.bg};color:${style.color};border:1px solid ${style.border}">${grade.trim()}</span>`;
+    }
+
+    // ====================================================================
+    //  TOAST
+    // ====================================================================
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ====================================================================
+    //  DEV MODE SAMPLE DATA
+    // ====================================================================
+    function generateSampleData() {
+        const names = ['王小明','李美玲','張大華','陳怡君','林志偉','黃雅婷','吳建宏','周淑芬','劉國華','蔡美惠','楊博文','許雅芳','鄭志明','謝淑娟','郭宗翰','蕭雅琪','曾建志','賴美珍','盧國偉','廖怡萍'];
+        const coaches = ['陳教練','林教練','王教練','李教練','張教練'];
+        const statuses = ['OK','OK','OK','OK','OK','OK','OK','OK','OK,過去夥伴','vip_商務夥伴','親友','過去夥伴'];
+        const grades = [null, null, null, null, null, '紅', '橙', '黃', '綠', '藍'];
+        const genders = ['男','女'];
+        const occupations = ['工程師','設計師','教師','醫師','護理師','業務','會計','自由業','學生','退休'];
+
+        return Array.from({length: 80}, (_, i) => ({
+            id: `M${String(i+1).padStart(4,'0')}`,
+            name: names[i % names.length] + (i >= names.length ? (i+1) : ''),
+            nickname: i % 3 === 0 ? names[i % names.length][0] + '哥' : null,
+            gender: genders[i % 2],
+            birth_date: `${1970 + Math.floor(Math.random()*35)}-${String(Math.floor(Math.random()*12)+1).padStart(2,'0')}-${String(Math.floor(Math.random()*28)+1).padStart(2,'0')}`,
+            phone: `09${String(Math.floor(Math.random()*100000000)).padStart(8,'0')}`,
+            email: i % 2 === 0 ? `user${i+1}@example.com` : null,
+            member_status: statuses[i % statuses.length],
+            color_grade: grades[i % grades.length],
+            pilates_coach: i % 3 !== 2 ? coaches[i % coaches.length] : null,
+            weight_coach: i % 4 !== 3 ? coaches[(i+1) % coaches.length] : null,
+            stretch_course: i % 5 === 0 ? '基礎伸展' : null,
+            occupation: occupations[i % occupations.length],
+            booking_record_30d: `${Math.floor(Math.random()*12)}次`,
+            join_year: 2020 + Math.floor(Math.random()*5),
+            join_month: Math.floor(Math.random()*12)+1,
+            medical_history: i % 4 === 0 ? '膝蓋舊傷' : null,
+            goals: i % 3 === 0 ? '增肌減脂' : i % 3 === 1 ? '改善體態' : '減重',
+            exercise_exp: i % 2 === 0 ? '有經驗' : '初學者',
+            notes: null,
+            consultation_notes: i % 5 === 0 ? '初次諮詢完成' : null,
+            related_member: null
+        }));
+    }
+</script>
+
+</body>
+</html>
