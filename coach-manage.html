@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>教練管理 — 衡點健身</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green: #7ac19a;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --yellow: #ffe08b;
+            --blue: #9fcccc;
+            --danger: #e05252;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+            background-attachment: fixed;
+            color: #2d3436;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; top: -20%; right: -10%;
+            width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(122,193,154,0.25) 0%, transparent 60%);
+            border-radius: 50%; z-index: 0;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .glass-strong {
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* ===== Container ===== */
+        .container {
+            position: relative; z-index: 1;
+            max-width: 600px; margin: 0 auto;
+            padding: 12px 12px 80px;
+        }
+
+        /* ===== Search Bar ===== */
+        .search-bar {
+            border-radius: 16px; padding: 10px 14px;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 10px;
+        }
+        .search-bar input {
+            flex: 1; border: none; background: transparent;
+            font-size: 14px; font-family: inherit; color: #2d3436; outline: none;
+        }
+        .search-bar input::placeholder { color: #bbb; }
+        .search-icon { font-size: 16px; color: #999; flex-shrink: 0; }
+        .search-count { font-size: 12px; color: #999; flex-shrink: 0; white-space: nowrap; }
+
+        /* ===== Filter Chips ===== */
+        .filter-row {
+            display: flex; gap: 6px; overflow-x: auto;
+            padding: 0 2px 10px; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .filter-row::-webkit-scrollbar { display: none; }
+        .filter-chip {
+            flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 500; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.4); color: #888;
+            transition: all 0.2s;
+        }
+        .filter-chip.active {
+            background: var(--green); color: #fff;
+            border-color: var(--green); font-weight: 600;
+        }
+
+        /* ===== Coach Cards ===== */
+        .coach-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .coach-card {
+            border-radius: 14px; padding: 14px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .coach-card:active { transform: scale(0.98); }
+
+        .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .card-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .avatar-pilates { background: rgba(159,204,204,0.3); }
+        .avatar-strength { background: rgba(242,172,152,0.3); }
+        .avatar-stretching { background: rgba(255,224,139,0.3); }
+        .avatar-ai { background: rgba(122,193,154,0.3); }
+
+        .card-name-area { flex: 1; min-width: 0; }
+        .card-name { font-size: 15px; font-weight: 600; }
+        .card-type {
+            display: inline-block; font-size: 11px; color: #888;
+            margin-top: 2px;
+        }
+
+        .card-active-badge {
+            padding: 2px 10px; border-radius: 8px;
+            font-size: 11px; font-weight: 600; flex-shrink: 0;
+        }
+        .badge-active { background: rgba(122,193,154,0.15); color: var(--green-dark); }
+        .badge-inactive { background: rgba(0,0,0,0.06); color: #999; }
+
+        .card-meta {
+            display: flex; flex-wrap: wrap; gap: 6px 14px;
+            font-size: 12px; color: #888;
+        }
+        .meta-item { display: flex; align-items: center; gap: 4px; }
+        .meta-icon { font-size: 11px; }
+
+        /* ===== Detail Panel ===== */
+        .detail-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.3);
+            opacity: 0; visibility: hidden;
+            transition: all 0.3s;
+        }
+        .detail-overlay.show { opacity: 1; visibility: visible; }
+
+        .detail-panel {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 101;
+            max-height: 90vh; border-radius: 20px 20px 0 0;
+            padding: 0; overflow: hidden;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .detail-panel.show { transform: translateY(0); }
+
+        .detail-handle {
+            text-align: center; padding: 12px 0 8px; cursor: pointer;
+        }
+        .detail-handle::after {
+            content: ''; display: inline-block;
+            width: 36px; height: 4px; border-radius: 2px;
+            background: rgba(0,0,0,0.12);
+        }
+
+        .detail-header {
+            display: flex; align-items: center; gap: 14px;
+            padding: 0 20px 16px;
+        }
+        .detail-avatar {
+            width: 52px; height: 52px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+        }
+        .detail-name { font-size: 20px; font-weight: 700; }
+        .detail-sub { font-size: 12px; color: #999; margin-top: 2px; }
+
+        .detail-body {
+            padding: 0 20px 30px;
+            max-height: calc(90vh - 140px);
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+        }
+
+        /* Tabs */
+        .detail-tabs {
+            display: flex; gap: 4px; margin-bottom: 16px;
+            border-radius: 12px; padding: 3px;
+            background: rgba(0,0,0,0.04);
+        }
+        .detail-tab {
+            flex: 1; padding: 8px 0; text-align: center;
+            border-radius: 10px; font-size: 13px; font-weight: 500;
+            cursor: pointer; color: #999; transition: all 0.2s;
+        }
+        .detail-tab.active {
+            background: #fff; color: #2d3436; font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Detail fields */
+        .detail-section { margin-bottom: 20px; }
+        .detail-section-title {
+            font-size: 13px; font-weight: 700; color: var(--green-dark);
+            margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+        }
+        .detail-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .detail-field {
+            border-radius: 10px; padding: 10px 12px;
+            background: rgba(255,255,255,0.4);
+        }
+        .detail-field.full { grid-column: 1 / -1; }
+        .field-label { font-size: 11px; color: #999; margin-bottom: 2px; }
+        .field-value { font-size: 13px; font-weight: 500; word-break: break-all; }
+        .field-value.empty { color: #ccc; font-style: italic; }
+
+        /* Session list */
+        .session-list { display: flex; flex-direction: column; gap: 6px; }
+        .session-item {
+            border-radius: 10px; padding: 10px 12px;
+            background: rgba(255,255,255,0.4);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .session-date { font-size: 12px; font-weight: 600; color: var(--green-dark); min-width: 45px; }
+        .session-info { flex: 1; min-width: 0; }
+        .session-member { font-size: 13px; font-weight: 500; }
+        .session-detail { font-size: 11px; color: #999; margin-top: 1px; }
+        .session-badge {
+            padding: 2px 8px; border-radius: 6px;
+            font-size: 10px; font-weight: 600; flex-shrink: 0;
+        }
+        .s-completed { background: rgba(122,193,154,0.15); color: var(--green-dark); }
+        .s-scheduled { background: rgba(159,204,204,0.2); color: #5a8a8a; }
+        .s-cancelled { background: rgba(0,0,0,0.06); color: #999; }
+        .s-no_show { background: rgba(224,82,82,0.1); color: var(--danger); }
+
+        /* Student list */
+        .student-item {
+            border-radius: 10px; padding: 10px 12px;
+            background: rgba(255,255,255,0.4);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .student-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+            background: var(--blue);
+        }
+        .student-name { font-size: 13px; font-weight: 500; flex: 1; }
+        .student-type { font-size: 11px; color: #999; }
+
+        /* Loading & Empty */
+        .loading-bar {
+            text-align: center; padding: 40px 0;
+            font-size: 13px; color: #999;
+        }
+        .loading-bar::before {
+            content: ''; display: block; margin: 0 auto 12px;
+            width: 28px; height: 28px;
+            border: 3px solid rgba(122,193,154,0.2);
+            border-top-color: var(--green);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center; padding: 40px 20px;
+            font-size: 13px; color: #bbb;
+        }
+        .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+        .load-more-btn {
+            display: block; width: 100%; padding: 10px;
+            border: none; border-radius: 10px;
+            background: rgba(255,255,255,0.4); color: var(--green-dark);
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            font-family: inherit; margin-top: 8px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+            padding: 10px 24px; border-radius: 12px;
+            font-size: 13px; font-weight: 500; color: #fff;
+            background: rgba(45,52,54,0.85); backdrop-filter: blur(10px);
+            z-index: 200; opacity: 0; transition: all 0.35s;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Search -->
+    <div class="search-bar glass-strong">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="搜尋教練姓名..." oninput="onSearch()">
+        <span class="search-count" id="searchCount"></span>
+    </div>
+
+    <!-- Filters: Type -->
+    <div class="filter-row" id="typeFilterRow">
+        <div class="filter-chip active" data-filter="all" onclick="setTypeFilter('all')">全部</div>
+        <div class="filter-chip" data-filter="pilates" onclick="setTypeFilter('pilates')">🧘 皮拉提斯</div>
+        <div class="filter-chip" data-filter="strength_training" onclick="setTypeFilter('strength_training')">🏋️ 重訓</div>
+        <div class="filter-chip" data-filter="stretching" onclick="setTypeFilter('stretching')">🤸 伸展</div>
+        <div class="filter-chip" data-filter="ai_analysis" onclick="setTypeFilter('ai_analysis')">🤖 AI 分析</div>
+    </div>
+
+    <!-- Filters: Status -->
+    <div class="filter-row" id="statusFilterRow">
+        <div class="filter-chip active" data-filter="all" onclick="setStatusFilter('all')">全部狀態</div>
+        <div class="filter-chip" data-filter="active" onclick="setStatusFilter('active')">✅ 啟用中</div>
+        <div class="filter-chip" data-filter="inactive" onclick="setStatusFilter('inactive')">⏸️ 未啟用</div>
+    </div>
+
+    <!-- Coach List -->
+    <div class="coach-list" id="coachList">
+        <div class="loading-bar">載入中...</div>
+    </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel glass-strong" id="detailPanel">
+    <div class="detail-handle" onclick="closeDetail()"></div>
+    <div class="detail-header" id="detailHeader"></div>
+    <div class="detail-body" id="detailBody"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ====================================================================
+    //  CONFIG
+    // ====================================================================
+    const CONFIG = {
+        WEBHOOK_URL: 'YOUR_PORTAL_WEBHOOK'
+    };
+
+    try {
+        if (window.parent && window.parent.CONFIG) {
+            CONFIG.WEBHOOK_URL = window.parent.CONFIG.WEBHOOK_URL;
+        }
+    } catch(e) {}
+
+    // ====================================================================
+    //  CONSTANTS
+    // ====================================================================
+    const TYPE_LABELS = {
+        pilates: '皮拉提斯',
+        strength_training: '重訓',
+        stretching: '伸展',
+        ai_analysis: 'AI 分析'
+    };
+    const TYPE_ICONS = {
+        pilates: '🧘',
+        strength_training: '🏋️',
+        stretching: '🤸',
+        ai_analysis: '🤖'
+    };
+    const TYPE_AVATAR_CLASS = {
+        pilates: 'avatar-pilates',
+        strength_training: 'avatar-strength',
+        stretching: 'avatar-stretching',
+        ai_analysis: 'avatar-ai'
+    };
+    const STATUS_LABELS = {
+        completed: '完成',
+        scheduled: '排定',
+        cancelled: '取消',
+        no_show: '未到'
+    };
+
+    // ====================================================================
+    //  STATE
+    // ====================================================================
+    let allCoaches = [];
+    let filteredCoaches = [];
+    let currentTypeFilter = 'all';
+    let currentStatusFilter = 'all';
+    let searchTerm = '';
+
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    document.addEventListener('DOMContentLoaded', loadCoaches);
+
+    async function loadCoaches() {
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module: 'coach', action: 'getList' })
+            });
+            const result = await r.json();
+            if (result.success && result.data) {
+                allCoaches = result.data;
+                applyFilters();
+            }
+        } catch(e) {
+            allCoaches = generateSampleData();
+            applyFilters();
+        }
+    }
+
+    // ====================================================================
+    //  FILTER & SEARCH
+    // ====================================================================
+    function setTypeFilter(f) {
+        currentTypeFilter = f;
+        document.querySelectorAll('#typeFilterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f));
+        applyFilters();
+    }
+
+    function setStatusFilter(f) {
+        currentStatusFilter = f;
+        document.querySelectorAll('#statusFilterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f));
+        applyFilters();
+    }
+
+    function onSearch() {
+        searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+        applyFilters();
+    }
+
+    function applyFilters() {
+        let list = [...allCoaches];
+
+        if (currentTypeFilter !== 'all') {
+            list = list.filter(c => c.coach_type === currentTypeFilter);
+        }
+
+        if (currentStatusFilter !== 'all') {
+            if (currentStatusFilter === 'active') list = list.filter(c => c.is_active === 1 || c.is_active === true);
+            else list = list.filter(c => c.is_active === 0 || c.is_active === false);
+        }
+
+        if (searchTerm) {
+            list = list.filter(c => (c.coach_name || '').toLowerCase().includes(searchTerm));
+        }
+
+        filteredCoaches = list;
+        document.getElementById('searchCount').textContent = `${list.length} 位`;
+        renderList();
+    }
+
+    // ====================================================================
+    //  RENDER LIST
+    // ====================================================================
+    function renderList() {
+        const container = document.getElementById('coachList');
+
+        if (filteredCoaches.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-icon">😶</div>沒有找到符合條件的教練</div>`;
+            return;
+        }
+
+        container.innerHTML = filteredCoaches.map(c => {
+            const icon = TYPE_ICONS[c.coach_type] || '👨‍🏫';
+            const avatarClass = TYPE_AVATAR_CLASS[c.coach_type] || 'avatar-ai';
+            const typeLabel = TYPE_LABELS[c.coach_type] || c.coach_type;
+            const isActive = c.is_active === 1 || c.is_active === true;
+            const studentCount = c.student_count || 0;
+
+            return `
+                <div class="coach-card glass-strong" onclick="showDetail(${c.id})">
+                    <div class="card-top">
+                        <div class="card-avatar ${avatarClass}">${icon}</div>
+                        <div class="card-name-area">
+                            <div class="card-name">${c.coach_name}</div>
+                            <div class="card-type">${typeLabel}</div>
+                        </div>
+                        <div class="card-active-badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? '啟用中' : '未啟用'}</div>
+                    </div>
+                    <div class="card-meta">
+                        <span class="meta-item"><span class="meta-icon">👥</span>學員 ${studentCount} 位</span>
+                        ${c.line_id ? `<span class="meta-item"><span class="meta-icon">💬</span>LINE 已綁定</span>` : ''}
+                        ${c.line_id_edu ? `<span class="meta-item"><span class="meta-icon">📚</span>教務 LINE 已綁定</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ====================================================================
+    //  DETAIL PANEL
+    // ====================================================================
+    let currentCoachId = null;
+
+    function showDetail(id) {
+        const c = allCoaches.find(x => x.id === id);
+        if (!c) return;
+        currentCoachId = id;
+
+        const icon = TYPE_ICONS[c.coach_type] || '👨‍🏫';
+        const avatarClass = TYPE_AVATAR_CLASS[c.coach_type] || 'avatar-ai';
+        const typeLabel = TYPE_LABELS[c.coach_type] || c.coach_type;
+        const isActive = c.is_active === 1 || c.is_active === true;
+
+        document.getElementById('detailHeader').innerHTML = `
+            <div class="detail-avatar ${avatarClass}">${icon}</div>
+            <div>
+                <div class="detail-name">${c.coach_name}</div>
+                <div class="detail-sub">${typeLabel} · ${isActive ? '啟用中' : '未啟用'}</div>
+            </div>
+        `;
+
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-tabs">
+                <div class="detail-tab active" data-tab="info" onclick="switchTab('info')">基本資料</div>
+                <div class="detail-tab" data-tab="sessions" onclick="switchTab('sessions')">課堂紀錄</div>
+                <div class="detail-tab" data-tab="students" onclick="switchTab('students')">學員列表</div>
+            </div>
+
+            <div class="tab-content active" id="tabInfo">
+                <div class="detail-section">
+                    <div class="detail-section-title">👨‍🏫 教練資訊</div>
+                    <div class="detail-grid">
+                        ${field('編號', c.id)}
+                        ${field('姓名', c.coach_name)}
+                        ${field('類型', typeLabel)}
+                        ${field('狀態', isActive ? '啟用中' : '未啟用')}
+                        ${field('LINE ID（主帳號）', c.line_id, true)}
+                        ${field('LINE ID（教務）', c.line_id_edu, true)}
+                        ${field('建立時間', formatDatetime(c.created_at))}
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">📊 統計</div>
+                    <div class="detail-grid">
+                        ${field('負責學員數', c.student_count || 0)}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tabSessions">
+                <div class="loading-bar" id="sessionsLoading">載入課堂紀錄...</div>
+                <div class="session-list" id="sessionList"></div>
+            </div>
+
+            <div class="tab-content" id="tabStudents">
+                <div class="loading-bar" id="studentsLoading">載入學員列表...</div>
+                <div class="session-list" id="studentList"></div>
+            </div>
+        `;
+
+        document.getElementById('detailOverlay').classList.add('show');
+        document.getElementById('detailPanel').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+        document.getElementById('detailOverlay').classList.remove('show');
+        document.getElementById('detailPanel').classList.remove('show');
+        document.body.style.overflow = '';
+        currentCoachId = null;
+    }
+
+    // ====================================================================
+    //  TABS
+    // ====================================================================
+    function switchTab(tab) {
+        document.querySelectorAll('.detail-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(tab === 'info' ? 'tabInfo' : tab === 'sessions' ? 'tabSessions' : 'tabStudents').classList.add('active');
+
+        if (tab === 'sessions') loadSessions(currentCoachId);
+        if (tab === 'students') loadStudents(currentCoachId);
+    }
+
+    // ====================================================================
+    //  LOAD SESSIONS
+    // ====================================================================
+    async function loadSessions(coachId) {
+        const list = document.getElementById('sessionList');
+        const loading = document.getElementById('sessionsLoading');
+        list.innerHTML = '';
+        loading.style.display = 'block';
+
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module: 'coach', action: 'getSessions', data: { coachId } })
+            });
+            const result = await r.json();
+            loading.style.display = 'none';
+
+            if (result.success && result.data && result.data.length > 0) {
+                list.innerHTML = result.data.map(s => {
+                    const statusCls = 's-' + (s.status || 'scheduled');
+                    const statusLabel = STATUS_LABELS[s.status] || s.status;
+                    const date = formatShortDate(s.class_date);
+                    const time = s.class_time ? s.class_time.substring(0, 5) : '';
+                    const typeLabel = TYPE_LABELS[s.class_type] || s.class_type;
+
+                    return `
+                        <div class="session-item">
+                            <div class="session-date">${date}</div>
+                            <div class="session-info">
+                                <div class="session-member">${s.member_name || '—'}</div>
+                                <div class="session-detail">${time} · ${typeLabel}</div>
+                            </div>
+                            <div class="session-badge ${statusCls}">${statusLabel}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>尚無課堂紀錄</div>`;
+            }
+        } catch(e) {
+            loading.style.display = 'none';
+            // Dev mode sample
+            list.innerHTML = generateSampleSessions();
+        }
+    }
+
+    // ====================================================================
+    //  LOAD STUDENTS
+    // ====================================================================
+    async function loadStudents(coachId) {
+        const list = document.getElementById('studentList');
+        const loading = document.getElementById('studentsLoading');
+        list.innerHTML = '';
+        loading.style.display = 'block';
+
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module: 'coach', action: 'getStudents', data: { coachId } })
+            });
+            const result = await r.json();
+            loading.style.display = 'none';
+
+            if (result.success && result.data && result.data.length > 0) {
+                list.innerHTML = result.data.map(s => {
+                    const initial = (s.name || '?')[0];
+                    return `
+                        <div class="student-item">
+                            <div class="student-avatar">${initial}</div>
+                            <div class="student-name">${s.name}</div>
+                            <div class="student-type">${s.course_type || ''}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                list.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>尚無負責學員</div>`;
+            }
+        } catch(e) {
+            loading.style.display = 'none';
+            list.innerHTML = generateSampleStudents();
+        }
+    }
+
+    // ====================================================================
+    //  HELPERS
+    // ====================================================================
+    function field(label, value, full) {
+        const cls = full ? 'detail-field full' : 'detail-field';
+        const val = (value !== null && value !== undefined && value !== '') ? value : '—';
+        const valCls = val === '—' ? 'field-value empty' : 'field-value';
+        return `<div class="${cls}"><div class="field-label">${label}</div><div class="${valCls}">${val}</div></div>`;
+    }
+
+    function formatDatetime(d) {
+        if (!d) return null;
+        try {
+            const date = new Date(d);
+            return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}`;
+        } catch { return d; }
+    }
+
+    function formatShortDate(d) {
+        if (!d) return '—';
+        try {
+            const date = new Date(d);
+            return `${date.getMonth()+1}/${date.getDate()}`;
+        } catch { return d; }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ====================================================================
+    //  DEV MODE SAMPLE DATA
+    // ====================================================================
+    function generateSampleData() {
+        const names = ['陳教練','林教練','王教練','李教練','張教練','黃教練','吳教練','周教練','劉教練','蔡教練','楊教練','謝教練'];
+        const types = ['pilates','strength_training','stretching','ai_analysis'];
+        return names.map((name, i) => ({
+            id: i + 1,
+            coach_name: name,
+            coach_type: types[i % types.length],
+            is_active: i < 10 ? 1 : 0,
+            line_id: i % 3 !== 2 ? `U${Math.random().toString(36).substring(2,12)}` : null,
+            line_id_edu: i % 2 === 0 ? `U${Math.random().toString(36).substring(2,12)}` : null,
+            student_count: Math.floor(Math.random() * 30) + 5,
+            created_at: '2024-01-15T10:00:00'
+        }));
+    }
+
+    function generateSampleSessions() {
+        const members = ['王小明','李美玲','張大華','陳怡君','林志偉'];
+        const statuses = ['completed','completed','completed','scheduled','cancelled'];
+        return members.map((name, i) => `
+            <div class="session-item">
+                <div class="session-date">2/${10-i}</div>
+                <div class="session-info">
+                    <div class="session-member">${name}</div>
+                    <div class="session-detail">${10+i}:00 · 皮拉提斯</div>
+                </div>
+                <div class="session-badge s-${statuses[i]}">${STATUS_LABELS[statuses[i]]}</div>
+            </div>
+        `).join('');
+    }
+
+    function generateSampleStudents() {
+        const names = ['王小明','李美玲','張大華','陳怡君','林志偉','黃雅婷','吳建宏'];
+        return names.map(name => `
+            <div class="student-item">
+                <div class="student-avatar">${name[0]}</div>
+                <div class="student-name">${name}</div>
+                <div class="student-type">皮拉提斯</div>
+            </div>
+        `).join('');
+    }
+</script>
+
+</body>
+</html>
