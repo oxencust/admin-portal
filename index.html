@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>衡點健身 管理後台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        :root {
+            --green: #7ac19a;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --yellow: #ffe08b;
+            --blue: #9fcccc;
+            --danger: #e05252;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+            background-attachment: fixed;
+            color: #2d3436;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(122,193,154,0.25) 0%, transparent 60%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -10%;
+            left: -15%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(159,204,204,0.2) 0%, transparent 60%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .glass-strong {
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* Loading */
+        .loading-screen {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.5s, visibility 0.5s;
+        }
+        .loading-screen.hide { opacity: 0; visibility: hidden; }
+        .loading-logo { font-size: 28px; font-weight: 900; color: var(--green-dark); letter-spacing: 4px; margin-bottom: 8px; animation: fadeInUp 0.6s ease; }
+        .loading-sub { font-size: 13px; color: #999; letter-spacing: 6px; margin-bottom: 40px; animation: fadeInUp 0.6s ease 0.1s both; }
+        .loading-spinner { width: 36px; height: 36px; border: 3px solid rgba(122,193,154,0.2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loading-text { margin-top: 20px; font-size: 13px; color: #aaa; animation: fadeInUp 0.6s ease 0.2s both; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Header - compact */
+        .header { padding: 14px 16px 10px; position: relative; z-index: 1; }
+        .header-row { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: 900; box-shadow: 0 3px 10px rgba(122,193,154,0.3); flex-shrink: 0; }
+        .header-info { flex: 1; min-width: 0; }
+        .header-info-top { display: flex; align-items: center; gap: 6px; margin-bottom: 1px; }
+        .welcome-name { font-size: 17px; font-weight: 800; color: #2d3436; }
+        .welcome-hi { font-size: 12px; color: #999; }
+        .role-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; background: linear-gradient(135deg, rgba(122,193,154,0.15), rgba(159,204,204,0.15)); color: var(--green-dark); border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid rgba(122,193,154,0.15); }
+        .header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .icon-btn { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s; color: #636e72; border: none; }
+        .icon-btn:hover { background: rgba(255,255,255,0.8); transform: scale(1.05); }
+
+        /* Main */
+        .main { padding: 0 16px 100px; max-width: 600px; margin: 0 auto; position: relative; z-index: 1; }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; animation: fadeInUp 0.5s ease 0.1s both; }
+        .stat-card { border-radius: 14px; padding: 12px 10px; text-align: center; transition: transform 0.2s; }
+        .stat-card:active { transform: scale(0.97); }
+        .stat-icon { font-size: 18px; margin-bottom: 4px; }
+        .stat-value { font-size: 20px; font-weight: 800; color: var(--green-dark); margin-bottom: 1px; }
+        .stat-label { font-size: 10px; color: #636e72; }
+
+        /* Section header with edit button */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px; }
+        .section-title { font-size: 13px; font-weight: 600; color: #636e72; letter-spacing: 1px; margin: 0; }
+        .section-edit-btn { font-size: 12px; font-weight: 600; color: var(--green); cursor: pointer; padding: 4px 10px; border-radius: 8px; transition: all 0.2s; border: none; background: none; font-family: inherit; }
+        .section-edit-btn:hover { background: rgba(122,193,154,0.1); }
+        .section-edit-btn.active { color: var(--danger); }
+
+        /* Module Grid - 3 Column */
+        .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; position: relative; }
+        .module-card { border-radius: 18px; padding: 16px 10px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s, opacity 0.2s; position: relative; display: block; text-decoration: none; color: inherit; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+        .module-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .module-card:active:not(.dragging) { transform: scale(0.96); }
+        .module-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 8px; pointer-events: none; }
+        .module-card[data-color="green"] .module-icon-wrap { background: rgba(122,193,154,0.2); }
+        .module-card[data-color="blue"] .module-icon-wrap { background: rgba(159,204,204,0.25); }
+        .module-card[data-color="pink"] .module-icon-wrap { background: rgba(242,172,152,0.2); }
+        .module-card[data-color="yellow"] .module-icon-wrap { background: rgba(255,224,139,0.3); }
+        .module-name { font-size: 13px; font-weight: 600; pointer-events: none; }
+        .module-badge { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; font-size: 11px; font-weight: 600; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; z-index: 2; pointer-events: none; }
+        .module-badge.hide { display: none; }
+
+        /* Drag states */
+        .module-card.dragging {
+            opacity: 0.9;
+            transform: scale(1.08) !important;
+            box-shadow: 0 16px 50px rgba(0,0,0,0.18) !important;
+            z-index: 100;
+            transition: none !important;
+        }
+        .module-card.drag-over {
+            transform: scale(0.92);
+            opacity: 0.5;
+        }
+        .module-grid.edit-mode .module-card {
+            animation: wiggle 0.3s ease infinite alternate;
+        }
+        .module-grid.edit-mode .module-card:nth-child(even) {
+            animation-delay: 0.15s;
+        }
+        @keyframes wiggle {
+            from { transform: rotate(-1deg); }
+            to { transform: rotate(1deg); }
+        }
+        .module-grid.edit-mode .module-card::after {
+            content: '⠿';
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-size: 14px;
+            color: rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+
+        .module-card:nth-child(1) { animation: fadeInUp 0.35s ease 0.12s both; }
+        .module-card:nth-child(2) { animation: fadeInUp 0.35s ease 0.17s both; }
+        .module-card:nth-child(3) { animation: fadeInUp 0.35s ease 0.22s both; }
+        .module-card:nth-child(4) { animation: fadeInUp 0.35s ease 0.27s both; }
+        .module-card:nth-child(5) { animation: fadeInUp 0.35s ease 0.32s both; }
+        .module-card:nth-child(6) { animation: fadeInUp 0.35s ease 0.37s both; }
+        .module-card:nth-child(7) { animation: fadeInUp 0.35s ease 0.42s both; }
+        .module-card:nth-child(8) { animation: fadeInUp 0.35s ease 0.47s both; }
+        .module-card:nth-child(9) { animation: fadeInUp 0.35s ease 0.52s both; }
+
+        /* Utility */
+        .utility-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .utility-btn { flex: 1; min-width: 0; border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 600; color: #636e72; cursor: pointer; font-family: inherit; border: none; transition: all 0.2s; }
+        .utility-btn:hover { color: var(--green-dark); transform: scale(1.02); }
+        .utility-btn:active { transform: scale(0.97); }
+        .utility-empty { width: 100%; text-align: center; font-size: 12px; color: #bbb; padding: 10px; }
+
+        .footer { text-align: center; padding: 24px; font-size: 11px; color: #aaa; }
+
+        /* Login */
+        .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; padding: 40px; }
+        .login-screen.show { display: flex; }
+        .login-card { border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
+        .login-title { text-align: center; font-size: 20px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px; }
+        .login-subtitle { text-align: center; font-size: 13px; color: #999; margin-bottom: 28px; }
+        .login-input-group { margin-bottom: 16px; }
+        .login-label { display: block; font-size: 12px; font-weight: 600; color: #2d3436; margin-bottom: 6px; }
+        .login-input { width: 100%; padding: 12px 14px; border: 2px solid rgba(0,0,0,0.06); border-radius: 12px; font-size: 14px; font-family: inherit; transition: border-color 0.2s; outline: none; background: rgba(255,255,255,0.6); }
+        .login-input:focus { border-color: var(--green); }
+        .login-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; margin-top: 8px; }
+        .login-btn-primary { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; box-shadow: 0 4px 15px rgba(122,193,154,0.3); }
+        .login-btn-primary:hover { box-shadow: 0 6px 20px rgba(122,193,154,0.4); }
+        .login-btn-secondary { background: rgba(255,255,255,0.6); color: #636e72; margin-top: 10px; }
+        .login-divider { text-align: center; font-size: 12px; color: #bbb; margin: 20px 0; position: relative; }
+        .login-divider::before, .login-divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: rgba(0,0,0,0.06); }
+        .login-divider::before { left: 0; }
+        .login-divider::after { right: 0; }
+        .login-error { background: rgba(224,82,82,0.1); color: var(--danger); font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; display: none; }
+        .login-error.show { display: block; }
+
+        .no-permission { text-align: center; padding: 60px 20px; }
+        .no-permission-icon { font-size: 48px; margin-bottom: 16px; }
+        .no-permission-title { font-size: 18px; font-weight: 600; color: #2d3436; margin-bottom: 8px; }
+        .no-permission-desc { font-size: 13px; color: #636e72; line-height: 1.6; }
+
+        /* Module iframe page */
+        #modulePage { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; background: #f0f2f5; }
+        .module-topbar { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.06); padding: 10px 12px; min-height: 50px; flex-shrink: 0; }
+        .module-topbar-left { display: flex; align-items: center; gap: 6px; color: var(--green-dark); font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: all 0.2s; }
+        .module-topbar-left:hover { background: rgba(122,193,154,0.1); }
+        .module-topbar-left:active { transform: scale(0.97); }
+        .module-back-arrow { font-size: 16px; font-weight: 700; }
+        .module-topbar-title { display: flex; align-items: center; gap: 6px; color: #2d3436; font-size: 15px; font-weight: 600; position: absolute; left: 50%; transform: translateX(-50%); }
+        .module-topbar-right { display: flex; gap: 6px; }
+        .module-topbar-right .icon-btn { width: 32px; height: 32px; font-size: 14px; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.04); }
+        .module-frame-container { flex: 1; position: relative; overflow: hidden; }
+        .module-frame { width: 100%; height: 100%; border: none; background: white; }
+        .module-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%); z-index: 10; transition: opacity 0.3s; }
+        .module-loading.hide { opacity: 0; pointer-events: none; }
+
+        /* ===== Shortcut Picker Modal ===== */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200;
+            display: none; align-items: flex-end; justify-content: center;
+            animation: modalBgIn 0.2s ease;
+        }
+        .modal-overlay.show { display: flex; }
+        @keyframes modalBgIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-sheet {
+            width: 100%; max-width: 600px; max-height: 80vh;
+            background: white; border-radius: 20px 20px 0 0;
+            padding: 20px 20px 32px; overflow-y: auto;
+            animation: modalSlideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes modalSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+        .modal-title { font-size: 16px; font-weight: 700; color: #2d3436; margin-bottom: 4px; }
+        .modal-subtitle { font-size: 12px; color: #999; margin-bottom: 20px; }
+
+        .modal-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 12px; border-radius: 14px; margin-bottom: 6px;
+            cursor: pointer; transition: background 0.15s;
+        }
+        .modal-item:hover { background: rgba(0,0,0,0.03); }
+        .modal-item:active { background: rgba(0,0,0,0.06); }
+
+        .modal-item-icon {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .modal-item-icon.green { background: rgba(122,193,154,0.2); }
+        .modal-item-icon.blue { background: rgba(159,204,204,0.25); }
+        .modal-item-icon.pink { background: rgba(242,172,152,0.2); }
+        .modal-item-icon.yellow { background: rgba(255,224,139,0.3); }
+
+        .modal-item-info { flex: 1; }
+        .modal-item-name { font-size: 14px; font-weight: 600; }
+        .modal-item-desc { font-size: 11px; color: #999; }
+
+        .modal-item-check {
+            width: 28px; height: 28px; border-radius: 8px;
+            border: 2px solid #ddd; display: flex; align-items: center;
+            justify-content: center; flex-shrink: 0; font-size: 14px;
+            transition: all 0.2s;
+        }
+        .modal-item.selected .modal-item-check {
+            background: var(--green); border-color: var(--green); color: white;
+        }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.06); }
+        .modal-btn { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .modal-btn-cancel { background: #f0f2f5; color: #636e72; }
+        .modal-btn-save { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(45,52,54,0.9); backdrop-filter: blur(10px); color: white; padding: 12px 24px; border-radius: 14px; font-size: 13px; font-weight: 500; z-index: 10000; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 20px rgba(0,0,0,0.15); white-space: nowrap; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 360px) {
+            .module-grid { gap: 6px; }
+            .module-card { padding: 12px 6px; }
+            .module-icon-wrap { width: 42px; height: 42px; font-size: 20px; }
+            .module-name { font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">衡點健身</div>
+        <div class="loading-sub">BALANCE POINT</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text">系統載入中...</div>
+    </div>
+
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card glass-strong">
+            <div class="login-title">🏋️ 衡點健身</div>
+            <div class="login-subtitle">管理後台登入</div>
+            <div class="login-error" id="loginError"></div>
+            <div class="login-input-group">
+                <label class="login-label">帳號</label>
+                <input type="text" class="login-input" id="loginUsername" placeholder="請輸入帳號" autocomplete="username">
+            </div>
+            <div class="login-input-group">
+                <label class="login-label">密碼</label>
+                <input type="password" class="login-input" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password">
+            </div>
+            <button class="login-btn login-btn-primary" onclick="handleManualLogin()">登入</button>
+            <div class="login-divider">或</div>
+            <button class="login-btn login-btn-secondary" onclick="retryLiffLogin()">使用 LINE 登入</button>
+        </div>
+    </div>
+
+    <div id="mainApp" style="display: none;">
+        <div class="header">
+            <div class="header-row">
+                <div class="brand-icon">衡</div>
+                <div class="header-info">
+                    <div class="header-info-top">
+                        <span class="welcome-name" id="userName">管理員</span>
+                        <span class="welcome-hi" id="greetingText">早安 ☀️</span>
+                    </div>
+                    <div class="role-tag"><span>🔑</span><span id="userRoleText">超級管理員</span></div>
+                </div>
+                <div class="header-actions">
+                    <div class="icon-btn glass" onclick="refreshData()" title="重新整理">🔄</div>
+                    <div class="icon-btn glass" onclick="handleLogout()" title="登出">⏏️</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="stats-row">
+                <div class="stat-card glass">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-value" id="statMembers">-</div>
+                    <div class="stat-label">會員數</div>
+                </div>
+                <div class="stat-card glass">
+                    <div class="stat-icon">👨‍🏫</div>
+                    <div class="stat-value" id="statCoaches">-</div>
+                    <div class="stat-label">教練數</div>
+                </div>
+                <div class="stat-card glass">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-value" id="statPending">-</div>
+                    <div class="stat-label">待處理</div>
+                </div>
+            </div>
+
+            <!-- Module section with edit toggle -->
+            <div class="section-header">
+                <div class="section-title">功能模組</div>
+                <button class="section-edit-btn" id="editModuleBtn" onclick="toggleEditMode()">編輯排序</button>
+            </div>
+            <div class="module-grid" id="moduleGrid"></div>
+
+            <!-- Utility section with edit -->
+            <div class="section-header">
+                <div class="section-title" id="utilityTitle">快捷工具</div>
+                <button class="section-edit-btn" id="editUtilBtn" onclick="openShortcutPicker()">自訂</button>
+            </div>
+            <div class="utility-row" id="utilityRow"></div>
+
+            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v1.1.0</span></div>
+        </div>
+
+        <!-- Module Page (iframe) -->
+        <div id="modulePage" style="display:none;">
+            <div class="module-topbar">
+                <div class="module-topbar-left" onclick="backToHome()">
+                    <span class="module-back-arrow">←</span><span>返回首頁</span>
+                </div>
+                <div class="module-topbar-title">
+                    <span id="moduleIcon"></span><span id="moduleTitle"></span>
+                </div>
+                <div class="module-topbar-right">
+                    <div class="icon-btn" onclick="refreshModule()" title="重新整理">🔄</div>
+                    <div class="icon-btn" onclick="openModuleNewTab()" title="新分頁開啟">↗️</div>
+                </div>
+            </div>
+            <div class="module-frame-container">
+                <div class="module-loading" id="moduleLoading">
+                    <div class="loading-spinner" style="width:28px;height:28px;border-width:2.5px;"></div>
+                    <span style="margin-top:12px;font-size:13px;color:#999;">載入中...</span>
+                </div>
+                <iframe id="moduleFrame" class="module-frame" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcut Picker Modal -->
+    <div class="modal-overlay" id="shortcutModal">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-title">⚡ 自訂快捷工具</div>
+            <div class="modal-subtitle">選擇要顯示在快捷區的模組（最多 4 個）</div>
+            <div id="shortcutList"></div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closeShortcutPicker()">取消</button>
+                <button class="modal-btn modal-btn-save" onclick="saveShortcuts()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    const CONFIG = {
+        LIFF_ID: '2008660081-KUxKYrh2',
+        WEBHOOK_URL: 'https://hook.us2.make.com/YOUR_PORTAL_WEBHOOK',
+        BASE_URL: 'https://ginger-shu.github.io/hengdian/',
+        VERSION: '1.1.0'
+    };
+
+    // All available modules
+    const MODULES = [
+        { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理', url:'member.html', permission:'member_view', color:'green', roles:['super_admin','admin'] },
+        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、權限設定', url:'coach-manage.html', permission:'coach_view', color:'blue', roles:['super_admin','admin'] },
+        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調', url:'admin.html', permission:'substitute_view', color:'pink', roles:['super_admin','admin'], badge:'pendingSubstitute' },
+        { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定', url:'schedule-admin.html', permission:'staff_schedule_view', color:'yellow', roles:['super_admin','admin'] },
+        { id:'punch', icon:'⏰', name:'上下班打卡', desc:'打卡紀錄、出勤統計', url:'punch.html', permission:'attendance_view', color:'green', roles:['super_admin','admin','staff'] },
+        { id:'report', icon:'📊', name:'報表統計', desc:'營運數據、分析報表', url:'report.html', permission:'report_view', color:'blue', roles:['super_admin','admin'] },
+        { id:'settings', icon:'🔐', name:'系統設定', desc:'權限管理、系統配置', url:'settings.html', permission:'system_settings', color:'pink', roles:['super_admin'] }
+    ];
+
+    // All shortcut-able items (modules + standalone utilities)
+    const ALL_SHORTCUTS = [
+        { id:'sc_personal', icon:'📅', name:'個人班表', desc:'查看我的排班', url:'schedule-personal.html', color:'yellow', roles:['super_admin','admin','staff'] },
+        { id:'sc_logs', icon:'📜', name:'操作紀錄', desc:'系統操作歷史', url:'logs.html', color:'green', roles:['super_admin'] },
+        // Modules can also be shortcuts
+        ...MODULES.map(m => ({ ...m, id: 'sc_' + m.id, desc: m.desc }))
+    ];
+
+    // Default shortcut selection
+    const DEFAULT_SHORTCUTS = ['sc_personal', 'sc_logs'];
+
+    let currentUser = null, authToken = null;
+    let isEditMode = false;
+
+    // ====================================================================
+    //  LOCAL STORAGE HELPERS
+    // ====================================================================
+    function getStorageKey(key) {
+        const uid = currentUser?.lineUid || 'default';
+        return `portal_${uid}_${key}`;
+    }
+
+    function loadModuleOrder() {
+        try {
+            const saved = localStorage.getItem(getStorageKey('module_order'));
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    }
+
+    function saveModuleOrder(order) {
+        try { localStorage.setItem(getStorageKey('module_order'), JSON.stringify(order)); } catch {}
+    }
+
+    function loadShortcutIds() {
+        try {
+            const saved = localStorage.getItem(getStorageKey('shortcuts'));
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    }
+
+    function saveShortcutIds(ids) {
+        try { localStorage.setItem(getStorageKey('shortcuts'), JSON.stringify(ids)); } catch {}
+    }
+
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    document.addEventListener('DOMContentLoaded', initApp);
+
+    async function initApp() {
+        try {
+            await liff.init({ liffId: CONFIG.LIFF_ID });
+            if (liff.isLoggedIn()) {
+                const p = await liff.getProfile();
+                await authenticateUser(p.userId, p.displayName, p.pictureUrl, 'liff');
+            } else if (liff.isInClient()) { liff.login(); }
+            else { showLoginScreen(); }
+        } catch(e) { console.error('LIFF init error:', e); showLoginScreen(); }
+    }
+
+    // ====================================================================
+    //  AUTHENTICATION
+    // ====================================================================
+    async function authenticateUser(lineUid, displayName, pictureUrl, method) {
+        try {
+            updateLoadingText('驗證身份中...');
+            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'auth', action:'login', data:{lineUid,displayName,method} }) });
+            const result = await r.json();
+            if (result.success && result.user) {
+                currentUser = { id:result.user.id, name:result.user.name||displayName, lineUid, role:result.user.role, permissions:result.user.permissions||[], pictureUrl };
+                authToken = result.token || generateToken(lineUid);
+                updateLoadingText('載入模組中...');
+                await loadDashboardData(); renderApp(); hideLoading();
+            } else { showNoPermission(); }
+        } catch(e) {
+            if (CONFIG.WEBHOOK_URL.includes('YOUR_')) {
+                currentUser = { id:1, name:displayName||'開發模式', lineUid:lineUid||'dev_user', role:'super_admin', permissions:['all'], pictureUrl };
+                authToken = generateToken('dev'); renderApp(); hideLoading();
+                showToast('⚠️ 開發模式（請設定 Webhook）');
+            } else { showLoginScreen(); showToast('❌ 連線失敗'); }
+        }
+    }
+
+    async function handleManualLogin() {
+        const u = document.getElementById('loginUsername').value.trim();
+        const p = document.getElementById('loginPassword').value.trim();
+        if (!u||!p) { showLoginError('請輸入帳號和密碼'); return; }
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'auth', action:'manualLogin', data:{username:u,password:p} }) });
+            const result = await r.json();
+            if (result.success && result.user) {
+                document.getElementById('loginScreen').classList.remove('show');
+                document.getElementById('loadingScreen').classList.remove('hide');
+                await authenticateUser(result.user.lineUid, result.user.name, null, 'manual');
+            } else { showLoginError('帳號或密碼錯誤'); }
+        } catch(e) {
+            if (CONFIG.WEBHOOK_URL.includes('YOUR_')) {
+                document.getElementById('loginScreen').classList.remove('show');
+                document.getElementById('loadingScreen').classList.remove('hide');
+                currentUser = { id:1, name:u, lineUid:'manual_'+u, role:'super_admin', permissions:['all'] };
+                authToken = generateToken(u); renderApp(); hideLoading(); showToast('⚠️ 開發模式登入');
+            } else { showLoginError('連線失敗'); }
+        }
+    }
+
+    function retryLiffLogin() { liff.isInClient() ? liff.login() : liff.login({ redirectUri: window.location.href }); }
+    function handleLogout() { if(confirm('確定要登出嗎？')){ currentUser=null; authToken=null; if(liff.isLoggedIn()) liff.logout(); window.location.reload(); } }
+    function generateToken(s) { return btoa(`${s}:${Date.now()}:${Math.random().toString(36).substring(2,10)}`); }
+
+    // ====================================================================
+    //  RENDER
+    // ====================================================================
+    function renderApp() {
+        if (!currentUser) return;
+        document.getElementById('mainApp').style.display = 'block';
+        setGreeting();
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userRoleText').textContent = getRoleDisplay(currentUser.role);
+        renderModules();
+        renderUtilities();
+    }
+
+    function getOrderedModules() {
+        const visible = MODULES.filter(m => hasModuleAccess(m));
+        const savedOrder = loadModuleOrder();
+        if (!savedOrder) return visible;
+        // Sort by saved order, put unsaved ones at end
+        const ordered = [];
+        savedOrder.forEach(id => {
+            const mod = visible.find(m => m.id === id);
+            if (mod) ordered.push(mod);
+        });
+        // Add any new modules not in saved order
+        visible.forEach(m => { if (!ordered.includes(m)) ordered.push(m); });
+        return ordered;
+    }
+
+    function renderModules() {
+        const grid = document.getElementById('moduleGrid');
+        grid.innerHTML = '';
+        const ordered = getOrderedModules();
+
+        ordered.forEach(mod => {
+            const card = document.createElement('a');
+            card.className = 'module-card glass-strong';
+            card.dataset.color = mod.color;
+            card.dataset.id = mod.id;
+            card.href = 'javascript:void(0)';
+            card.onclick = (e) => { if (!isEditMode) navigateToModule(mod); };
+            const bc = mod.badge ? (window.dashboardData?.[mod.badge]||0) : 0;
+            card.innerHTML = `<div class="module-badge ${bc>0?'':'hide'}">${bc}</div><div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
+            grid.appendChild(card);
+        });
+
+        if (isEditMode) {
+            grid.classList.add('edit-mode');
+            initDragAndDrop();
+        }
+    }
+
+    function renderUtilities() {
+        const row = document.getElementById('utilityRow');
+        row.innerHTML = '';
+
+        const savedIds = loadShortcutIds() || DEFAULT_SHORTCUTS;
+        const available = ALL_SHORTCUTS.filter(s => s.roles.includes(currentUser.role));
+        const active = savedIds.map(id => available.find(s => s.id === id)).filter(Boolean);
+
+        if (active.length === 0) {
+            row.innerHTML = '<div class="utility-empty">點擊「自訂」添加快捷工具</div>';
+            return;
+        }
+
+        active.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'utility-btn glass';
+            btn.onclick = () => navigateToModule({ icon:item.icon, name:item.name, url:item.url, id:item.id });
+            btn.innerHTML = `${item.icon} ${item.name}`;
+            row.appendChild(btn);
+        });
+    }
+
+    // ====================================================================
+    //  MODULE DRAG & DROP (touch + mouse)
+    // ====================================================================
+    let dragState = null;
+
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const btn = document.getElementById('editModuleBtn');
+        const grid = document.getElementById('moduleGrid');
+
+        if (isEditMode) {
+            btn.textContent = '完成';
+            btn.classList.add('active');
+            grid.classList.add('edit-mode');
+            initDragAndDrop();
+            showToast('🔀 拖動模組可調整順序');
+        } else {
+            btn.textContent = '編輯排序';
+            btn.classList.remove('active');
+            grid.classList.remove('edit-mode');
+            cleanupDrag();
+            // Save current order
+            const cards = grid.querySelectorAll('.module-card');
+            const order = Array.from(cards).map(c => c.dataset.id);
+            saveModuleOrder(order);
+            showToast('✅ 排序已儲存');
+        }
+    }
+
+    function initDragAndDrop() {
+        const grid = document.getElementById('moduleGrid');
+        const cards = grid.querySelectorAll('.module-card');
+
+        cards.forEach(card => {
+            // Touch events
+            card.addEventListener('touchstart', onDragStart, { passive: false });
+            card.addEventListener('touchmove', onDragMove, { passive: false });
+            card.addEventListener('touchend', onDragEnd);
+            // Mouse events
+            card.addEventListener('mousedown', onDragStart);
+        });
+
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+    }
+
+    function cleanupDrag() {
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+    }
+
+    function onDragStart(e) {
+        if (!isEditMode) return;
+        e.preventDefault();
+
+        const card = e.currentTarget;
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = card.getBoundingClientRect();
+
+        dragState = {
+            el: card,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            offsetX: touch.clientX - rect.left,
+            offsetY: touch.clientY - rect.top,
+            origRect: rect,
+            moved: false
+        };
+
+        // Delay to distinguish tap from drag
+        dragState.timer = setTimeout(() => {
+            if (dragState) {
+                card.classList.add('dragging');
+                card.style.position = 'fixed';
+                card.style.width = rect.width + 'px';
+                card.style.left = (touch.clientX - dragState.offsetX) + 'px';
+                card.style.top = (touch.clientY - dragState.offsetY) + 'px';
+                card.style.zIndex = '100';
+                dragState.moved = true;
+
+                // Create placeholder
+                const placeholder = document.createElement('div');
+                placeholder.className = 'module-card glass-strong';
+                placeholder.style.opacity = '0.2';
+                placeholder.style.minHeight = rect.height + 'px';
+                placeholder.dataset.placeholder = 'true';
+                card.parentNode.insertBefore(placeholder, card);
+                dragState.placeholder = placeholder;
+            }
+        }, 150);
+    }
+
+    function onDragMove(e) {
+        if (!dragState || !dragState.moved) return;
+        e.preventDefault();
+
+        const touch = e.touches ? e.touches[0] : e;
+        const card = dragState.el;
+
+        card.style.left = (touch.clientX - dragState.offsetX) + 'px';
+        card.style.top = (touch.clientY - dragState.offsetY) + 'px';
+
+        // Find element under finger
+        card.style.pointerEvents = 'none';
+        const under = document.elementFromPoint(touch.clientX, touch.clientY);
+        card.style.pointerEvents = '';
+
+        const target = under?.closest('.module-card:not(.dragging):not([data-placeholder])');
+        const grid = document.getElementById('moduleGrid');
+
+        // Clear previous drag-over
+        grid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+        if (target && dragState.placeholder) {
+            target.classList.add('drag-over');
+            const targetRect = target.getBoundingClientRect();
+            const midY = targetRect.top + targetRect.height / 2;
+            if (touch.clientY < midY) {
+                grid.insertBefore(dragState.placeholder, target);
+            } else {
+                grid.insertBefore(dragState.placeholder, target.nextSibling);
+            }
+        }
+    }
+
+    function onDragEnd(e) {
+        if (!dragState) return;
+
+        clearTimeout(dragState.timer);
+
+        const card = dragState.el;
+        const grid = document.getElementById('moduleGrid');
+
+        if (dragState.moved && dragState.placeholder) {
+            // Remove drag styles
+            card.classList.remove('dragging');
+            card.style.position = '';
+            card.style.width = '';
+            card.style.left = '';
+            card.style.top = '';
+            card.style.zIndex = '';
+
+            // Insert card where placeholder is
+            grid.insertBefore(card, dragState.placeholder);
+            dragState.placeholder.remove();
+
+            // Clear drag-over
+            grid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        dragState = null;
+    }
+
+    // ====================================================================
+    //  SHORTCUT PICKER
+    // ====================================================================
+    let tempShortcutSelection = [];
+
+    function openShortcutPicker() {
+        const available = ALL_SHORTCUTS.filter(s => s.roles.includes(currentUser.role));
+        const savedIds = loadShortcutIds() || DEFAULT_SHORTCUTS;
+        tempShortcutSelection = [...savedIds];
+
+        const list = document.getElementById('shortcutList');
+        list.innerHTML = '';
+
+        available.forEach(item => {
+            const isSelected = tempShortcutSelection.includes(item.id);
+            const div = document.createElement('div');
+            div.className = `modal-item ${isSelected ? 'selected' : ''}`;
+            div.dataset.id = item.id;
+            div.onclick = () => toggleShortcutItem(div, item.id);
+            div.innerHTML = `
+                <div class="modal-item-icon ${item.color}">${item.icon}</div>
+                <div class="modal-item-info">
+                    <div class="modal-item-name">${item.name}</div>
+                    <div class="modal-item-desc">${item.desc}</div>
+                </div>
+                <div class="modal-item-check">${isSelected ? '✓' : ''}</div>
+            `;
+            list.appendChild(div);
+        });
+
+        document.getElementById('shortcutModal').classList.add('show');
+    }
+
+    function toggleShortcutItem(div, id) {
+        const idx = tempShortcutSelection.indexOf(id);
+        if (idx > -1) {
+            tempShortcutSelection.splice(idx, 1);
+            div.classList.remove('selected');
+            div.querySelector('.modal-item-check').textContent = '';
+        } else {
+            if (tempShortcutSelection.length >= 4) {
+                showToast('⚠️ 最多選 4 個快捷');
+                return;
+            }
+            tempShortcutSelection.push(id);
+            div.classList.add('selected');
+            div.querySelector('.modal-item-check').textContent = '✓';
+        }
+    }
+
+    function closeShortcutPicker() {
+        document.getElementById('shortcutModal').classList.remove('show');
+    }
+
+    function saveShortcuts() {
+        saveShortcutIds(tempShortcutSelection);
+        closeShortcutPicker();
+        renderUtilities();
+        showToast('✅ 快捷工具已更新');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('shortcutModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeShortcutPicker();
+    });
+
+    // ====================================================================
+    //  NAVIGATION (iframe embed)
+    // ====================================================================
+    let currentModuleUrl = '';
+
+    function navigateToModule(mod) {
+        if (isEditMode) return;
+        const params = new URLSearchParams({ uid:currentUser.lineUid, name:currentUser.name, role:currentUser.role, token:authToken, from:'portal' });
+        const base = CONFIG.BASE_URL.endsWith('/') ? CONFIG.BASE_URL : CONFIG.BASE_URL+'/';
+        currentModuleUrl = `${base}${mod.url}?${params}`;
+        document.getElementById('moduleIcon').textContent = mod.icon;
+        document.getElementById('moduleTitle').textContent = mod.name;
+        const loading = document.getElementById('moduleLoading'); loading.classList.remove('hide');
+        const frame = document.getElementById('moduleFrame');
+        frame.onload = () => setTimeout(() => loading.classList.add('hide'), 200);
+        frame.src = currentModuleUrl;
+        document.querySelector('.header').style.display = 'none';
+        document.querySelector('.main').style.display = 'none';
+        document.getElementById('modulePage').style.display = 'flex';
+    }
+
+    function backToHome() {
+        document.getElementById('moduleFrame').src = ''; currentModuleUrl = '';
+        document.getElementById('modulePage').style.display = 'none';
+        document.querySelector('.header').style.display = '';
+        document.querySelector('.main').style.display = '';
+    }
+
+    function refreshModule() {
+        if (!currentModuleUrl) return;
+        const l = document.getElementById('moduleLoading'); l.classList.remove('hide');
+        const f = document.getElementById('moduleFrame');
+        f.onload = () => setTimeout(() => l.classList.add('hide'), 200);
+        f.src = currentModuleUrl;
+    }
+
+    function openModuleNewTab() { if(currentModuleUrl) window.open(currentModuleUrl,'_blank'); }
+
+    window.addEventListener('popstate', () => { if(document.getElementById('modulePage').style.display==='flex') backToHome(); });
+    const _origNav = navigateToModule;
+    navigateToModule = function(mod) { history.pushState({module:mod.id},'',`#${mod.id}`); _origNav(mod); };
+
+    // ====================================================================
+    //  DASHBOARD DATA
+    // ====================================================================
+    async function loadDashboardData() {
+        try {
+            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'portal', action:'getDashboard', auth:{lineUid:currentUser.lineUid,token:authToken} }) });
+            const result = await r.json();
+            if (result.success) {
+                window.dashboardData = result.data;
+                document.getElementById('statMembers').textContent = result.data.memberCount||'0';
+                document.getElementById('statCoaches').textContent = result.data.coachCount||'0';
+                document.getElementById('statPending').textContent = result.data.pendingCount||'0';
+            }
+        } catch(e) {
+            document.getElementById('statMembers').textContent = '923';
+            document.getElementById('statCoaches').textContent = '12';
+            document.getElementById('statPending').textContent = '3';
+        }
+    }
+
+    async function refreshData() { showToast('🔄 更新中...'); await loadDashboardData(); renderModules(); showToast('✅ 已更新'); }
+
+    // ====================================================================
+    //  PERMISSION
+    // ====================================================================
+    function hasModuleAccess(mod) {
+        if (!currentUser) return false;
+        if (currentUser.role==='super_admin') return true;
+        if (mod.roles?.includes(currentUser.role)) return true;
+        if (currentUser.permissions.includes('all')||currentUser.permissions.includes(mod.permission)) return true;
+        return false;
+    }
+
+    // ====================================================================
+    //  HELPERS
+    // ====================================================================
+    function setGreeting() { const h=new Date().getHours(); document.getElementById('greetingText').textContent = h<12?'早安 ☀️':h<18?'午安 🌤️':'晚安 🌙'; }
+    function getRoleDisplay(r) { return {super_admin:'超級管理員',admin:'管理員',staff:'行政人員',coach:'教練'}[r]||r; }
+    function updateLoadingText(t) { const e=document.querySelector('.loading-text'); if(e) e.textContent=t; }
+    function hideLoading() { setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),300); }
+    function showLoginScreen() { document.getElementById('loadingScreen').classList.add('hide'); document.getElementById('loginScreen').classList.add('show'); }
+    function showLoginError(m) { const e=document.getElementById('loginError'); e.textContent=m; e.classList.add('show'); }
+    function showNoPermission() { document.getElementById('loadingScreen').classList.add('hide'); document.getElementById('mainApp').style.display='block'; document.querySelector('.main').innerHTML=`<div class="no-permission"><div class="no-permission-icon">🔒</div><div class="no-permission-title">尚未授權</div><div class="no-permission-desc">您的帳號尚未開通管理後台權限。<br>請聯繫超級管理員進行授權。</div></div>`; }
+    function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+    </script>
+</body>
+</html>
