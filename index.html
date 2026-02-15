@@ -81,7 +81,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Header - compact */
+        /* Header */
         .header { padding: 14px 16px 10px; position: relative; z-index: 1; }
         .header-row { display: flex; align-items: center; gap: 12px; }
         .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: 900; box-shadow: 0 3px 10px rgba(122,193,154,0.3); flex-shrink: 0; }
@@ -97,83 +97,33 @@
         /* Main */
         .main { padding: 0 16px 100px; max-width: 600px; margin: 0 auto; position: relative; z-index: 1; }
 
-        /* Stats */
-        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; animation: fadeInUp 0.5s ease 0.1s both; }
-        .stat-card { border-radius: 14px; padding: 12px 10px; text-align: center; transition: transform 0.2s; }
-        .stat-card:active { transform: scale(0.97); }
-        .stat-icon { font-size: 18px; margin-bottom: 4px; }
-        .stat-value { font-size: 20px; font-weight: 800; color: var(--green-dark); margin-bottom: 1px; }
-        .stat-label { font-size: 10px; color: #636e72; }
-
-        /* Section header with edit button */
         .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 4px; }
-
-        /* Pending Items List */
-        .pending-section { margin-bottom: 20px; }
-        .pending-list { display: flex; flex-direction: column; gap: 8px; }
-        .pending-item {
-            border-radius: 14px; padding: 12px 14px;
-            display: flex; align-items: flex-start; gap: 12px;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .pending-item:hover { transform: translateX(2px); }
-        .pending-item:active { transform: scale(0.98); }
-        .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; margin-top: 6px; }
-        .pending-info { flex: 1; min-width: 0; }
-        .pending-title { font-size: 13px; font-weight: 600; color: #2d3436; margin-bottom: 2px; }
-        .pending-meta { font-size: 11px; color: #999; }
-        .pending-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; background: rgba(224,82,82,0.1); color: var(--danger); margin-left: 4px; }
-        .pending-empty { text-align: center; padding: 16px; font-size: 13px; color: #bbb; }
         .section-title { font-size: 13px; font-weight: 600; color: #636e72; letter-spacing: 1px; margin: 0; }
         .section-edit-btn { font-size: 12px; font-weight: 600; color: var(--green); cursor: pointer; padding: 4px 10px; border-radius: 8px; transition: all 0.2s; border: none; background: none; font-family: inherit; }
         .section-edit-btn:hover { background: rgba(122,193,154,0.1); }
         .section-edit-btn.active { color: var(--danger); }
 
-        /* Module Grid - 3 Column */
+        /* Module Grid */
         .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; position: relative; }
         .module-card { border-radius: 18px; padding: 16px 10px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s, opacity 0.2s; position: relative; display: block; text-decoration: none; color: inherit; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
         .module-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
         .module-card:active:not(.dragging) { transform: scale(0.96); }
+        .module-card.developing { opacity: 0.55; }
         .module-icon-wrap { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 8px; pointer-events: none; }
         .module-card[data-color="green"] .module-icon-wrap { background: rgba(122,193,154,0.2); }
         .module-card[data-color="blue"] .module-icon-wrap { background: rgba(159,204,204,0.25); }
         .module-card[data-color="pink"] .module-icon-wrap { background: rgba(242,172,152,0.2); }
         .module-card[data-color="yellow"] .module-icon-wrap { background: rgba(255,224,139,0.3); }
+        .module-card[data-color="purple"] .module-icon-wrap { background: rgba(167,139,250,0.2); }
         .module-name { font-size: 13px; font-weight: 600; pointer-events: none; }
-        .module-badge { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; font-size: 11px; font-weight: 600; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; z-index: 2; pointer-events: none; }
-        .module-badge.hide { display: none; }
+        .module-dev-tag { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.08); color: #999; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 6px; pointer-events: none; }
 
-        /* Drag states */
-        .module-card.dragging {
-            opacity: 0.9;
-            transform: scale(1.08) !important;
-            box-shadow: 0 16px 50px rgba(0,0,0,0.18) !important;
-            z-index: 100;
-            transition: none !important;
-        }
-        .module-card.drag-over {
-            transform: scale(0.92);
-            opacity: 0.5;
-        }
-        .module-grid.edit-mode .module-card {
-            animation: wiggle 0.3s ease infinite alternate;
-        }
-        .module-grid.edit-mode .module-card:nth-child(even) {
-            animation-delay: 0.15s;
-        }
-        @keyframes wiggle {
-            from { transform: rotate(-1deg); }
-            to { transform: rotate(1deg); }
-        }
-        .module-grid.edit-mode .module-card::after {
-            content: '⠿';
-            position: absolute;
-            top: 6px;
-            left: 6px;
-            font-size: 14px;
-            color: rgba(0,0,0,0.2);
-            pointer-events: none;
-        }
+        .module-card.dragging { opacity: 0.9; transform: scale(1.08) !important; box-shadow: 0 16px 50px rgba(0,0,0,0.18) !important; z-index: 100; transition: none !important; }
+        .module-card.drag-over { transform: scale(0.92); opacity: 0.5; }
+        .module-grid.edit-mode .module-card { animation: wiggle 0.3s ease infinite alternate; }
+        .module-grid.edit-mode .module-card:nth-child(even) { animation-delay: 0.15s; }
+        @keyframes wiggle { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
+        .module-grid.edit-mode .module-card::after { content: '⠿'; position: absolute; top: 6px; left: 6px; font-size: 14px; color: rgba(0,0,0,0.2); pointer-events: none; }
 
         .module-card:nth-child(1) { animation: fadeInUp 0.35s ease 0.12s both; }
         .module-card:nth-child(2) { animation: fadeInUp 0.35s ease 0.17s both; }
@@ -184,6 +134,11 @@
         .module-card:nth-child(7) { animation: fadeInUp 0.35s ease 0.42s both; }
         .module-card:nth-child(8) { animation: fadeInUp 0.35s ease 0.47s both; }
         .module-card:nth-child(9) { animation: fadeInUp 0.35s ease 0.52s both; }
+        .module-card:nth-child(10) { animation: fadeInUp 0.35s ease 0.57s both; }
+        .module-card:nth-child(11) { animation: fadeInUp 0.35s ease 0.62s both; }
+        .module-card:nth-child(12) { animation: fadeInUp 0.35s ease 0.67s both; }
+        .module-card:nth-child(13) { animation: fadeInUp 0.35s ease 0.72s both; }
+        .module-card:nth-child(14) { animation: fadeInUp 0.35s ease 0.77s both; }
 
         /* Utility */
         .utility-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -220,7 +175,7 @@
         .no-permission-title { font-size: 18px; font-weight: 600; color: #2d3436; margin-bottom: 8px; }
         .no-permission-desc { font-size: 13px; color: #636e72; line-height: 1.6; }
 
-        /* Module iframe page */
+        /* Module iframe */
         #modulePage { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; background: #f0f2f5; }
         .module-topbar { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.06); padding: 10px 12px; min-height: 50px; flex-shrink: 0; }
         .module-topbar-left { display: flex; align-items: center; gap: 6px; color: var(--green-dark); font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: all 0.2s; }
@@ -235,59 +190,29 @@
         .module-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%); z-index: 10; transition: opacity 0.3s; }
         .module-loading.hide { opacity: 0; pointer-events: none; }
 
-        /* ===== Shortcut Picker Modal ===== */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200;
-            display: none; align-items: flex-end; justify-content: center;
-            animation: modalBgIn 0.2s ease;
-        }
+        /* Shortcut Picker Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: none; align-items: flex-end; justify-content: center; animation: modalBgIn 0.2s ease; }
         .modal-overlay.show { display: flex; }
         @keyframes modalBgIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .modal-sheet {
-            width: 100%; max-width: 600px; max-height: 80vh;
-            background: white; border-radius: 20px 20px 0 0;
-            padding: 20px 20px 32px; overflow-y: auto;
-            animation: modalSlideUp 0.3s cubic-bezier(0.4,0,0.2,1);
-        }
+        .modal-sheet { width: 100%; max-width: 600px; max-height: 80vh; background: white; border-radius: 20px 20px 0 0; padding: 20px 20px 32px; overflow-y: auto; animation: modalSlideUp 0.3s cubic-bezier(0.4,0,0.2,1); }
         @keyframes modalSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
         .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
         .modal-title { font-size: 16px; font-weight: 700; color: #2d3436; margin-bottom: 4px; }
         .modal-subtitle { font-size: 12px; color: #999; margin-bottom: 20px; }
-
-        .modal-item {
-            display: flex; align-items: center; gap: 14px;
-            padding: 14px 12px; border-radius: 14px; margin-bottom: 6px;
-            cursor: pointer; transition: background 0.15s;
-        }
+        .modal-item { display: flex; align-items: center; gap: 14px; padding: 14px 12px; border-radius: 14px; margin-bottom: 6px; cursor: pointer; transition: background 0.15s; }
         .modal-item:hover { background: rgba(0,0,0,0.03); }
         .modal-item:active { background: rgba(0,0,0,0.06); }
-
-        .modal-item-icon {
-            width: 42px; height: 42px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px; flex-shrink: 0;
-        }
+        .modal-item-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
         .modal-item-icon.green { background: rgba(122,193,154,0.2); }
         .modal-item-icon.blue { background: rgba(159,204,204,0.25); }
         .modal-item-icon.pink { background: rgba(242,172,152,0.2); }
         .modal-item-icon.yellow { background: rgba(255,224,139,0.3); }
-
+        .modal-item-icon.purple { background: rgba(167,139,250,0.2); }
         .modal-item-info { flex: 1; }
         .modal-item-name { font-size: 14px; font-weight: 600; }
         .modal-item-desc { font-size: 11px; color: #999; }
-
-        .modal-item-check {
-            width: 28px; height: 28px; border-radius: 8px;
-            border: 2px solid #ddd; display: flex; align-items: center;
-            justify-content: center; flex-shrink: 0; font-size: 14px;
-            transition: all 0.2s;
-        }
-        .modal-item.selected .modal-item-check {
-            background: var(--green); border-color: var(--green); color: white;
-        }
-
+        .modal-item-check { width: 28px; height: 28px; border-radius: 8px; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; transition: all 0.2s; }
+        .modal-item.selected .modal-item-check { background: var(--green); border-color: var(--green); color: white; }
         .modal-actions { display: flex; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.06); }
         .modal-btn { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
         .modal-btn-cancel { background: #f0f2f5; color: #636e72; }
@@ -296,6 +221,15 @@
         /* Toast */
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(45,52,54,0.9); backdrop-filter: blur(10px); color: white; padding: 12px 24px; border-radius: 14px; font-size: 13px; font-weight: 500; z-index: 10000; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 20px rgba(0,0,0,0.15); white-space: nowrap; }
         .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Developing modal */
+        .dev-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: none; align-items: center; justify-content: center; }
+        .dev-modal-overlay.show { display: flex; }
+        .dev-modal { background: white; border-radius: 20px; padding: 32px 28px; text-align: center; max-width: 320px; width: 90%; animation: fadeInUp 0.3s ease; }
+        .dev-modal-icon { font-size: 48px; margin-bottom: 12px; }
+        .dev-modal-title { font-size: 16px; font-weight: 700; color: #2d3436; margin-bottom: 6px; }
+        .dev-modal-desc { font-size: 13px; color: #999; margin-bottom: 20px; line-height: 1.5; }
+        .dev-modal-btn { padding: 12px 32px; border: none; border-radius: 12px; background: var(--green); color: white; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
 
         @media (max-width: 360px) {
             .module-grid { gap: 6px; }
@@ -351,50 +285,21 @@
         </div>
 
         <div class="main">
-            <div class="stats-row">
-                <div class="stat-card glass">
-                    <div class="stat-icon">👤</div>
-                    <div class="stat-value" id="statMembers">-</div>
-                    <div class="stat-label">會員總數</div>
-                </div>
-                <div class="stat-card glass">
-                    <div class="stat-icon">🆕</div>
-                    <div class="stat-value" id="statNewMembers">-</div>
-                    <div class="stat-label">本月新會員</div>
-                </div>
-                <div class="stat-card glass">
-                    <div class="stat-icon">📋</div>
-                    <div class="stat-value" id="statPending">-</div>
-                    <div class="stat-label">待處理</div>
-                </div>
-            </div>
-
-            <!-- Pending Items List -->
-            <div class="pending-section" id="pendingSection" style="display:none;">
-                <div class="section-header">
-                    <div class="section-title">⚠️ 待處理事項</div>
-                </div>
-                <div class="pending-list" id="pendingList"></div>
-            </div>
-
-            <!-- Module section with edit toggle -->
-            <div class="section-header">
+            <div class="section-header" style="margin-top: 6px;">
                 <div class="section-title">功能模組</div>
                 <button class="section-edit-btn" id="editModuleBtn" onclick="toggleEditMode()">編輯排序</button>
             </div>
             <div class="module-grid" id="moduleGrid"></div>
 
-            <!-- Utility section with edit -->
             <div class="section-header">
-                <div class="section-title" id="utilityTitle">快捷工具</div>
-                <button class="section-edit-btn" id="editUtilBtn" onclick="openShortcutPicker()">自訂</button>
+                <div class="section-title">快捷工具</div>
+                <button class="section-edit-btn" onclick="openShortcutPicker()">自訂</button>
             </div>
             <div class="utility-row" id="utilityRow"></div>
 
-            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v1.1.0</span></div>
+            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v1.2.0</span></div>
         </div>
 
-        <!-- Module Page (iframe) -->
         <div id="modulePage" style="display:none;">
             <div class="module-topbar">
                 <div class="module-topbar-left" onclick="backToHome()">
@@ -418,7 +323,7 @@
         </div>
     </div>
 
-    <!-- Shortcut Picker Modal -->
+    <!-- Shortcut Picker -->
     <div class="modal-overlay" id="shortcutModal">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
@@ -432,6 +337,16 @@
         </div>
     </div>
 
+    <!-- Developing Modal -->
+    <div class="dev-modal-overlay" id="devModal">
+        <div class="dev-modal">
+            <div class="dev-modal-icon">🚧</div>
+            <div class="dev-modal-title">功能開發中</div>
+            <div class="dev-modal-desc">此模組正在開發中，<br>預計近期上線，敬請期待！</div>
+            <button class="dev-modal-btn" onclick="closeDevModal()">知道了</button>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -439,63 +354,97 @@
         LIFF_ID: '2007947083-YCFwz7Uk',
         WEBHOOK_URL: 'https://hook.us2.make.com/xufy9muvlrjioip4xyqa313pg4fjrwol',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
-        VERSION: '1.1.0'
+        VERSION: '1.2.0'
     };
 
-    // All available modules
+    // ====================================================================
+    //  ALL MODULES — roles 控制誰看得到
+    // ====================================================================
     const MODULES = [
-        { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理', url:'member.html', permission:'member_view', color:'green', roles:['super_admin','admin'] },
-        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、權限設定', url:'coach-manage.html', permission:'coach_view', color:'blue', roles:['super_admin','admin'] },
-        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調', url:'admin.html', permission:'substitute_view', color:'pink', roles:['super_admin','admin'], badge:'pendingCount' },
-        { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定', url:'https://oxencust.github.io/staff-schedule/', permission:'staff_schedule_view', color:'yellow', roles:['super_admin','admin'] },
-        { id:'punch', icon:'⏰', name:'上下班打卡', desc:'打卡紀錄、出勤統計', url:'punch.html', permission:'attendance_view', color:'green', roles:['super_admin','admin','staff'] },
-        { id:'report', icon:'📊', name:'報表統計', desc:'營運數據、分析報表', url:'report.html', permission:'report_view', color:'blue', roles:['super_admin','admin'] },
-        { id:'settings', icon:'🔐', name:'系統設定', desc:'權限管理、系統配置', url:'settings.html', permission:'system_settings', color:'pink', roles:['super_admin'] }
+        // ─── 管理模組 ───
+        { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理',
+          url:'member.html', color:'green',
+          roles:['super_admin','admin','staff'] },
+
+        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、權限設定',
+          url:'coach-manage.html', color:'blue',
+          roles:['super_admin','admin','staff'] },
+
+        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調',
+          url:'admin.html', color:'pink',
+          roles:['super_admin','admin','coach','staff'] },
+
+        { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定',
+          url:'https://oxencust.github.io/staff-schedule/', color:'yellow',
+          roles:['super_admin','admin'] },
+
+        { id:'punch', icon:'⏰', name:'上下班打卡', desc:'打卡紀錄、出勤統計',
+          url:'punch.html', color:'green',
+          roles:['super_admin','admin','staff'] },
+
+        { id:'report', icon:'📊', name:'報表統計', desc:'營運數據、分析報表',
+          url:'report.html', color:'blue',
+          roles:['super_admin','admin'] },
+
+        { id:'settings', icon:'🔐', name:'系統設定', desc:'權限管理、系統配置',
+          url:'settings.html', color:'pink',
+          roles:['super_admin'] },
+
+        // ─── 行政工具 ───
+        { id:'moti-booking', icon:'📝', name:'預填Moti名單', desc:'Moti預約名單預填',
+          url:'https://oxencust.github.io/moti-bookinglist/', color:'blue',
+          roles:['super_admin','admin','staff'] },
+
+        { id:'leave-manage', icon:'🏥', name:'學員請假管理', desc:'學員請假申請處理',
+          url:'', color:'pink',
+          roles:['super_admin','admin','staff'], developing: true },
+
+        { id:'personal-schedule', icon:'📅', name:'個人排班', desc:'查看我的排班',
+          url:'https://oxencust.github.io/staff-schedule/personal', color:'yellow',
+          roles:['super_admin','admin','staff'] },
+
+        // ─── 教練工具 ───
+        { id:'trial-schedule', icon:'🗓️', name:'體驗排程', desc:'體驗課可預約時段',
+          url:'https://experience3.zeabur.app/', color:'yellow',
+          roles:['super_admin','admin','coach'],
+          customParams: { teacher: '{name}', type: '' } },
+
+        { id:'trial-feedback', icon:'💬', name:'體驗課回報', desc:'體驗課後回報填寫',
+          url:'https://feedback-form.zeabur.app', color:'green',
+          roles:['super_admin','admin','coach'] },
+
+        { id:'class-record', icon:'📋', name:'課表紀錄', desc:'課堂紀錄查詢',
+          url:'https://classrecord.zeabur.app', color:'blue',
+          roles:['super_admin','admin','coach'] },
+
+        // ─── 分析師 ───
+        { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
+          url:'https://analyze-form.zeabur.app', color:'purple',
+          roles:['super_admin','admin','analyst'] },
     ];
 
-    // All shortcut-able items (modules + standalone utilities)
-    const ALL_SHORTCUTS = [
-        { id:'sc_personal', icon:'📅', name:'個人班表', desc:'查看我的排班', url:'schedule-personal.html', color:'yellow', roles:['super_admin','admin','staff'] },
-        { id:'sc_logs', icon:'📜', name:'操作紀錄', desc:'系統操作歷史', url:'logs.html', color:'green', roles:['super_admin'] },
-        // Modules can also be shortcuts
-        ...MODULES.map(m => ({ ...m, id: 'sc_' + m.id, desc: m.desc }))
-    ];
+    // 快捷工具候選（排除開發中）
+    const ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
 
-    // Default shortcut selection
-    const DEFAULT_SHORTCUTS = ['sc_personal', 'sc_logs'];
+    // 各角色預設快捷
+    const DEFAULT_SHORTCUTS_BY_ROLE = {
+        super_admin: ['sc_personal-schedule', 'sc_moti-booking'],
+        admin: ['sc_personal-schedule', 'sc_moti-booking'],
+        coach: ['sc_trial-schedule', 'sc_class-record'],
+        staff: ['sc_personal-schedule', 'sc_punch'],
+        analyst: ['sc_moti-analyze']
+    };
 
-    let currentUser = null, authToken = null;
-    let isEditMode = false;
+    let currentUser = null, authToken = null, isEditMode = false;
 
     // ====================================================================
-    //  LOCAL STORAGE HELPERS
+    //  STORAGE
     // ====================================================================
-    function getStorageKey(key) {
-        const uid = currentUser?.lineUid || 'default';
-        return `portal_${uid}_${key}`;
-    }
-
-    function loadModuleOrder() {
-        try {
-            const saved = localStorage.getItem(getStorageKey('module_order'));
-            return saved ? JSON.parse(saved) : null;
-        } catch { return null; }
-    }
-
-    function saveModuleOrder(order) {
-        try { localStorage.setItem(getStorageKey('module_order'), JSON.stringify(order)); } catch {}
-    }
-
-    function loadShortcutIds() {
-        try {
-            const saved = localStorage.getItem(getStorageKey('shortcuts'));
-            return saved ? JSON.parse(saved) : null;
-        } catch { return null; }
-    }
-
-    function saveShortcutIds(ids) {
-        try { localStorage.setItem(getStorageKey('shortcuts'), JSON.stringify(ids)); } catch {}
-    }
+    function getStorageKey(k) { return `portal_${currentUser?.lineUid||'default'}_${k}`; }
+    function loadModuleOrder() { try { const s=localStorage.getItem(getStorageKey('module_order')); return s?JSON.parse(s):null; } catch{return null;} }
+    function saveModuleOrder(o) { try{localStorage.setItem(getStorageKey('module_order'),JSON.stringify(o));}catch{} }
+    function loadShortcutIds() { try { const s=localStorage.getItem(getStorageKey('shortcuts')); return s?JSON.parse(s):null; } catch{return null;} }
+    function saveShortcutIds(ids) { try{localStorage.setItem(getStorageKey('shortcuts'),JSON.stringify(ids));}catch{} }
 
     // ====================================================================
     //  INIT
@@ -514,7 +463,7 @@
     }
 
     // ====================================================================
-    //  AUTHENTICATION
+    //  AUTH
     // ====================================================================
     async function authenticateUser(lineUid, displayName, pictureUrl, method) {
         try {
@@ -525,7 +474,7 @@
                 currentUser = { id:result.user.id, name:result.user.name||displayName, lineUid, role:result.user.role, permissions:result.user.permissions||[], pictureUrl };
                 authToken = result.token || generateToken(lineUid);
                 updateLoadingText('載入模組中...');
-                await loadDashboardData(); renderApp(); hideLoading();
+                renderApp(); hideLoading();
             } else { showNoPermission(); }
         } catch(e) {
             if (CONFIG.WEBHOOK_URL.includes('YOUR_')) {
@@ -579,13 +528,8 @@
         const visible = MODULES.filter(m => hasModuleAccess(m));
         const savedOrder = loadModuleOrder();
         if (!savedOrder) return visible;
-        // Sort by saved order, put unsaved ones at end
         const ordered = [];
-        savedOrder.forEach(id => {
-            const mod = visible.find(m => m.id === id);
-            if (mod) ordered.push(mod);
-        });
-        // Add any new modules not in saved order
+        savedOrder.forEach(id => { const mod = visible.find(m => m.id === id); if (mod) ordered.push(mod); });
         visible.forEach(m => { if (!ordered.includes(m)) ordered.push(m); });
         return ordered;
     }
@@ -597,27 +541,29 @@
 
         ordered.forEach(mod => {
             const card = document.createElement('a');
-            card.className = 'module-card glass-strong';
+            card.className = 'module-card glass-strong' + (mod.developing ? ' developing' : '');
             card.dataset.color = mod.color;
             card.dataset.id = mod.id;
             card.href = 'javascript:void(0)';
-            card.onclick = (e) => { if (!isEditMode) navigateToModule(mod); };
-            const bc = mod.badge ? (window.dashboardData?.[mod.badge]||0) : 0;
-            card.innerHTML = `<div class="module-badge ${bc>0?'':'hide'}">${bc}</div><div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
+            card.onclick = () => {
+                if (isEditMode) return;
+                if (mod.developing) { showDevModal(); return; }
+                navigateToModule(mod);
+            };
+
+            const badgeHtml = mod.developing ? '<div class="module-dev-tag">開發中</div>' : '';
+            card.innerHTML = `${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
             grid.appendChild(card);
         });
 
-        if (isEditMode) {
-            grid.classList.add('edit-mode');
-            initDragAndDrop();
-        }
+        if (isEditMode) { grid.classList.add('edit-mode'); initDragAndDrop(); }
     }
 
     function renderUtilities() {
         const row = document.getElementById('utilityRow');
         row.innerHTML = '';
-
-        const savedIds = loadShortcutIds() || DEFAULT_SHORTCUTS;
+        const defaultIds = DEFAULT_SHORTCUTS_BY_ROLE[currentUser.role] || [];
+        const savedIds = loadShortcutIds() || defaultIds;
         const available = ALL_SHORTCUTS.filter(s => s.roles.includes(currentUser.role));
         const active = savedIds.map(id => available.find(s => s.id === id)).filter(Boolean);
 
@@ -625,18 +571,17 @@
             row.innerHTML = '<div class="utility-empty">點擊「自訂」添加快捷工具</div>';
             return;
         }
-
         active.forEach(item => {
             const btn = document.createElement('button');
             btn.className = 'utility-btn glass';
-            btn.onclick = () => navigateToModule({ icon:item.icon, name:item.name, url:item.url, id:item.id });
+            btn.onclick = () => navigateToModule(item);
             btn.innerHTML = `${item.icon} ${item.name}`;
             row.appendChild(btn);
         });
     }
 
     // ====================================================================
-    //  MODULE DRAG & DROP (touch + mouse)
+    //  DRAG & DROP
     // ====================================================================
     let dragState = null;
 
@@ -644,148 +589,72 @@
         isEditMode = !isEditMode;
         const btn = document.getElementById('editModuleBtn');
         const grid = document.getElementById('moduleGrid');
-
         if (isEditMode) {
-            btn.textContent = '完成';
-            btn.classList.add('active');
-            grid.classList.add('edit-mode');
-            initDragAndDrop();
+            btn.textContent = '完成'; btn.classList.add('active');
+            grid.classList.add('edit-mode'); initDragAndDrop();
             showToast('🔀 拖動模組可調整順序');
         } else {
-            btn.textContent = '編輯排序';
-            btn.classList.remove('active');
-            grid.classList.remove('edit-mode');
-            cleanupDrag();
-            // Save current order
-            const cards = grid.querySelectorAll('.module-card');
-            const order = Array.from(cards).map(c => c.dataset.id);
-            saveModuleOrder(order);
-            showToast('✅ 排序已儲存');
+            btn.textContent = '編輯排序'; btn.classList.remove('active');
+            grid.classList.remove('edit-mode'); cleanupDrag();
+            const order = Array.from(grid.querySelectorAll('.module-card')).map(c => c.dataset.id);
+            saveModuleOrder(order); showToast('✅ 排序已儲存');
         }
     }
 
     function initDragAndDrop() {
-        const grid = document.getElementById('moduleGrid');
-        const cards = grid.querySelectorAll('.module-card');
-
+        const cards = document.getElementById('moduleGrid').querySelectorAll('.module-card');
         cards.forEach(card => {
-            // Touch events
             card.addEventListener('touchstart', onDragStart, { passive: false });
             card.addEventListener('touchmove', onDragMove, { passive: false });
             card.addEventListener('touchend', onDragEnd);
-            // Mouse events
             card.addEventListener('mousedown', onDragStart);
         });
-
         document.addEventListener('mousemove', onDragMove);
         document.addEventListener('mouseup', onDragEnd);
     }
-
-    function cleanupDrag() {
-        document.removeEventListener('mousemove', onDragMove);
-        document.removeEventListener('mouseup', onDragEnd);
-    }
+    function cleanupDrag() { document.removeEventListener('mousemove', onDragMove); document.removeEventListener('mouseup', onDragEnd); }
 
     function onDragStart(e) {
-        if (!isEditMode) return;
-        e.preventDefault();
-
-        const card = e.currentTarget;
-        const touch = e.touches ? e.touches[0] : e;
-        const rect = card.getBoundingClientRect();
-
-        dragState = {
-            el: card,
-            startX: touch.clientX,
-            startY: touch.clientY,
-            offsetX: touch.clientX - rect.left,
-            offsetY: touch.clientY - rect.top,
-            origRect: rect,
-            moved: false
-        };
-
-        // Delay to distinguish tap from drag
+        if (!isEditMode) return; e.preventDefault();
+        const card = e.currentTarget, touch = e.touches ? e.touches[0] : e, rect = card.getBoundingClientRect();
+        dragState = { el:card, offsetX:touch.clientX-rect.left, offsetY:touch.clientY-rect.top, origRect:rect, moved:false };
         dragState.timer = setTimeout(() => {
-            if (dragState) {
-                card.classList.add('dragging');
-                card.style.position = 'fixed';
-                card.style.width = rect.width + 'px';
-                card.style.left = (touch.clientX - dragState.offsetX) + 'px';
-                card.style.top = (touch.clientY - dragState.offsetY) + 'px';
-                card.style.zIndex = '100';
-                dragState.moved = true;
-
-                // Create placeholder
-                const placeholder = document.createElement('div');
-                placeholder.className = 'module-card glass-strong';
-                placeholder.style.opacity = '0.2';
-                placeholder.style.minHeight = rect.height + 'px';
-                placeholder.dataset.placeholder = 'true';
-                card.parentNode.insertBefore(placeholder, card);
-                dragState.placeholder = placeholder;
-            }
+            if (!dragState) return;
+            card.classList.add('dragging');
+            card.style.position='fixed'; card.style.width=rect.width+'px';
+            card.style.left=(touch.clientX-dragState.offsetX)+'px'; card.style.top=(touch.clientY-dragState.offsetY)+'px';
+            card.style.zIndex='100'; dragState.moved=true;
+            const ph=document.createElement('div'); ph.className='module-card glass-strong'; ph.style.opacity='0.2'; ph.style.minHeight=rect.height+'px'; ph.dataset.placeholder='true';
+            card.parentNode.insertBefore(ph,card); dragState.placeholder=ph;
         }, 150);
     }
 
     function onDragMove(e) {
-        if (!dragState || !dragState.moved) return;
-        e.preventDefault();
-
-        const touch = e.touches ? e.touches[0] : e;
-        const card = dragState.el;
-
-        card.style.left = (touch.clientX - dragState.offsetX) + 'px';
-        card.style.top = (touch.clientY - dragState.offsetY) + 'px';
-
-        // Find element under finger
-        card.style.pointerEvents = 'none';
-        const under = document.elementFromPoint(touch.clientX, touch.clientY);
-        card.style.pointerEvents = '';
-
-        const target = under?.closest('.module-card:not(.dragging):not([data-placeholder])');
-        const grid = document.getElementById('moduleGrid');
-
-        // Clear previous drag-over
-        grid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-
-        if (target && dragState.placeholder) {
+        if (!dragState||!dragState.moved) return; e.preventDefault();
+        const touch=e.touches?e.touches[0]:e, card=dragState.el;
+        card.style.left=(touch.clientX-dragState.offsetX)+'px'; card.style.top=(touch.clientY-dragState.offsetY)+'px';
+        card.style.pointerEvents='none';
+        const under=document.elementFromPoint(touch.clientX,touch.clientY);
+        card.style.pointerEvents='';
+        const target=under?.closest('.module-card:not(.dragging):not([data-placeholder])');
+        const grid=document.getElementById('moduleGrid');
+        grid.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
+        if (target&&dragState.placeholder) {
             target.classList.add('drag-over');
-            const targetRect = target.getBoundingClientRect();
-            const midY = targetRect.top + targetRect.height / 2;
-            if (touch.clientY < midY) {
-                grid.insertBefore(dragState.placeholder, target);
-            } else {
-                grid.insertBefore(dragState.placeholder, target.nextSibling);
-            }
+            const mid=target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
+            grid.insertBefore(dragState.placeholder, touch.clientY<mid?target:target.nextSibling);
         }
     }
 
-    function onDragEnd(e) {
-        if (!dragState) return;
-
-        clearTimeout(dragState.timer);
-
-        const card = dragState.el;
-        const grid = document.getElementById('moduleGrid');
-
-        if (dragState.moved && dragState.placeholder) {
-            // Remove drag styles
-            card.classList.remove('dragging');
-            card.style.position = '';
-            card.style.width = '';
-            card.style.left = '';
-            card.style.top = '';
-            card.style.zIndex = '';
-
-            // Insert card where placeholder is
-            grid.insertBefore(card, dragState.placeholder);
-            dragState.placeholder.remove();
-
-            // Clear drag-over
-            grid.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    function onDragEnd() {
+        if (!dragState) return; clearTimeout(dragState.timer);
+        const card=dragState.el, grid=document.getElementById('moduleGrid');
+        if (dragState.moved&&dragState.placeholder) {
+            card.classList.remove('dragging'); card.style.position=''; card.style.width=''; card.style.left=''; card.style.top=''; card.style.zIndex='';
+            grid.insertBefore(card,dragState.placeholder); dragState.placeholder.remove();
+            grid.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
         }
-
-        dragState = null;
+        dragState=null;
     }
 
     // ====================================================================
@@ -795,77 +664,63 @@
 
     function openShortcutPicker() {
         const available = ALL_SHORTCUTS.filter(s => s.roles.includes(currentUser.role));
-        const savedIds = loadShortcutIds() || DEFAULT_SHORTCUTS;
+        const defaultIds = DEFAULT_SHORTCUTS_BY_ROLE[currentUser.role] || [];
+        const savedIds = loadShortcutIds() || defaultIds;
         tempShortcutSelection = [...savedIds];
-
-        const list = document.getElementById('shortcutList');
-        list.innerHTML = '';
-
+        const list = document.getElementById('shortcutList'); list.innerHTML = '';
         available.forEach(item => {
-            const isSelected = tempShortcutSelection.includes(item.id);
+            const sel = tempShortcutSelection.includes(item.id);
             const div = document.createElement('div');
-            div.className = `modal-item ${isSelected ? 'selected' : ''}`;
+            div.className = `modal-item ${sel?'selected':''}`;
             div.dataset.id = item.id;
             div.onclick = () => toggleShortcutItem(div, item.id);
-            div.innerHTML = `
-                <div class="modal-item-icon ${item.color}">${item.icon}</div>
-                <div class="modal-item-info">
-                    <div class="modal-item-name">${item.name}</div>
-                    <div class="modal-item-desc">${item.desc}</div>
-                </div>
-                <div class="modal-item-check">${isSelected ? '✓' : ''}</div>
-            `;
+            div.innerHTML = `<div class="modal-item-icon ${item.color}">${item.icon}</div><div class="modal-item-info"><div class="modal-item-name">${item.name}</div><div class="modal-item-desc">${item.desc}</div></div><div class="modal-item-check">${sel?'✓':''}</div>`;
             list.appendChild(div);
         });
-
         document.getElementById('shortcutModal').classList.add('show');
     }
 
     function toggleShortcutItem(div, id) {
         const idx = tempShortcutSelection.indexOf(id);
-        if (idx > -1) {
-            tempShortcutSelection.splice(idx, 1);
-            div.classList.remove('selected');
-            div.querySelector('.modal-item-check').textContent = '';
-        } else {
-            if (tempShortcutSelection.length >= 4) {
-                showToast('⚠️ 最多選 4 個快捷');
-                return;
-            }
-            tempShortcutSelection.push(id);
-            div.classList.add('selected');
-            div.querySelector('.modal-item-check').textContent = '✓';
-        }
+        if (idx > -1) { tempShortcutSelection.splice(idx,1); div.classList.remove('selected'); div.querySelector('.modal-item-check').textContent=''; }
+        else { if(tempShortcutSelection.length>=4){showToast('⚠️ 最多選 4 個快捷');return;} tempShortcutSelection.push(id); div.classList.add('selected'); div.querySelector('.modal-item-check').textContent='✓'; }
     }
 
-    function closeShortcutPicker() {
-        document.getElementById('shortcutModal').classList.remove('show');
-    }
-
-    function saveShortcuts() {
-        saveShortcutIds(tempShortcutSelection);
-        closeShortcutPicker();
-        renderUtilities();
-        showToast('✅ 快捷工具已更新');
-    }
-
-    // Close modal on backdrop click
-    document.getElementById('shortcutModal').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) closeShortcutPicker();
-    });
+    function closeShortcutPicker() { document.getElementById('shortcutModal').classList.remove('show'); }
+    function saveShortcuts() { saveShortcutIds(tempShortcutSelection); closeShortcutPicker(); renderUtilities(); showToast('✅ 快捷工具已更新'); }
+    document.getElementById('shortcutModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeShortcutPicker(); });
 
     // ====================================================================
-    //  NAVIGATION (iframe embed)
+    //  NAVIGATION — 支援自訂參數 + 外部 URL
     // ====================================================================
     let currentModuleUrl = '';
 
     function navigateToModule(mod) {
         if (isEditMode) return;
-        const params = new URLSearchParams({ uid:currentUser.lineUid, name:currentUser.name, role:currentUser.role, token:authToken, from:'portal' });
-        const base = CONFIG.BASE_URL.endsWith('/') ? CONFIG.BASE_URL : CONFIG.BASE_URL+'/';
-        currentModuleUrl = mod.url.startsWith('http') 
-        ? `${mod.url}?${params}` 
-        : `${base}${mod.url}?${params}`;
+
+        // 基本參數
+        const baseParams = { uid:currentUser.lineUid, name:currentUser.name, role:currentUser.role, token:authToken, from:'portal' };
+
+        // 自訂參數（替換 {name}, {uid}, {role}）
+        if (mod.customParams) {
+            for (const [key, val] of Object.entries(mod.customParams)) {
+                baseParams[key] = val.replace('{name}', currentUser.name).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
+            }
+        }
+
+        const params = new URLSearchParams(baseParams);
+
+        // 外部 URL vs 相對路徑
+        let fullUrl;
+        if (mod.url.startsWith('http')) {
+            const sep = mod.url.includes('?') ? '&' : '?';
+            fullUrl = `${mod.url}${sep}${params}`;
+        } else {
+            const base = CONFIG.BASE_URL.endsWith('/') ? CONFIG.BASE_URL : CONFIG.BASE_URL + '/';
+            fullUrl = `${base}${mod.url}?${params}`;
+        }
+
+        currentModuleUrl = fullUrl;
         document.getElementById('moduleIcon').textContent = mod.icon;
         document.getElementById('moduleTitle').textContent = mod.name;
         const loading = document.getElementById('moduleLoading'); loading.classList.remove('hide');
@@ -899,76 +754,16 @@
     navigateToModule = function(mod) { history.pushState({module:mod.id},'',`#${mod.id}`); _origNav(mod); };
 
     // ====================================================================
-    //  DASHBOARD DATA
+    //  DEVELOPING MODAL
     // ====================================================================
-    async function loadDashboardData() {
-        try {
-            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'portal', action:'getDashboard', auth:{lineUid:currentUser.lineUid,token:authToken} }) });
-            const result = await r.json();
-            if (result.success) {
-                window.dashboardData = result.data;
-                document.getElementById('statMembers').textContent = result.data.memberCount||'0';
-                document.getElementById('statNewMembers').textContent = result.data.newMemberCount||'0';
-                document.getElementById('statPending').textContent = result.data.pendingCount||'0';
-                renderPendingList(result.data.pendingItems||[]);
-            }
-        } catch(e) {
-            // Dev mode fallback
-            document.getElementById('statMembers').textContent = '973';
-            document.getElementById('statNewMembers').textContent = '8';
-            document.getElementById('statPending').textContent = '3';
-            renderPendingList([
-                { id:1, member_name:'王小明', coach_name:'陳教練', class_date:'2026-02-05', class_time:'14:00', class_type:'pilates', incident_types:'遲到,身體不適' },
-                { id:2, member_name:'李美玲', coach_name:'林教練', class_date:'2026-02-05', class_time:'10:00', class_type:'strength_training', incident_types:'情緒低落' },
-                { id:3, member_name:'張大華', coach_name:'王教練', class_date:'2026-02-04', class_time:'16:00', class_type:'stretching', incident_types:'受傷' }
-            ]);
-        }
-    }
-
-    function renderPendingList(items) {
-        const section = document.getElementById('pendingSection');
-        const list = document.getElementById('pendingList');
-        list.innerHTML = '';
-
-        if (!items || items.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
-
-        section.style.display = 'block';
-        const typeLabels = { ai_analysis:'AI分析', pilates:'皮拉提斯', strength_training:'重訓', stretching:'伸展' };
-
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'pending-item glass';
-            const dateStr = item.class_date ? formatDate(item.class_date) : '';
-            const timeStr = item.class_time ? item.class_time.substring(0,5) : '';
-            const typeStr = typeLabels[item.class_type] || item.class_type || '';
-            const tags = (item.incident_types||'').split(',').filter(Boolean).map(t => `<span class="pending-tag">${t.trim()}</span>`).join('');
-
-            div.innerHTML = `
-                <div class="pending-dot"></div>
-                <div class="pending-info">
-                    <div class="pending-title">${item.member_name||'未知'} — ${item.coach_name||''} ${tags}</div>
-                    <div class="pending-meta">${dateStr} ${timeStr}　${typeStr}</div>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    function formatDate(dateStr) {
-        try {
-            const d = new Date(dateStr);
-            return `${d.getMonth()+1}/${d.getDate()}`;
-        } catch { return dateStr; }
-    }
-
-    async function refreshData() { showToast('🔄 更新中...'); await loadDashboardData(); renderModules(); showToast('✅ 已更新'); }
+    function showDevModal() { document.getElementById('devModal').classList.add('show'); }
+    function closeDevModal() { document.getElementById('devModal').classList.remove('show'); }
+    document.getElementById('devModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeDevModal(); });
 
     // ====================================================================
-    //  PERMISSION
+    //  HELPERS
     // ====================================================================
+    async function refreshData() { showToast('🔄 更新中...'); renderModules(); renderUtilities(); showToast('✅ 已更新'); }
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
         if (currentUser.role==='super_admin') return true;
@@ -976,12 +771,8 @@
         if (currentUser.permissions.includes('all')||currentUser.permissions.includes(mod.permission)) return true;
         return false;
     }
-
-    // ====================================================================
-    //  HELPERS
-    // ====================================================================
     function setGreeting() { const h=new Date().getHours(); document.getElementById('greetingText').textContent = h<12?'早安 ☀️':h<18?'午安 🌤️':'晚安 🌙'; }
-    function getRoleDisplay(r) { return {super_admin:'超級管理員',admin:'管理員',staff:'行政人員',coach:'教練'}[r]||r; }
+    function getRoleDisplay(r) { return {super_admin:'超級管理員',admin:'管理員',staff:'行政人員',coach:'教練',analyst:'分析師'}[r]||r; }
     function updateLoadingText(t) { const e=document.querySelector('.loading-text'); if(e) e.textContent=t; }
     function hideLoading() { setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),300); }
     function showLoginScreen() { document.getElementById('loadingScreen').classList.add('hide'); document.getElementById('loginScreen').classList.add('show'); }
