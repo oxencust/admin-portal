@@ -108,6 +108,7 @@
 
         .card-name-area { flex: 1; min-width: 0; }
         .card-name { font-size: 15px; font-weight: 600; }
+        .card-realname { font-size: 11px; color: #999; margin-top: 1px; }
         .card-type {
             display: inline-block; font-size: 11px; color: #888;
             margin-top: 2px;
@@ -126,6 +127,16 @@
         }
         .meta-item { display: flex; align-items: center; gap: 4px; }
         .meta-icon { font-size: 11px; }
+
+        .card-specialties {
+            display: flex; flex-wrap: wrap; gap: 4px;
+            margin-top: 6px;
+        }
+        .specialty-tag {
+            padding: 2px 8px; border-radius: 6px;
+            font-size: 10px; font-weight: 600;
+            background: rgba(122,193,154,0.12); color: var(--green-dark);
+        }
 
         /* ===== Detail Panel ===== */
         .detail-overlay {
@@ -209,6 +220,13 @@
         .field-value { font-size: 13px; font-weight: 500; word-break: break-all; }
         .field-value.empty { color: #ccc; font-style: italic; }
 
+        .field-specialties {
+            display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;
+        }
+        .field-specialties .specialty-tag {
+            font-size: 12px; padding: 3px 10px;
+        }
+
         /* Session list */
         .session-list { display: flex; flex-direction: column; gap: 6px; }
         .session-item {
@@ -290,7 +308,7 @@
     <!-- Search -->
     <div class="search-bar glass-strong">
         <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="搜尋教練姓名..." oninput="onSearch()">
+        <input type="text" id="searchInput" placeholder="搜尋教練姓名 / 本名..." oninput="onSearch()">
         <span class="search-count" id="searchCount"></span>
     </div>
 
@@ -434,7 +452,11 @@
         }
 
         if (searchTerm) {
-            list = list.filter(c => (c.coach_name || '').toLowerCase().includes(searchTerm));
+            list = list.filter(c =>
+                (c.coach_name || '').toLowerCase().includes(searchTerm) ||
+                (c.real_name || '').toLowerCase().includes(searchTerm) ||
+                (c.specialties || []).some(s => s.toLowerCase().includes(searchTerm))
+            );
         }
 
         filteredCoaches = list;
@@ -459,13 +481,16 @@
             const typeLabel = TYPE_LABELS[c.coach_type] || c.coach_type;
             const isActive = c.is_active === 1 || c.is_active === true;
             const studentCount = c.student_count || 0;
+            const showRealName = c.real_name && c.real_name !== c.coach_name;
+            const specialties = c.specialties || [];
 
             return `
                 <div class="coach-card glass-strong" onclick="showDetail(${c.id})">
                     <div class="card-top">
                         <div class="card-avatar ${avatarClass}">${icon}</div>
                         <div class="card-name-area">
-                            <div class="card-name">${c.coach_name}</div>
+                            <div class="card-name">${esc(c.coach_name)}</div>
+                            ${showRealName ? `<div class="card-realname">本名：${esc(c.real_name)}</div>` : ''}
                             <div class="card-type">${typeLabel}</div>
                         </div>
                         <div class="card-active-badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? '啟用中' : '未啟用'}</div>
@@ -475,6 +500,11 @@
                         ${c.line_id ? `<span class="meta-item"><span class="meta-icon">💬</span>LINE 已綁定</span>` : ''}
                         ${c.line_id_edu ? `<span class="meta-item"><span class="meta-icon">📚</span>教務 LINE 已綁定</span>` : ''}
                     </div>
+                    ${specialties.length ? `
+                        <div class="card-specialties">
+                            ${specialties.map(s => `<span class="specialty-tag">${esc(s)}</span>`).join('')}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -494,14 +524,23 @@
         const avatarClass = TYPE_AVATAR_CLASS[c.coach_type] || 'avatar-ai';
         const typeLabel = TYPE_LABELS[c.coach_type] || c.coach_type;
         const isActive = c.is_active === 1 || c.is_active === true;
+        const specialties = c.specialties || [];
 
         document.getElementById('detailHeader').innerHTML = `
             <div class="detail-avatar ${avatarClass}">${icon}</div>
             <div>
-                <div class="detail-name">${c.coach_name}</div>
+                <div class="detail-name">${esc(c.coach_name)}</div>
                 <div class="detail-sub">${typeLabel} · ${isActive ? '啟用中' : '未啟用'}</div>
             </div>
         `;
+
+        // 專業標籤 HTML
+        const specialtiesHtml = specialties.length
+            ? `<div class="detail-field full">
+                   <div class="field-label">專業項目</div>
+                   <div class="field-specialties">${specialties.map(s => `<span class="specialty-tag">${esc(s)}</span>`).join('')}</div>
+               </div>`
+            : field('專業項目', null);
 
         document.getElementById('detailBody').innerHTML = `
             <div class="detail-tabs">
@@ -515,9 +554,14 @@
                     <div class="detail-section-title">👨‍🏫 教練資訊</div>
                     <div class="detail-grid">
                         ${field('編號', c.id)}
-                        ${field('姓名', c.coach_name)}
+                        ${field('教練名稱', c.coach_name)}
+                        ${field('本名', c.real_name)}
                         ${field('類型', typeLabel)}
                         ${field('狀態', isActive ? '啟用中' : '未啟用')}
+                        ${field('生日', formatDate(c.birthday))}
+                        ${field('開始合作日期', formatDate(c.start_date))}
+                        ${field('合作年資', calcYears(c.start_date))}
+                        ${specialtiesHtml}
                         ${field('LINE ID（主帳號）', c.line_id, true)}
                         ${field('LINE ID（教務）', c.line_id_edu, true)}
                         ${field('建立時間', formatDatetime(c.created_at))}
@@ -608,7 +652,6 @@
             }
         } catch(e) {
             loading.style.display = 'none';
-            // Dev mode sample
             list.innerHTML = generateSampleSessions();
         }
     }
@@ -661,6 +704,20 @@
         return `<div class="${cls}"><div class="field-label">${label}</div><div class="${valCls}">${val}</div></div>`;
     }
 
+    function esc(s) {
+        if (!s) return '';
+        const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+    }
+
+    function formatDate(d) {
+        if (!d) return null;
+        try {
+            const date = new Date(d);
+            if (isNaN(date)) return d;
+            return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}`;
+        } catch { return d; }
+    }
+
     function formatDatetime(d) {
         if (!d) return null;
         try {
@@ -677,6 +734,24 @@
         } catch { return d; }
     }
 
+    function calcYears(startDate) {
+        if (!startDate) return null;
+        try {
+            const start = new Date(startDate);
+            if (isNaN(start)) return null;
+            const now = new Date();
+            const diffMs = now - start;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return '尚未開始';
+            const years = Math.floor(diffDays / 365);
+            const months = Math.floor((diffDays % 365) / 30);
+            if (years > 0 && months > 0) return `${years} 年 ${months} 個月`;
+            if (years > 0) return `${years} 年`;
+            if (months > 0) return `${months} 個月`;
+            return `${diffDays} 天`;
+        } catch { return null; }
+    }
+
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.textContent = msg;
@@ -688,12 +763,29 @@
     //  DEV MODE SAMPLE DATA
     // ====================================================================
     function generateSampleData() {
-        const names = ['陳教練','林教練','王教練','李教練','張教練','黃教練','吳教練','周教練','劉教練','蔡教練','楊教練','謝教練'];
-        const types = ['pilates','strength_training','stretching','ai_analysis'];
-        return names.map((name, i) => ({
+        const coaches = [
+            { name:'陳教練', real:'陳怡安', type:'pilates', bday:'1990-03-15', start:'2022-06-01', specs:['器械皮拉提斯','墊上皮拉提斯','孕婦皮拉提斯'] },
+            { name:'林教練', real:'林志豪', type:'strength_training', bday:'1988-07-22', start:'2021-09-15', specs:['肌力訓練','功能性訓練','體態雕塑'] },
+            { name:'王教練', real:'王美玲', type:'pilates', bday:'1992-11-08', start:'2023-01-10', specs:['墊上皮拉提斯','核心訓練'] },
+            { name:'李教練', real:'李建宏', type:'stretching', bday:'1991-05-30', start:'2022-03-01', specs:['筋膜放鬆','柔軟度訓練','運動恢復'] },
+            { name:'張教練', real:'張雅婷', type:'ai_analysis', bday:'1993-01-18', start:'2024-02-01', specs:['Moti 3D分析','體態評估'] },
+            { name:'黃教練', real:'黃俊傑', type:'strength_training', bday:'1987-09-12', start:'2020-11-01', specs:['重量訓練','運動表現','肌肥大訓練'] },
+            { name:'吳教練', real:'吳佩珊', type:'pilates', bday:'1994-06-25', start:'2023-08-15', specs:['器械皮拉提斯','產後恢復'] },
+            { name:'周教練', real:'周明德', type:'stretching', bday:'1989-12-03', start:'2021-05-20', specs:['PNF伸展','運動按摩','瑜伽'] },
+            { name:'劉教練', real:'劉淑芬', type:'pilates', bday:'1991-08-14', start:'2022-10-01', specs:['墊上皮拉提斯','銀髮族運動'] },
+            { name:'蔡教練', real:'蔡育函', type:'ai_analysis', bday:'1995-04-07', start:'2024-06-01', specs:['InBody分析','Moti 3D分析'] },
+            { name:'楊教練', real:'楊家銘', type:'strength_training', bday:'1990-10-20', start:'2023-04-01', specs:['TRX','壺鈴訓練','HIIT'] },
+            { name:'謝教練', real:'謝宜蓁', type:'stretching', bday:'1993-02-28', start:'2024-01-15', specs:['筋膜放鬆','伸展治療'] },
+        ];
+
+        return coaches.map((c, i) => ({
             id: i + 1,
-            coach_name: name,
-            coach_type: types[i % types.length],
+            coach_name: c.name,
+            real_name: c.real,
+            coach_type: c.type,
+            birthday: c.bday,
+            start_date: c.start,
+            specialties: c.specs,
             is_active: i < 10 ? 1 : 0,
             line_id: i % 3 !== 2 ? `U${Math.random().toString(36).substring(2,12)}` : null,
             line_id_edu: i % 2 === 0 ? `U${Math.random().toString(36).substring(2,12)}` : null,
