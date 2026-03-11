@@ -271,15 +271,18 @@
             // 展開區格子
             let grid='';
             grid+=fc('狀態',statusBadge);
-            if(c.real_name)grid+=fc('本名',escHtml(c.real_name));
-            if(genderNames[c.gender])grid+=fc('性別','<span class="badge gender-'+genderKey(c.gender)+'">'+genderNames[c.gender]+'</span>');
-            if(isFieldVisible('phone')&&c.phone)grid+=fc('電話','<span'+(isMasked('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('phone',c.phone,'phone')+'</span>');
-            if(isFieldVisible('email')&&c.email)grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',c.email,'email')+'</span>');
-            if(isFieldVisible('birthday')&&c.birthday)grid+=fc('生日',getFieldDisplay('birthday',c.birthday));
-            if(isFieldVisible('line_uid')&&c.line_uid)grid+=fc('衡點 LINE','<span style="font-size:11px;word-break:break-all;">'+getFieldDisplay('line_uid',c.line_uid)+'</span>',true);
-            if(isFieldVisible('line_id_edu')&&c.line_id_edu)grid+=fc('教務 LINE','<span style="font-size:11px;word-break:break-all;">'+getFieldDisplay('line_id_edu',c.line_id_edu)+'</span>',true);
-            if(c.certifications)grid+=fc('證照紀錄',escHtml(c.certifications),true);
-            if(c.notes)grid+=fc('備註',escHtml(c.notes),true);
+            grid+=fc('本名',escHtml(c.real_name||'-'));
+            grid+=fc('性別',genderNames[c.gender]?'<span class="badge gender-'+genderKey(c.gender)+'">'+genderNames[c.gender]+'</span>':'-');
+            if(isFieldVisible('phone'))grid+=fc('電話','<span'+(isMasked('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('phone',c.phone,'phone')+'</span>');
+            if(isFieldVisible('email'))grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',c.email,'email')+'</span>');
+            if(isFieldVisible('birthday'))grid+=fc('生日',getFieldDisplay('birthday',c.birthday));
+            if(isFieldVisible('line_uid'))grid+=fc('衡點 LINE','<span style="font-size:11px;word-break:break-all;">'+getFieldDisplay('line_uid',c.line_uid)+'</span>',true);
+            if(isFieldVisible('line_id_edu'))grid+=fc('教務 LINE','<span style="font-size:11px;word-break:break-all;">'+getFieldDisplay('line_id_edu',c.line_id_edu)+'</span>',true);
+            grid+=fc('證照紀錄',escHtml(c.certifications||'-'),true);
+            grid+=fc('備註',escHtml(c.notes||'-'),true);
+            grid+=fc('權限等級',escHtml(c.permission_level||'-'));
+            grid+=fc('建立時間',fmtDate(c.created_at));
+            grid+=fc('更新時間',fmtDate(c.updated_at));
 
             let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
