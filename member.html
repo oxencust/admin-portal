@@ -8,78 +8,63 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --green: #7ac19a; --green-dark: #5f846f; --green-light: #e2ede6;
-            --pink: #f2ac98; --pink-light: #faece8; --pink-dark: #c67566;
-            --yellow: #ffe08b; --yellow-light: #fcf4e3;
-            --blue: #9fcccc; --blue-light: #daedec; --blue-dark: #66888e;
-            --bg: #f5f6f8; --card: #ffffff; --text: #333; --text-secondary: #666; --text-muted: #999;
-            --border: #e5e5e5; --danger: #e05252; --success: #5f846f;
+            --green:#7ac19a; --green-dark:#5f846f; --green-light:#e2ede6;
+            --pink:#f2ac98; --pink-light:#faece8; --pink-dark:#c67566;
+            --blue:#9fcccc; --blue-light:#daedec; --blue-dark:#66888e;
+            --yellow:#ffe08b; --yellow-light:#fcf4e3;
+            --bg:#f5f6f8; --card:#fff; --text:#333; --text-secondary:#666; --text-muted:#999; --border:#e5e5e5;
+            --danger:#e05252;
         }
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
         body { font-family:'Noto Sans TC',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-
-        /* Top Bar */
         .top-bar { background:var(--card); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
         .top-bar h1 { font-size:17px; font-weight:700; color:var(--green-dark); display:flex; align-items:center; gap:8px; }
         .top-bar-right { display:flex; align-items:center; gap:8px; }
         .staff-name { font-size:12px; color:var(--text-muted); }
         .count-badge { font-size:12px; color:var(--text-muted); background:var(--green-light); padding:2px 10px; border-radius:12px; }
-
-        /* Action Bar */
-        .action-bar { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
-        .action-row { display:flex; gap:8px; align-items:center; }
+        .action-bar { padding:12px 16px; display:flex; gap:8px; align-items:center; }
         .search-input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:14px; font-family:inherit; outline:none; background:var(--card); transition:border-color 0.2s; }
         .search-input:focus { border-color:var(--green); }
-        .btn { padding:10px 16px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+        .btn { padding:10px 16px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
         .btn:active { transform:scale(0.96); }
         .btn-primary { background:linear-gradient(135deg,var(--green-dark),var(--green)); color:white; box-shadow:0 2px 8px rgba(122,193,154,0.3); }
         .btn-secondary { background:var(--blue-light); color:var(--blue-dark); }
         .btn-danger { background:var(--pink-light); color:var(--pink-dark); }
-        .btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
-
-        /* Student List */
+        .btn-sm { padding:7px 14px; font-size:12px; border-radius:8px; }
         .student-list { padding:0 16px 100px; }
-        .student-card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.04); transition:transform 0.15s; }
-        .student-card:active { transform:scale(0.99); }
-        .card-top { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-        .card-avatar { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--green-light),#c8e6c9); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:var(--green-dark); flex-shrink:0; }
-        .card-avatar.female { background:linear-gradient(135deg,var(--pink-light),#f8bbd0); color:var(--pink-dark); }
-        .card-title { flex:1; min-width:0; }
-        .card-name { font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
-        .card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
-        .card-fields { display:flex; flex-direction:column; gap:6px; }
-        .field-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
-        .field-row:last-child { border-bottom:none; }
-        .field-label { color:var(--text-muted); flex-shrink:0; }
-        .field-value { text-align:right; max-width:60%; word-break:break-all; color:var(--text); }
-        .field-value.masked { color:var(--text-muted); font-style:italic; }
-        .card-actions { display:flex; gap:8px; margin-top:12px; }
-        .card-actions .btn { flex:1; justify-content:center; }
-
-        /* Badges */
-        .badge { display:inline-flex; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; }
-        .badge-green { background:var(--green-light); color:var(--green-dark); }
-        .badge-pink { background:var(--pink-light); color:var(--pink-dark); }
-        .badge-blue { background:var(--blue-light); color:var(--blue-dark); }
-        .badge-yellow { background:var(--yellow-light); color:#856404; }
-        .badge-gray { background:#f0f0f0; color:#666; }
-
-        .level-normal { background:#f5f5f5; color:#666; }
-        .level-silver { background:#e0e0e0; color:#424242; }
-        .level-gold { background:#fff8e1; color:#f57c00; }
-        .level-diamond { background:#e3f2fd; color:#1565c0; }
-        .level-vip { background:#fce4ec; color:#c2185b; }
-
-        .gender-male { background:var(--blue-light); color:var(--blue-dark); }
-        .gender-female { background:var(--pink-light); color:var(--pink-dark); }
-
-        /* Pagination */
+        .s-card { background:var(--card); border-radius:12px; margin-bottom:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.04); transition:box-shadow 0.2s; }
+        .s-card.expanded { box-shadow:0 4px 16px rgba(0,0,0,0.08); margin-bottom:12px; }
+        .s-main { display:flex; align-items:center; padding:12px 14px; gap:12px; cursor:pointer; transition:background 0.15s; }
+        .s-main:active { background:#f8f8f8; }
+        .s-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
+        .s-avatar.m { background:linear-gradient(135deg,var(--blue-light),#bbdefb); color:var(--blue-dark); }
+        .s-avatar.f { background:linear-gradient(135deg,var(--pink-light),#f8bbd0); color:var(--pink-dark); }
+        .s-info { flex:1; min-width:0; }
+        .s-name { font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
+        .s-meta { font-size:11px; color:var(--text-muted); margin-top:2px; display:flex; gap:8px; }
+        .s-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+        .s-phone { font-size:12px; color:var(--text-secondary); }
+        .s-phone.masked { color:var(--text-muted); font-style:italic; }
+        .s-chevron { font-size:14px; color:#ccc; transition:transform 0.3s; }
+        .s-card.expanded .s-chevron { transform:rotate(180deg); color:var(--green); }
+        .s-expand { max-height:0; overflow:hidden; transition:max-height 0.35s ease; }
+        .s-card.expanded .s-expand { max-height:800px; }
+        .s-expand-inner { padding:0 14px 14px; }
+        .s-divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin-bottom:12px; }
+        .s-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+        .s-field { background:#f8f9fa; border-radius:10px; padding:10px 12px; }
+        .s-field.full { grid-column:1/-1; }
+        .s-field-label { font-size:10px; color:var(--text-muted); font-weight:600; letter-spacing:0.5px; }
+        .s-field-value { font-size:13px; font-weight:500; margin-top:3px; line-height:1.4; }
+        .s-actions { display:flex; gap:8px; }
+        .s-actions .btn { flex:1; justify-content:center; }
+        .badge { display:inline-flex; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
+        .level-normal{background:#f0f0f0;color:#666;} .level-silver{background:#e0e0e0;color:#424242;} .level-gold{background:#fff8e1;color:#f57c00;} .level-diamond{background:#e3f2fd;color:#1565c0;} .level-vip{background:#fce4ec;color:#c2185b;}
+        .gender-m{background:var(--blue-light);color:var(--blue-dark);} .gender-f{background:var(--pink-light);color:var(--pink-dark);}
+        .exp-pilates{background:var(--green-light);color:var(--green-dark);} .exp-weight{background:var(--pink-light);color:var(--pink-dark);} .exp-stretch{background:var(--blue-light);color:var(--blue-dark);} .exp-ai{background:var(--yellow-light);color:#856404;}
         .pagination { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; flex-wrap:wrap; }
-        .pagination .btn { min-width:auto; }
         .page-info { font-size:13px; color:var(--text-muted); }
         .page-select { padding:8px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:var(--card); }
-
-        /* Modal */
         .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:flex-end; justify-content:center; }
         .modal-bg.show { display:flex; }
         .modal-panel { width:100%; max-width:500px; max-height:92vh; background:var(--card); border-radius:20px 20px 0 0; overflow-y:auto; animation:slideUp 0.3s ease; }
@@ -88,6 +73,13 @@
         .modal-head h2 { font-size:17px; font-weight:700; }
         .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); padding:4px 8px; }
         .modal-body { padding:20px; padding-bottom:100px; }
+        .detail-section { margin-bottom:20px; }
+        .detail-section-title { font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:1.5px; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--green-light); }
+        .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .detail-field { background:#f8f9fa; border-radius:10px; padding:10px 12px; }
+        .detail-field.full { grid-column:1/-1; }
+        .detail-field-label { font-size:10px; color:var(--text-muted); font-weight:600; }
+        .detail-field-value { font-size:14px; font-weight:500; margin-top:3px; }
         .form-group { margin-bottom:16px; }
         .form-label { display:block; font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; }
         .form-input { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; transition:border-color 0.2s; }
@@ -95,615 +87,177 @@
         .form-input[readonly] { background:#f9f9f9; color:var(--text-muted); }
         .form-select { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; background:var(--card); }
         .form-textarea { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; resize:vertical; min-height:70px; }
-        .form-hint { font-size:11px; color:var(--text-muted); margin-top:4px; }
         .modal-footer { position:fixed; bottom:0; left:0; right:0; display:flex; gap:10px; padding:12px 20px; background:var(--card); border-top:1px solid var(--border); box-shadow:0 -2px 10px rgba(0,0,0,0.06); z-index:10; }
         .modal-footer .btn { flex:1; justify-content:center; padding:14px; font-size:15px; }
-
-        /* Detail Modal */
-        .detail-section { margin-bottom:20px; }
-        .detail-section-title { font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:1px; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--green-light); }
-        .detail-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f5f5f5; }
-        .detail-row:last-child { border-bottom:none; }
-        .detail-label { font-size:13px; color:var(--text-muted); }
-        .detail-value { font-size:14px; font-weight:500; text-align:right; max-width:60%; }
-
-        /* Empty & Loading */
+        .delete-modal { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; display:none; align-items:center; justify-content:center; padding:20px; }
+        .delete-modal.show { display:flex; }
+        .delete-card { background:white; border-radius:20px; padding:28px 24px; max-width:360px; width:100%; text-align:center; animation:fadeIn 0.25s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        .delete-icon { font-size:48px; margin-bottom:12px; }
+        .delete-title { font-size:17px; font-weight:700; margin-bottom:8px; }
+        .delete-desc { font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; }
+        .delete-name { color:var(--danger); font-weight:700; }
+        .delete-confirm-input { width:100%; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; text-align:center; margin-bottom:16px; transition:border-color 0.2s; }
+        .delete-confirm-input:focus { border-color:var(--danger); }
+        .delete-confirm-input.error { border-color:var(--danger); animation:shake 0.3s; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+        .delete-actions { display:flex; gap:10px; }
+        .delete-actions .btn { flex:1; justify-content:center; padding:12px; }
+        .delete-btn-confirm { background:var(--danger); color:white; opacity:0.4; pointer-events:none; transition:opacity 0.2s; }
+        .delete-btn-confirm.active { opacity:1; pointer-events:auto; }
         .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
         .empty-icon { font-size:48px; margin-bottom:12px; }
-        .loading-state { text-align:center; padding:40px; color:var(--text-muted); }
-
-        /* Toast */
         .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(45,52,54,0.9); color:white; padding:10px 24px; border-radius:12px; font-size:13px; z-index:9999; transition:transform 0.3s; opacity:0; }
         .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
-
-        /* Desktop */
-        @media(min-width:769px) {
-            .modal-bg { align-items:center; }
-            .modal-panel { border-radius:20px; max-height:85vh; }
-            .modal-footer { position:sticky; bottom:0; }
-        }
-
-        /* Hidden field placeholder */
-        .hidden-field { color:#ccc; font-size:12px; font-style:italic; }
+        @media(min-width:769px) { .modal-bg{align-items:center;} .modal-panel{border-radius:20px;max-height:85vh;} .modal-footer{position:sticky;bottom:0;} }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <h1>👤 學員管理</h1>
-        <div class="top-bar-right">
-            <span class="count-badge" id="totalCount">0 筆</span>
-            <span class="staff-name" id="staffName"></span>
-        </div>
-    </div>
-
-    <div class="action-bar">
-        <div class="action-row">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、編號、電話..." oninput="handleSearch()">
-            <button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button>
-        </div>
-    </div>
-
-    <div class="student-list" id="studentList">
-        <div class="loading-state">載入中...</div>
-    </div>
-
-    <div class="pagination" id="pagination" style="display:none;">
-        <select class="page-select" id="pageSizeSelect" onchange="changePageSize()">
-            <option value="20">20 筆/頁</option>
-            <option value="50" selected>50 筆/頁</option>
-            <option value="100">100 筆/頁</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" id="prevBtn" onclick="goPage(-1)">← 上一頁</button>
-        <span class="page-info" id="pageInfo">第 1 頁</span>
-        <button class="btn btn-secondary btn-sm" id="nextBtn" onclick="goPage(1)">下一頁 →</button>
-    </div>
-
-    <!-- Detail Modal -->
-    <div class="modal-bg" id="detailModal">
-        <div class="modal-panel">
-            <div class="modal-head">
-                <h2 id="detailTitle">學員資料</h2>
-                <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
-            </div>
-            <div class="modal-body" id="detailBody"></div>
-            <div class="modal-footer" id="detailFooter"></div>
-        </div>
-    </div>
-
-    <!-- Edit Modal -->
-    <div class="modal-bg" id="editModal">
-        <div class="modal-panel">
-            <div class="modal-head">
-                <h2 id="editTitle">編輯學員</h2>
-                <button class="modal-close" onclick="closeModal('editModal')">✕</button>
-            </div>
-            <div class="modal-body" id="editBody"></div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
-                <button class="btn btn-primary" onclick="saveStudent()">💾 儲存</button>
-            </div>
-        </div>
-    </div>
-
+    <div class="top-bar"><h1>👤 學員管理</h1><div class="top-bar-right"><span class="count-badge" id="totalCount">0 筆</span><span class="staff-name" id="staffName"></span></div></div>
+    <div class="action-bar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、編號、電話..." oninput="handleSearch()"><button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button></div>
+    <div class="student-list" id="studentList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
+    <div class="pagination" id="pagination" style="display:none;"><select class="page-select" id="pageSizeSelect" onchange="changePageSize()"><option value="20">20筆</option><option value="50" selected>50筆</option><option value="100">100筆</option></select><button class="btn btn-secondary btn-sm" id="prevBtn" onclick="goPage(-1)">←</button><span class="page-info" id="pageInfo">1/1</span><button class="btn btn-secondary btn-sm" id="nextBtn" onclick="goPage(1)">→</button></div>
+    <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">學員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
+    <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯學員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStudent()">💾 儲存</button></div></div></div>
+    <div class="delete-modal" id="deleteModal"><div class="delete-card"><div class="delete-icon">⚠️</div><div class="delete-title">確認刪除學員</div><div class="delete-desc">即將刪除 <span class="delete-name" id="deleteStudentName">-</span><br>此操作<strong>無法復原</strong>。<br><br>請輸入學員姓名以確認：</div><input type="text" class="delete-confirm-input" id="deleteConfirmInput" placeholder="請輸入學員姓名..." oninput="checkDeleteConfirm()"><div class="delete-actions"><button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button><button class="btn delete-btn-confirm" id="deleteConfirmBtn" onclick="confirmDelete()">🗑️ 確認刪除</button></div></div></div>
     <div class="toast" id="toast"></div>
-
     <script>
-    // ====================================================================
-    //  CONFIG
-    // ====================================================================
-    const SUPABASE_URL = 'https://mnjilhpztnowaplggvkk.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
+    const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+    const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    let currentUser=null,modulePerms={view:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
+    let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
+    let deleteTargetId=null,deleteTargetName='';
+    const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
+    const genderKey=g=>(g==='female'||g==='女')?'f':'m';
+    const levelNames={'normal':'一般','silver':'銀卡','gold':'金卡','diamond':'鑽石','vip':'VIP'};
+    const levelClass={'normal':'level-normal','silver':'level-silver','gold':'level-gold','diamond':'level-diamond','vip':'level-vip'};
+    const expNames={'pilates':'皮拉提斯','weight':'重量訓練','stretch':'伸展課程','ai':'AI 體態分析'};
+    const expClass={'pilates':'exp-pilates','weight':'exp-weight','stretch':'exp-stretch','ai':'exp-ai'};
 
-    // ====================================================================
-    //  PERMISSIONS
-    // ====================================================================
-    let currentUser = null;
-    let modulePerms = { view:false, edit:false, create:false, delete:false, export:false };
-    let fieldPerms = {}; // { phone: "masked", email: false, ... }
-
-    function initPermissions() {
-        // 從 sessionStorage 讀取登入資訊
-        try {
-            currentUser = JSON.parse(sessionStorage.getItem('currentStaff'));
-        } catch(e) {}
-
-        if (!currentUser) {
-            // 從 URL 參數備用
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('uid')) {
-                currentUser = { name: params.get('name') || '使用者', role: params.get('role') || 'staff' };
-            }
-        }
-
-        if (!currentUser) {
-            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';
-            return false;
-        }
-
-        // 顯示人員名稱
-        document.getElementById('staffName').textContent = currentUser.name;
-
-        // 讀取模組權限
-        if (currentUser.role === 'super_admin' || currentUser.permissions === 'all') {
-            modulePerms = { view:true, edit:true, create:true, delete:true, export:true };
-        } else {
-            modulePerms = (currentUser.permissions && currentUser.permissions['member']) || { view:false };
-        }
-
-        // 讀取欄位權限
-        if (currentUser.role === 'super_admin') {
-            fieldPerms = {};
-        } else {
-            fieldPerms = (currentUser.fieldPermissions && currentUser.fieldPermissions['member']) || {};
-        }
-
-        // 也嘗試從 parent 讀取（iframe 模式）
-        try {
-            if (window.parent && window.parent.getModulePermissions) {
-                const parentPerms = window.parent.getModulePermissions('member');
-                if (parentPerms) modulePerms = parentPerms;
-            }
-            if (window.parent && window.parent.getFieldPermissions) {
-                const parentFields = window.parent.getFieldPermissions('member');
-                if (parentFields) fieldPerms = parentFields;
-            }
-        } catch(e) {}
-
-        // 控制 UI
-        if (modulePerms.create) document.getElementById('addBtn').style.display = 'flex';
-
-        if (!modulePerms.view) {
-            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';
-            return false;
-        }
-
+    function initPermissions(){
+        try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
+        if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'使用者',role:p.get('role')||'staff'};}
+        if(!currentUser){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
+        document.getElementById('staffName').textContent=currentUser.name;
+        if(currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,edit:true,create:true,delete:true,export:true};}
+        else{modulePerms=(currentUser.permissions&&currentUser.permissions['member'])||{view:false};}
+        if(currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['member'])||{};}
+        try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('member');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('member');}catch(e){}
+        if(modulePerms.create)document.getElementById('addBtn').style.display='flex';
+        if(!modulePerms.view){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';return false;}
         return true;
     }
+    function getFieldDisplay(f,v,mt){const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;font-style:italic;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));if(mt==='email'){const a=s.indexOf('@');return a>2?escHtml(s.substring(0,2)+'***'+s.substring(a)):'***';}return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
+    function isFieldVisible(f){const p=fieldPerms[f];return p===undefined||p===true||p==='masked';}
+    function isFieldFull(f){const p=fieldPerms[f];return p===undefined||p===true;}
+    function isMasked(f){return fieldPerms[f]==='masked';}
 
-    // 取得欄位顯示值（依欄位權限）
-    function getFieldDisplay(fieldName, rawValue, maskType) {
-        const perm = fieldPerms[fieldName];
-
-        // 沒有定義 = 預設顯示
-        if (perm === undefined || perm === true) return escHtml(rawValue || '-');
-        if (perm === false) return '<span class="hidden-field">無權限查看</span>';
-        if (perm === 'masked') {
-            if (!rawValue) return '-';
-            try {
-                if (window.parent && window.parent.maskValue) {
-                    return '<span class="masked">' + escHtml(window.parent.maskValue(rawValue, maskType || fieldName)) + '</span>';
-                }
-            } catch(e) {}
-            // Fallback mask
-            const str = String(rawValue);
-            if (maskType === 'phone' && str.length >= 7) return escHtml(str.substring(0,4) + '***' + str.substring(str.length-3));
-            if (maskType === 'email') { const at = str.indexOf('@'); return at > 2 ? escHtml(str.substring(0,2) + '***' + str.substring(at)) : '***'; }
-            return escHtml(str[0] + '***' + str[str.length-1]);
-        }
-        return escHtml(rawValue || '-');
+    async function loadStudents(){
+        try{
+            let q=sb.from('students').select('*',{count:'exact'});
+            if(searchTerm)q=q.or('name.ilike.%'+searchTerm+'%,id.ilike.%'+searchTerm+'%,phone.ilike.%'+searchTerm+'%');
+            const from=(currentPage-1)*pageSize;
+            const{data,error,count}=await q.order('id',{ascending:true}).range(from,from+pageSize-1);
+            if(error)throw error;
+            students=data||[];totalCount=count||0;
+            document.getElementById('totalCount').textContent=totalCount+' 筆';
+            renderStudents();renderPagination();
+        }catch(e){console.error('Load:',e);document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';}
     }
 
-    // 欄位是否可見
-    function isFieldVisible(fieldName) {
-        const perm = fieldPerms[fieldName];
-        return perm === undefined || perm === true || perm === 'masked';
-    }
-
-    // 欄位是否完整可見（非遮罩）
-    function isFieldFull(fieldName) {
-        const perm = fieldPerms[fieldName];
-        return perm === undefined || perm === true;
-    }
-
-    // ====================================================================
-    //  DATA
-    // ====================================================================
-    let students = [];
-    let totalCount = 0;
-    let currentPage = 1;
-    let pageSize = 50;
-    let searchTerm = '';
-    let searchTimeout = null;
-    let editingStudent = null;
-
-    const genderNames = { 'male':'男', 'female':'女', '男':'男', '女':'女', 'other':'其他' };
-    const genderClass = { 'male':'gender-male', 'female':'gender-female', '男':'gender-female', '女':'gender-female' };
-    const levelNames = { 'normal':'一般', 'silver':'銀卡', 'gold':'金卡', 'diamond':'鑽石', 'vip':'VIP' };
-    const levelClass = { 'normal':'level-normal', 'silver':'level-silver', 'gold':'level-gold', 'diamond':'level-diamond', 'vip':'level-vip' };
-    const experienceNames = { 'pilates':'皮拉提斯', 'weight':'重量訓練', 'stretch':'伸展課程', 'ai':'AI 體態分析' };
-
-    async function loadStudents() {
-        try {
-            let query = sb.from('students').select('*', { count: 'exact' });
-
-            if (searchTerm) {
-                query = query.or(`name.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
-            }
-
-            const from = (currentPage - 1) * pageSize;
-            const { data, error, count } = await query
-                .order('id', { ascending: true })
-                .range(from, from + pageSize - 1);
-
-            if (error) throw error;
-
-            students = data || [];
-            totalCount = count || 0;
-
-            document.getElementById('totalCount').textContent = `${totalCount} 筆`;
-            renderStudents();
-            renderPagination();
-
-        } catch(e) {
-            console.error('Load error:', e);
-            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';
-        }
-    }
-
-    function renderStudents() {
-        const container = document.getElementById('studentList');
-
-        if (students.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><p>找不到學員資料</p></div>';
-            return;
-        }
-
-        container.innerHTML = students.map(s => {
-            const name = escHtml(s.name || '-');
-            const initial = (s.name || '?')[0];
-            const genderVal = genderNames[s.gender] || '';
-            const isFemale = s.gender === 'female' || s.gender === '女';
-            const levelVal = levelNames[s.member_level] || '一般';
-            const levelCls = levelClass[s.member_level] || 'level-normal';
-
-            // 欄位顯示
-            let fieldsHtml = '';
-
-            if (isFieldVisible('phone')) {
-                fieldsHtml += `<div class="field-row"><span class="field-label">電話</span><span class="field-value">${getFieldDisplay('phone', s.phone, 'phone')}</span></div>`;
-            }
-            if (isFieldVisible('email') && s.email) {
-                fieldsHtml += `<div class="field-row"><span class="field-label">信箱</span><span class="field-value">${getFieldDisplay('email', s.email, 'email')}</span></div>`;
-            }
-            if (isFieldVisible('line_uid') && s.line_uid) {
-                fieldsHtml += `<div class="field-row"><span class="field-label">LINE</span><span class="field-value" style="font-size:11px;">${getFieldDisplay('line_uid', s.line_uid)}</span></div>`;
-            }
-            if (isFieldVisible('medical_history') && s.medical_history) {
-                fieldsHtml += `<div class="field-row"><span class="field-label">疾病史</span><span class="field-value">${getFieldDisplay('medical_history', s.medical_history)}</span></div>`;
-            }
-
-            // 操作按鈕
-            let actionsHtml = `<button class="btn btn-secondary btn-sm" onclick="viewStudent('${escAttr(s.id)}')">📋 詳情</button>`;
-            if (modulePerms.edit) actionsHtml += `<button class="btn btn-primary btn-sm" onclick="editStudent('${escAttr(s.id)}')">✏️ 編輯</button>`;
-            if (modulePerms.delete) actionsHtml += `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${escAttr(s.id)}','${escAttr(s.name)}')">🗑️</button>`;
-
-            return `
-                <div class="student-card" onclick="viewStudent('${escAttr(s.id)}')">
-                    <div class="card-top">
-                        <div class="card-avatar ${isFemale ? 'female' : ''}">${escHtml(initial)}</div>
-                        <div class="card-title">
-                            <div class="card-name">
-                                ${name}
-                                ${genderVal ? `<span class="badge ${genderClass[s.gender] || 'badge-gray'}">${genderVal}</span>` : ''}
-                                <span class="badge ${levelCls}">${levelVal}</span>
-                            </div>
-                            <div class="card-sub">${escHtml(s.id || '')} ${s.line_display_name ? '• ' + escHtml(s.line_display_name) : ''}</div>
-                        </div>
-                    </div>
-                    <div class="card-fields">${fieldsHtml}</div>
-                    <div class="card-actions" onclick="event.stopPropagation();">${actionsHtml}</div>
-                </div>
-            `;
+    function renderStudents(){
+        const c=document.getElementById('studentList');
+        if(students.length===0){c.innerHTML='<div class="empty-state"><div class="empty-icon">👤</div><p>找不到學員</p></div>';return;}
+        c.innerHTML=students.map(s=>{
+            const init=(s.name||'?')[0],gk=genderKey(s.gender),gd=genderNames[s.gender]||'',ld=levelNames[s.member_level]||'一般',lc=levelClass[s.member_level]||'level-normal',ed=expNames[s.first_experience]||'',ec=expClass[s.first_experience]||'',sid=escAttr(s.id);
+            let ph='-';
+            if(isFieldVisible('phone')&&s.phone){ph=isMasked('phone')?'<span class="s-phone masked">'+getFieldDisplay('phone',s.phone,'phone')+'</span>':'<span class="s-phone">'+escHtml(s.phone)+'</span>';}
+            let grid='';
+            if(gd)grid+=fc('性別','<span class="badge gender-'+gk+'">'+gd+'</span>');
+            grid+=fc('會員等級','<span class="badge '+lc+'">'+ld+'</span>');
+            if(isFieldVisible('phone'))grid+=fc('電話','<span'+(isMasked('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('phone',s.phone,'phone')+'</span>');
+            if(isFieldVisible('email')&&s.email)grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',s.email,'email')+'</span>');
+            if(ed)grid+=fc('初次體驗','<span class="badge '+ec+'">'+ed+'</span>');
+            if(s.line_display_name)grid+=fc('LINE名稱',escHtml(s.line_display_name));
+            if(isFieldVisible('medical_history')&&s.medical_history){const warn=s.medical_history&&s.medical_history!=='無';grid+=fc('疾病史','<span'+(warn?' style="color:var(--pink-dark);"':'')+'>'+getFieldDisplay('medical_history',s.medical_history)+'</span>',true);}
+            if(isFieldVisible('fitness_goal')&&s.fitness_goal)grid+=fc('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
+            if(isFieldVisible('line_uid')&&s.line_uid)grid+=fc('LINE UID','<span style="font-size:11px;word-break:break-all;'+(isMasked('line_uid')?'color:var(--text-muted);font-style:italic;':'')+'">'+getFieldDisplay('line_uid',s.line_uid)+'</span>',true);
+            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
+            if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
+            if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">🗑️</button>';
+            return '<div class="s-card" id="card-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+gk+'">'+escHtml(init)+'</div><div class="s-info"><div class="s-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="s-meta"><span>'+escHtml(s.id)+'</span>'+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div><div class="s-right">'+ph+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div><div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
         }).join('');
     }
+    function fc(label,valueHtml,full){return '<div class="s-field'+(full?' full':'')+'"><div class="s-field-label">'+label+'</div><div class="s-field-value">'+valueHtml+'</div></div>';}
+    function toggleCard(id){const c=document.getElementById('card-'+id);if(c)c.classList.toggle('expanded');}
+    function renderPagination(){const tp=Math.ceil(totalCount/pageSize)||1;document.getElementById('pagination').style.display=totalCount>0?'flex':'none';document.getElementById('pageInfo').textContent=currentPage+' / '+tp;document.getElementById('prevBtn').disabled=currentPage<=1;document.getElementById('prevBtn').style.opacity=currentPage<=1?'0.4':'1';document.getElementById('nextBtn').disabled=currentPage>=tp;document.getElementById('nextBtn').style.opacity=currentPage>=tp?'0.4':'1';}
+    function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;loadStudents();},300);}
+    function goPage(d){const tp=Math.ceil(totalCount/pageSize)||1;const np=currentPage+d;if(np<1||np>tp)return;currentPage=np;loadStudents();window.scrollTo(0,0);}
+    function changePageSize(){pageSize=parseInt(document.getElementById('pageSizeSelect').value)||50;currentPage=1;loadStudents();}
 
-    function renderPagination() {
-        const totalPages = Math.ceil(totalCount / pageSize) || 1;
-        const pag = document.getElementById('pagination');
-        pag.style.display = totalCount > 0 ? 'flex' : 'none';
-
-        document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 頁（${totalCount} 筆）`;
-        document.getElementById('prevBtn').disabled = currentPage <= 1;
-        document.getElementById('prevBtn').style.opacity = currentPage <= 1 ? '0.4' : '1';
-        document.getElementById('nextBtn').disabled = currentPage >= totalPages;
-        document.getElementById('nextBtn').style.opacity = currentPage >= totalPages ? '0.4' : '1';
+    function viewDetail(id){
+        const s=students.find(x=>x.id===id);if(!s)return;
+        document.getElementById('detailTitle').textContent=s.name||'-';
+        let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
+        h+=df('編號',escHtml(s.id));h+=df('姓名',escHtml(s.name));h+=df('暱稱',escHtml(s.line_display_name||'-'));h+=df('性別',genderNames[s.gender]||'-');
+        if(isFieldVisible('birth_date'))h+=df('生日',getFieldDisplay('birth_date',s.birth_date));
+        h+=df('會員等級',levelNames[s.member_level]||'一般');h+=df('初次體驗',expNames[s.first_experience]||'-');
+        h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
+        if(isFieldVisible('phone'))h+=df('電話',getFieldDisplay('phone',s.phone,'phone'));
+        if(isFieldVisible('email'))h+=df('信箱',getFieldDisplay('email',s.email,'email'));
+        if(isFieldVisible('line_uid'))h+=df('LINE UID',getFieldDisplay('line_uid',s.line_uid),true);
+        h+='</div></div>';
+        if(isFieldVisible('medical_history')||isFieldVisible('fitness_goal')){h+='<div class="detail-section"><div class="detail-section-title">健康資訊</div><div class="detail-grid">';if(isFieldVisible('medical_history'))h+=df('疾病史',getFieldDisplay('medical_history',s.medical_history),true);if(isFieldVisible('fitness_goal'))h+=df('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);h+='</div></div>';}
+        h+='<div class="detail-section"><div class="detail-section-title">系統資訊</div><div class="detail-grid">';h+=df('建立時間',fmtDate(s.created_at));h+=df('更新時間',fmtDate(s.updated_at));h+='</div></div>';
+        document.getElementById('detailBody').innerHTML=h;
+        let ft='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
+        if(modulePerms.edit)ft+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStudent(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
+        document.getElementById('detailFooter').innerHTML=ft;openModal('detailModal');
     }
+    function df(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
 
-    // ====================================================================
-    //  SEARCH & PAGINATION
-    // ====================================================================
-    function handleSearch() {
-        if (searchTimeout) clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            searchTerm = document.getElementById('searchInput').value.trim();
-            currentPage = 1;
-            loadStudents();
-        }, 300);
+    function editStudent(id){
+        if(!modulePerms.edit){showToast('您沒有編輯權限');return;}
+        const s=students.find(x=>x.id===id);if(!s)return;editingStudent=s;
+        document.getElementById('editTitle').textContent='編輯：'+s.name;
+        let h='';h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name);h+=fg('暱稱','text','edit_nickname',s.line_display_name);
+        h+=fs('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],s.gender);
+        if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',s.phone);
+        if(isFieldFull('email'))h+=fg('信箱','email','edit_email',s.email);
+        if(isFieldFull('birth_date'))h+=fg('生日','date','edit_birth',s.birth_date);
+        if(isFieldFull('medical_history'))h+=fa('疾病史','edit_medical',s.medical_history);
+        if(isFieldFull('fitness_goal'))h+=fa('健身目標','edit_goal',s.fitness_goal);
+        h+=fs('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],s.member_level);
+        h+=fs('初次體驗','edit_exp',[['','請選擇'],['pilates','皮拉提斯'],['weight','重量訓練'],['stretch','伸展課程'],['ai','AI 體態分析']],s.first_experience);
+        document.getElementById('editBody').innerHTML=h;openModal('editModal');
     }
-
-    function goPage(dir) {
-        const totalPages = Math.ceil(totalCount / pageSize) || 1;
-        const newPage = currentPage + dir;
-        if (newPage < 1 || newPage > totalPages) return;
-        currentPage = newPage;
-        loadStudents();
-        window.scrollTo(0, 0);
+    async function saveStudent(){
+        const u={name:val('edit_name'),line_display_name:val('edit_nickname'),gender:val('edit_gender'),member_level:val('edit_level'),first_experience:val('edit_exp'),updated_at:new Date().toISOString()};
+        if(isFieldFull('phone'))u.phone=val('edit_phone');if(isFieldFull('email'))u.email=val('edit_email');if(isFieldFull('birth_date'))u.birth_date=val('edit_birth')||null;if(isFieldFull('medical_history'))u.medical_history=val('edit_medical');if(isFieldFull('fitness_goal'))u.fitness_goal=val('edit_goal');
+        if(!u.name){showToast('請輸入姓名');return;}
+        try{if(editingStudent){const{error}=await sb.from('students').update(u).eq('id',editingStudent.id);if(error)throw error;showToast('✅ 已更新');}else{if(!u.phone){showToast('請輸入電話');return;}if(!u.gender){showToast('請選擇性別');return;}const{error}=await sb.from('students').insert(u);if(error)throw error;showToast('✅ 已新增');}closeModal('editModal');editingStudent=null;await loadStudents();}catch(e){console.error('Save:',e);showToast('❌ 儲存失敗：'+e.message);}
     }
+    function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';let h='';h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fs('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fa('疾病史','edit_medical','');h+=fa('健身目標','edit_goal','');h+=fs('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');h+=fs('初次體驗','edit_exp',[['','請選擇'],['pilates','皮拉提斯'],['weight','重量訓練'],['stretch','伸展課程'],['ai','AI 體態分析']],'');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
-    function changePageSize() {
-        pageSize = parseInt(document.getElementById('pageSizeSelect').value) || 50;
-        currentPage = 1;
-        loadStudents();
-    }
+    function openDeleteModal(id,name){if(!modulePerms.delete){showToast('您沒有刪除權限');return;}deleteTargetId=id;deleteTargetName=name;document.getElementById('deleteStudentName').textContent=name;document.getElementById('deleteConfirmInput').value='';document.getElementById('deleteConfirmInput').classList.remove('error');document.getElementById('deleteConfirmBtn').classList.remove('active');document.getElementById('deleteModal').classList.add('show');}
+    function checkDeleteConfirm(){const i=document.getElementById('deleteConfirmInput').value.trim();const b=document.getElementById('deleteConfirmBtn');if(i===deleteTargetName)b.classList.add('active');else b.classList.remove('active');}
+    async function confirmDelete(){const i=document.getElementById('deleteConfirmInput').value.trim();if(i!==deleteTargetName){document.getElementById('deleteConfirmInput').classList.add('error');setTimeout(()=>document.getElementById('deleteConfirmInput').classList.remove('error'),300);return;}try{const{error}=await sb.from('students').delete().eq('id',deleteTargetId);if(error)throw error;showToast('✅ 已刪除');closeDeleteModal();await loadStudents();}catch(e){console.error('Del:',e);showToast('❌ 刪除失敗');}}
+    function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('show');deleteTargetId=null;deleteTargetName='';}
 
-    // ====================================================================
-    //  VIEW DETAIL
-    // ====================================================================
-    function viewStudent(id) {
-        const s = students.find(x => x.id === id);
-        if (!s) return;
-
-        document.getElementById('detailTitle').textContent = `${s.name || '-'} 的資料`;
-
-        const genderVal = genderNames[s.gender] || '-';
-        const levelVal = levelNames[s.member_level] || '一般';
-        const expVal = experienceNames[s.first_experience] || '-';
-
-        let html = '';
-
-        // 基本資訊
-        html += '<div class="detail-section"><div class="detail-section-title">基本資訊</div>';
-        html += detailRow('編號', s.id);
-        html += detailRow('姓名', s.name);
-        html += detailRow('暱稱', s.line_display_name);
-        html += detailRow('性別', genderVal);
-
-        if (isFieldVisible('birth_date')) html += detailRow('生日', getFieldDisplay('birth_date', s.birth_date));
-        html += detailRow('會員等級', levelVal);
-        html += detailRow('初次體驗', expVal);
-        html += '</div>';
-
-        // 聯絡方式
-        html += '<div class="detail-section"><div class="detail-section-title">聯絡方式</div>';
-        if (isFieldVisible('phone')) html += detailRow('電話', getFieldDisplay('phone', s.phone, 'phone'));
-        if (isFieldVisible('email')) html += detailRow('信箱', getFieldDisplay('email', s.email, 'email'));
-        if (isFieldVisible('line_uid')) html += detailRow('LINE UID', getFieldDisplay('line_uid', s.line_uid));
-        html += '</div>';
-
-        // 健康資訊
-        if (isFieldVisible('medical_history') || isFieldVisible('fitness_goal')) {
-            html += '<div class="detail-section"><div class="detail-section-title">健康資訊</div>';
-            if (isFieldVisible('medical_history')) html += detailRow('疾病史', getFieldDisplay('medical_history', s.medical_history));
-            if (isFieldVisible('fitness_goal')) html += detailRow('健身目標', getFieldDisplay('fitness_goal', s.fitness_goal));
-            html += '</div>';
-        }
-
-        // 系統資訊
-        html += '<div class="detail-section"><div class="detail-section-title">系統資訊</div>';
-        html += detailRow('建立時間', formatDate(s.created_at));
-        html += detailRow('更新時間', formatDate(s.updated_at));
-        html += '</div>';
-
-        document.getElementById('detailBody').innerHTML = html;
-
-        // Footer buttons
-        let footerHtml = '<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
-        if (modulePerms.edit) footerHtml += `<button class="btn btn-primary" onclick="closeModal('detailModal');editStudent('${escAttr(s.id)}')">✏️ 編輯</button>`;
-        document.getElementById('detailFooter').innerHTML = footerHtml;
-
-        openModal('detailModal');
-    }
-
-    function detailRow(label, value) {
-        return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value || '-'}</span></div>`;
-    }
-
-    // ====================================================================
-    //  EDIT
-    // ====================================================================
-    function editStudent(id) {
-        if (!modulePerms.edit) { showToast('您沒有編輯權限'); return; }
-
-        const s = students.find(x => x.id === id);
-        if (!s) return;
-
-        editingStudent = s;
-        document.getElementById('editTitle').textContent = `編輯：${s.name}`;
-
-        // 只顯示有完整權限的欄位可以編輯
-        let html = '';
-        html += formGroup('編號', 'text', 'edit_id', s.id, true);
-        html += formGroup('姓名', 'text', 'edit_name', s.name);
-        html += formGroup('暱稱', 'text', 'edit_nickname', s.line_display_name);
-
-        html += `<div class="form-group"><label class="form-label">性別</label>
-            <select class="form-select" id="edit_gender">
-                <option value="">請選擇</option>
-                <option value="male" ${s.gender==='male'?'selected':''}>男</option>
-                <option value="female" ${s.gender==='female'?'selected':''}>女</option>
-                <option value="other" ${s.gender==='other'?'selected':''}>其他</option>
-            </select></div>`;
-
-        if (isFieldFull('phone')) html += formGroup('電話', 'tel', 'edit_phone', s.phone);
-        if (isFieldFull('email')) html += formGroup('信箱', 'email', 'edit_email', s.email);
-        if (isFieldFull('birth_date')) html += formGroup('生日', 'date', 'edit_birth', s.birth_date);
-        if (isFieldFull('medical_history')) html += formTextarea('疾病史', 'edit_medical', s.medical_history);
-        if (isFieldFull('fitness_goal')) html += formTextarea('健身目標', 'edit_goal', s.fitness_goal);
-
-        html += `<div class="form-group"><label class="form-label">會員等級</label>
-            <select class="form-select" id="edit_level">
-                <option value="normal" ${s.member_level==='normal'?'selected':''}>一般會員</option>
-                <option value="silver" ${s.member_level==='silver'?'selected':''}>銀卡會員</option>
-                <option value="gold" ${s.member_level==='gold'?'selected':''}>金卡會員</option>
-                <option value="diamond" ${s.member_level==='diamond'?'selected':''}>鑽石會員</option>
-                <option value="vip" ${s.member_level==='vip'?'selected':''}>VIP</option>
-            </select></div>`;
-
-        html += `<div class="form-group"><label class="form-label">初次體驗</label>
-            <select class="form-select" id="edit_experience">
-                <option value="">請選擇</option>
-                <option value="pilates" ${s.first_experience==='pilates'?'selected':''}>皮拉提斯</option>
-                <option value="weight" ${s.first_experience==='weight'?'selected':''}>重量訓練</option>
-                <option value="stretch" ${s.first_experience==='stretch'?'selected':''}>伸展課程</option>
-                <option value="ai" ${s.first_experience==='ai'?'selected':''}>AI 體態分析</option>
-            </select></div>`;
-
-        document.getElementById('editBody').innerHTML = html;
-        openModal('editModal');
-    }
-
-    async function saveStudent() {
-        if (!editingStudent) return;
-
-        const updates = {
-            name: val('edit_name'),
-            line_display_name: val('edit_nickname'),
-            gender: val('edit_gender'),
-            member_level: val('edit_level'),
-            first_experience: val('edit_experience'),
-            updated_at: new Date().toISOString()
-        };
-
-        // 只有有完整權限的欄位才更新
-        if (isFieldFull('phone')) updates.phone = val('edit_phone');
-        if (isFieldFull('email')) updates.email = val('edit_email');
-        if (isFieldFull('birth_date')) updates.birth_date = val('edit_birth') || null;
-        if (isFieldFull('medical_history')) updates.medical_history = val('edit_medical');
-        if (isFieldFull('fitness_goal')) updates.fitness_goal = val('edit_goal');
-
-        if (!updates.name) { showToast('請輸入姓名'); return; }
-
-        try {
-            const { error } = await sb.from('students').update(updates).eq('id', editingStudent.id);
-            if (error) throw error;
-
-            showToast('✅ 已更新');
-            closeModal('editModal');
-            editingStudent = null;
-            await loadStudents();
-
-        } catch(e) {
-            console.error('Save error:', e);
-            showToast('❌ 儲存失敗：' + e.message);
-        }
-    }
-
-    // ====================================================================
-    //  ADD
-    // ====================================================================
-    function openAddModal() {
-        if (!modulePerms.create) { showToast('您沒有新增權限'); return; }
-
-        editingStudent = null;
-        document.getElementById('editTitle').textContent = '新增學員';
-
-        let html = '';
-        html += formGroup('姓名 *', 'text', 'edit_name', '');
-        html += formGroup('暱稱', 'text', 'edit_nickname', '');
-
-        html += `<div class="form-group"><label class="form-label">性別 *</label>
-            <select class="form-select" id="edit_gender">
-                <option value="">請選擇</option>
-                <option value="male">男</option>
-                <option value="female">女</option>
-                <option value="other">其他</option>
-            </select></div>`;
-
-        html += formGroup('電話 *', 'tel', 'edit_phone', '');
-        html += formGroup('信箱', 'email', 'edit_email', '');
-        html += formGroup('生日', 'date', 'edit_birth', '');
-        html += formTextarea('疾病史', 'edit_medical', '');
-        html += formTextarea('健身目標', 'edit_goal', '');
-
-        html += `<div class="form-group"><label class="form-label">會員等級</label>
-            <select class="form-select" id="edit_level">
-                <option value="normal" selected>一般會員</option>
-                <option value="silver">銀卡會員</option>
-                <option value="gold">金卡會員</option>
-                <option value="diamond">鑽石會員</option>
-                <option value="vip">VIP</option>
-            </select></div>`;
-
-        html += `<div class="form-group"><label class="form-label">初次體驗</label>
-            <select class="form-select" id="edit_experience">
-                <option value="">請選擇</option>
-                <option value="pilates">皮拉提斯</option>
-                <option value="weight">重量訓練</option>
-                <option value="stretch">伸展課程</option>
-                <option value="ai">AI 體態分析</option>
-            </select></div>`;
-
-        document.getElementById('editBody').innerHTML = html;
-        openModal('editModal');
-    }
-
-    // ====================================================================
-    //  DELETE
-    // ====================================================================
-    async function deleteStudent(id, name) {
-        if (!modulePerms.delete) { showToast('您沒有刪除權限'); return; }
-        if (!confirm(`確定要刪除「${name}」嗎？`)) return;
-
-        try {
-            const { error } = await sb.from('students').delete().eq('id', id);
-            if (error) throw error;
-            showToast('✅ 已刪除');
-            await loadStudents();
-        } catch(e) {
-            console.error('Delete error:', e);
-            showToast('❌ 刪除失敗');
-        }
-    }
-
-    // ====================================================================
-    //  HELPERS
-    // ====================================================================
-    function openModal(id) { document.getElementById(id).classList.add('show'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-    function formGroup(label, type, id, value, readonly) {
-        return `<div class="form-group"><label class="form-label">${label}</label>
-            <input type="${type}" class="form-input" id="${id}" value="${escAttr(value||'')}" ${readonly?'readonly':''}></div>`;
-    }
-    function formTextarea(label, id, value) {
-        return `<div class="form-group"><label class="form-label">${label}</label>
-            <textarea class="form-textarea" id="${id}">${escHtml(value||'')}</textarea></div>`;
-    }
-    function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
-
-    function escHtml(t) { if (t==null) return ''; const d=document.createElement('div'); d.textContent=String(t); return d.innerHTML; }
-    function escAttr(t) { if (t==null) return ''; return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    function formatDate(d) {
-        if (!d) return '-';
-        try {
-            const dt = new Date(d);
-            return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-        } catch(e) { return d; }
-    }
-
-    let toastTimer = null;
-    function showToast(m) {
-        const t = document.getElementById('toast');
-        t.textContent = m; t.classList.add('show');
-        if (toastTimer) clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-    }
-
-    // Close modal on bg click
-    document.querySelectorAll('.modal-bg').forEach(el => {
-        el.addEventListener('click', e => { if(e.target === el) el.classList.remove('show'); });
-    });
-
-    // ====================================================================
-    //  INIT
-    // ====================================================================
-    document.addEventListener('DOMContentLoaded', () => {
-        if (initPermissions()) {
-            loadStudents();
-        }
-    });
+    function openModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    function fg(l,t,id,v,ro){return '<div class="form-group"><label class="form-label">'+l+'</label><input type="'+t+'" class="form-input" id="'+id+'" value="'+escAttr(v||'')+'" '+(ro?'readonly':'')+'></div>';}
+    function fa(l,id,v){return '<div class="form-group"><label class="form-label">'+l+'</label><textarea class="form-textarea" id="'+id+'">'+escHtml(v||'')+'</textarea></div>';}
+    function fs(l,id,opts,sel){return '<div class="form-group"><label class="form-label">'+l+'</label><select class="form-select" id="'+id+'">'+opts.map(([v,t])=>'<option value="'+v+'" '+(v===sel?'selected':'')+'>'+t+'</option>').join('')+'</select></div>';}
+    function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+    function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
+    function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
+    let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+    document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show');});});
+    document.getElementById('deleteModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDeleteModal();});
+    document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStudents();});
     </script>
 </body>
 </html>
