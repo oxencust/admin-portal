@@ -177,13 +177,16 @@
             if(gd)grid+=fc('性別','<span class="badge gender-'+gk+'">'+gd+'</span>');
             grid+=fc('會員等級','<span class="badge '+lc+'">'+ld+'</span>');
             if(isFieldVisible('phone'))grid+=fc('電話','<span'+(isMasked('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('phone',s.phone,'phone')+'</span>');
-            if(isFieldVisible('email')&&s.email)grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',s.email,'email')+'</span>');
+            if(isFieldVisible('email'))grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',s.email,'email')+'</span>');
             if(ed)grid+=fc('初次體驗','<span class="badge '+ec+'">'+ed+'</span>');
-            if(s.line_display_name)grid+=fc('LINE名稱',escHtml(s.line_display_name));
-            if(isFieldVisible('medical_history')&&s.medical_history){const warn=s.medical_history&&s.medical_history!=='無';grid+=fc('疾病史','<span'+(warn?' style="color:var(--pink-dark);"':'')+'>'+getFieldDisplay('medical_history',s.medical_history)+'</span>',true);}
-            if(isFieldVisible('fitness_goal')&&s.fitness_goal)grid+=fc('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
-            if(isFieldVisible('line_uid')&&s.line_uid)grid+=fc('LINE UID','<span style="font-size:11px;word-break:break-all;'+(isMasked('line_uid')?'color:var(--text-muted);font-style:italic;':'')+'">'+getFieldDisplay('line_uid',s.line_uid)+'</span>',true);
-            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
+            else grid+=fc('初次體驗','-');
+            grid+=fc('LINE名稱',escHtml(s.line_display_name||'-'));
+            if(isFieldVisible('birth_date'))grid+=fc('生日',getFieldDisplay('birth_date',s.birth_date));
+            if(isFieldVisible('medical_history')){const warn=s.medical_history&&s.medical_history!=='無';grid+=fc('疾病史','<span'+(warn?' style="color:var(--pink-dark);"':'')+'>'+getFieldDisplay('medical_history',s.medical_history)+'</span>',true);}
+            if(isFieldVisible('fitness_goal'))grid+=fc('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
+            if(isFieldVisible('line_uid'))grid+=fc('LINE UID','<span style="font-size:11px;word-break:break-all;'+(isMasked('line_uid')?'color:var(--text-muted);font-style:italic;':'')+'">'+getFieldDisplay('line_uid',s.line_uid)+'</span>',true);
+            grid+=fc('建立時間',fmtDate(s.created_at));
+            grid+=fc('更新時間',fmtDate(s.updated_at));            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">🗑️</button>';
             return '<div class="s-card" id="card-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+gk+'">'+escHtml(init)+'</div><div class="s-info"><div class="s-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="s-meta"><span>'+escHtml(s.id)+'</span>'+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div><div class="s-right">'+ph+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div><div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
