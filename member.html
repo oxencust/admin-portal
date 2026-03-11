@@ -3,702 +3,707 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>學員管理 — 衡點健身</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <title>學員管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --green: #7ac19a;
-            --green-dark: #5f846f;
-            --pink: #f2ac98;
-            --yellow: #ffe08b;
-            --blue: #9fcccc;
-            --danger: #e05252;
+            --green: #7ac19a; --green-dark: #5f846f; --green-light: #e2ede6;
+            --pink: #f2ac98; --pink-light: #faece8; --pink-dark: #c67566;
+            --yellow: #ffe08b; --yellow-light: #fcf4e3;
+            --blue: #9fcccc; --blue-light: #daedec; --blue-dark: #66888e;
+            --bg: #f5f6f8; --card: #ffffff; --text: #333; --text-secondary: #666; --text-muted: #999;
+            --border: #e5e5e5; --danger: #e05252; --success: #5f846f;
         }
-
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Noto Sans TC',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
-            background-attachment: fixed;
-            color: #2d3436;
-        }
+        /* Top Bar */
+        .top-bar { background:var(--card); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
+        .top-bar h1 { font-size:17px; font-weight:700; color:var(--green-dark); display:flex; align-items:center; gap:8px; }
+        .top-bar-right { display:flex; align-items:center; gap:8px; }
+        .staff-name { font-size:12px; color:var(--text-muted); }
+        .count-badge { font-size:12px; color:var(--text-muted); background:var(--green-light); padding:2px 10px; border-radius:12px; }
 
-        body::before {
-            content: '';
-            position: fixed; top: -20%; right: -10%;
-            width: 50vw; height: 50vw;
-            background: radial-gradient(circle, rgba(122,193,154,0.25) 0%, transparent 60%);
-            border-radius: 50%; z-index: 0;
-        }
+        /* Action Bar */
+        .action-bar { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+        .action-row { display:flex; gap:8px; align-items:center; }
+        .search-input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:14px; font-family:inherit; outline:none; background:var(--card); transition:border-color 0.2s; }
+        .search-input:focus { border-color:var(--green); }
+        .btn { padding:10px 16px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+        .btn:active { transform:scale(0.96); }
+        .btn-primary { background:linear-gradient(135deg,var(--green-dark),var(--green)); color:white; box-shadow:0 2px 8px rgba(122,193,154,0.3); }
+        .btn-secondary { background:var(--blue-light); color:var(--blue-dark); }
+        .btn-danger { background:var(--pink-light); color:var(--pink-dark); }
+        .btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
 
-        .glass {
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.5);
-        }
-        .glass-strong {
-            background: rgba(255,255,255,0.72);
-            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,0.6);
-        }
+        /* Student List */
+        .student-list { padding:0 16px 100px; }
+        .student-card { background:var(--card); border-radius:14px; padding:16px; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.04); transition:transform 0.15s; }
+        .student-card:active { transform:scale(0.99); }
+        .card-top { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+        .card-avatar { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--green-light),#c8e6c9); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:var(--green-dark); flex-shrink:0; }
+        .card-avatar.female { background:linear-gradient(135deg,var(--pink-light),#f8bbd0); color:var(--pink-dark); }
+        .card-title { flex:1; min-width:0; }
+        .card-name { font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
+        .card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+        .card-fields { display:flex; flex-direction:column; gap:6px; }
+        .field-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
+        .field-row:last-child { border-bottom:none; }
+        .field-label { color:var(--text-muted); flex-shrink:0; }
+        .field-value { text-align:right; max-width:60%; word-break:break-all; color:var(--text); }
+        .field-value.masked { color:var(--text-muted); font-style:italic; }
+        .card-actions { display:flex; gap:8px; margin-top:12px; }
+        .card-actions .btn { flex:1; justify-content:center; }
 
-        /* ===== Container ===== */
-        .container {
-            position: relative; z-index: 1;
-            max-width: 600px; margin: 0 auto;
-            padding: 12px 12px 80px;
-        }
+        /* Badges */
+        .badge { display:inline-flex; padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; }
+        .badge-green { background:var(--green-light); color:var(--green-dark); }
+        .badge-pink { background:var(--pink-light); color:var(--pink-dark); }
+        .badge-blue { background:var(--blue-light); color:var(--blue-dark); }
+        .badge-yellow { background:var(--yellow-light); color:#856404; }
+        .badge-gray { background:#f0f0f0; color:#666; }
 
-        /* ===== Search Bar ===== */
-        .search-bar {
-            border-radius: 16px; padding: 10px 14px;
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 10px;
-        }
-        .search-bar input {
-            flex: 1; border: none; background: transparent;
-            font-size: 14px; font-family: inherit; color: #2d3436;
-            outline: none;
-        }
-        .search-bar input::placeholder { color: #bbb; }
-        .search-icon { font-size: 16px; color: #999; flex-shrink: 0; }
-        .search-count { font-size: 12px; color: #999; flex-shrink: 0; white-space: nowrap; }
+        .level-normal { background:#f5f5f5; color:#666; }
+        .level-silver { background:#e0e0e0; color:#424242; }
+        .level-gold { background:#fff8e1; color:#f57c00; }
+        .level-diamond { background:#e3f2fd; color:#1565c0; }
+        .level-vip { background:#fce4ec; color:#c2185b; }
 
-        /* ===== Filter Chips ===== */
-        .filter-row {
-            display: flex; gap: 6px; overflow-x: auto;
-            padding: 0 2px 10px; -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-        .filter-row::-webkit-scrollbar { display: none; }
-        .filter-chip {
-            flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: 500; cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.5);
-            background: rgba(255,255,255,0.4); color: #888;
-            transition: all 0.2s;
-        }
-        .filter-chip.active {
-            background: var(--chip-active-bg, var(--green)); color: #fff;
-            border-color: var(--chip-active-bg, var(--green)); font-weight: 600;
-        }
+        .gender-male { background:var(--blue-light); color:var(--blue-dark); }
+        .gender-female { background:var(--pink-light); color:var(--pink-dark); }
 
-        /* ===== Member Cards ===== */
-        .member-list { display: flex; flex-direction: column; gap: 8px; }
+        /* Pagination */
+        .pagination { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; flex-wrap:wrap; }
+        .pagination .btn { min-width:auto; }
+        .page-info { font-size:13px; color:var(--text-muted); }
+        .page-select { padding:8px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:var(--card); }
 
-        .member-card {
-            border-radius: 14px; padding: 14px;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .member-card:active { transform: scale(0.98); }
+        /* Modal */
+        .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:flex-end; justify-content:center; }
+        .modal-bg.show { display:flex; }
+        .modal-panel { width:100%; max-width:500px; max-height:92vh; background:var(--card); border-radius:20px 20px 0 0; overflow-y:auto; animation:slideUp 0.3s ease; }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        .modal-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--card); z-index:10; }
+        .modal-head h2 { font-size:17px; font-weight:700; }
+        .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); padding:4px 8px; }
+        .modal-body { padding:20px; padding-bottom:100px; }
+        .form-group { margin-bottom:16px; }
+        .form-label { display:block; font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; }
+        .form-input { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; transition:border-color 0.2s; }
+        .form-input:focus { border-color:var(--green); }
+        .form-input[readonly] { background:#f9f9f9; color:var(--text-muted); }
+        .form-select { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; background:var(--card); }
+        .form-textarea { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; resize:vertical; min-height:70px; }
+        .form-hint { font-size:11px; color:var(--text-muted); margin-top:4px; }
+        .modal-footer { position:fixed; bottom:0; left:0; right:0; display:flex; gap:10px; padding:12px 20px; background:var(--card); border-top:1px solid var(--border); box-shadow:0 -2px 10px rgba(0,0,0,0.06); z-index:10; }
+        .modal-footer .btn { flex:1; justify-content:center; padding:14px; font-size:15px; }
 
-        .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        .card-avatar {
-            width: 40px; height: 40px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
-        }
-        .card-avatar.m { background: var(--blue); }
-        .card-avatar.f { background: var(--pink); }
-        .card-avatar.o { background: var(--yellow); color: #b08c3a; }
+        /* Detail Modal */
+        .detail-section { margin-bottom:20px; }
+        .detail-section-title { font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:1px; margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--green-light); }
+        .detail-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f5f5f5; }
+        .detail-row:last-child { border-bottom:none; }
+        .detail-label { font-size:13px; color:var(--text-muted); }
+        .detail-value { font-size:14px; font-weight:500; text-align:right; max-width:60%; }
 
-        .card-name-area { flex: 1; min-width: 0; }
-        .card-name { font-size: 15px; font-weight: 600; }
-        .card-nickname { font-size: 11px; color: #999; }
-        .card-id { font-size: 11px; color: #bbb; font-weight: 400; }
+        /* Empty & Loading */
+        .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+        .empty-icon { font-size:48px; margin-bottom:12px; }
+        .loading-state { text-align:center; padding:40px; color:var(--text-muted); }
 
-        .card-status {
-            padding: 2px 10px; border-radius: 8px;
-            font-size: 11px; font-weight: 600; flex-shrink: 0;
-        }
-        .status-ok { background: rgba(122,193,154,0.15); color: var(--green-dark); }
-        .status-past { background: rgba(0,0,0,0.06); color: #999; }
-        .status-vip { background: rgba(242,172,152,0.2); color: #c0735c; }
-        .status-friend { background: rgba(255,224,139,0.3); color: #b08c3a; }
+        /* Toast */
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(45,52,54,0.9); color:white; padding:10px 24px; border-radius:12px; font-size:13px; z-index:9999; transition:transform 0.3s; opacity:0; }
+        .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
 
-        .card-grade {
-            display: inline-block; padding: 2px 8px; border-radius: 8px;
-            font-size: 10px; font-weight: 600; margin-left: 6px;
-            vertical-align: middle;
-        }
-
-        .card-meta {
-            display: flex; flex-wrap: wrap; gap: 6px 12px;
-            font-size: 12px; color: #888;
-        }
-        .meta-item { display: flex; align-items: center; gap: 4px; }
-        .meta-icon { font-size: 11px; }
-
-        /* ===== Pagination ===== */
-        .pagination {
-            display: flex; align-items: center; justify-content: center;
-            gap: 8px; margin-top: 16px; padding: 10px 0;
-        }
-        .page-btn {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            border: none; background: rgba(255,255,255,0.4); color: #888;
-            transition: all 0.2s;
-        }
-        .page-btn.active { background: var(--green); color: #fff; }
-        .page-btn:disabled { opacity: 0.3; cursor: default; }
-        .page-info { font-size: 12px; color: #999; }
-
-        /* ===== Detail Panel (slide up) ===== */
-        .detail-overlay {
-            position: fixed; inset: 0; z-index: 100;
-            background: rgba(0,0,0,0.3);
-            opacity: 0; visibility: hidden;
-            transition: all 0.3s;
-        }
-        .detail-overlay.show { opacity: 1; visibility: visible; }
-
-        .detail-panel {
-            position: fixed; left: 0; right: 0; bottom: 0; z-index: 101;
-            max-height: 90vh; border-radius: 20px 20px 0 0;
-            padding: 0; overflow: hidden;
-            transform: translateY(100%);
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-        }
-        .detail-panel.show { transform: translateY(0); }
-
-        .detail-handle {
-            text-align: center; padding: 12px 0 8px; cursor: pointer;
-        }
-        .detail-handle::after {
-            content: ''; display: inline-block;
-            width: 36px; height: 4px; border-radius: 2px;
-            background: rgba(0,0,0,0.12);
+        /* Desktop */
+        @media(min-width:769px) {
+            .modal-bg { align-items:center; }
+            .modal-panel { border-radius:20px; max-height:85vh; }
+            .modal-footer { position:sticky; bottom:0; }
         }
 
-        .detail-header {
-            display: flex; align-items: center; gap: 14px;
-            padding: 0 20px 16px;
-        }
-        .detail-avatar {
-            width: 52px; height: 52px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0;
-        }
-        .detail-name { font-size: 20px; font-weight: 700; }
-        .detail-sub { font-size: 12px; color: #999; margin-top: 2px; }
-
-        .detail-body {
-            padding: 0 20px 30px;
-            max-height: calc(90vh - 140px);
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
-        }
-
-        .detail-section { margin-bottom: 20px; }
-        .detail-section-title {
-            font-size: 13px; font-weight: 700; color: var(--green-dark);
-            margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
-        }
-
-        .detail-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-        }
-        .detail-field {
-            border-radius: 10px; padding: 10px 12px;
-            background: rgba(255,255,255,0.4);
-        }
-        .detail-field.full { grid-column: 1 / -1; }
-        .field-label { font-size: 11px; color: #999; margin-bottom: 2px; }
-        .field-value { font-size: 13px; font-weight: 500; word-break: break-all; }
-        .field-value.empty { color: #ccc; font-style: italic; }
-
-        /* ===== Loading ===== */
-        .loading-bar {
-            text-align: center; padding: 40px 0;
-            font-size: 13px; color: #999;
-        }
-        .loading-bar::before {
-            content: ''; display: block; margin: 0 auto 12px;
-            width: 28px; height: 28px;
-            border: 3px solid rgba(122,193,154,0.2);
-            border-top-color: var(--green);
-            border-radius: 50%; animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ===== Empty ===== */
-        .empty-state {
-            text-align: center; padding: 60px 20px;
-            font-size: 14px; color: #bbb;
-        }
-        .empty-icon { font-size: 40px; margin-bottom: 12px; }
-
-        /* ===== Toast ===== */
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
-            padding: 10px 24px; border-radius: 12px;
-            font-size: 13px; font-weight: 500; color: #fff;
-            background: rgba(45,52,54,0.85); backdrop-filter: blur(10px);
-            z-index: 200; opacity: 0; transition: all 0.35s;
-            white-space: nowrap;
-        }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        /* Hidden field placeholder */
+        .hidden-field { color:#ccc; font-size:12px; font-style:italic; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <!-- Search -->
-    <div class="search-bar glass-strong">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="搜尋姓名、暱稱、電話、編號..." oninput="onSearch()">
-        <span class="search-count" id="searchCount"></span>
+    <div class="top-bar">
+        <h1>👤 學員管理</h1>
+        <div class="top-bar-right">
+            <span class="count-badge" id="totalCount">0 筆</span>
+            <span class="staff-name" id="staffName"></span>
+        </div>
     </div>
 
-    <!-- Filters: Status -->
-    <div class="filter-row" id="filterRow">
-        <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">全部</div>
-        <div class="filter-chip" data-filter="ok" onclick="setFilter('ok')">OK</div>
-        <div class="filter-chip" data-filter="vip" onclick="setFilter('vip')">VIP</div>
-        <div class="filter-chip" data-filter="friend" onclick="setFilter('friend')">親友</div>
-        <div class="filter-chip" data-filter="past" onclick="setFilter('past')">過去夥伴</div>
+    <div class="action-bar">
+        <div class="action-row">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、編號、電話..." oninput="handleSearch()">
+            <button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button>
+        </div>
     </div>
 
-    <!-- Filters: Grade (dynamic, hidden if no grades) -->
-    <div class="filter-row" id="gradeFilterRow" style="display:none;"></div>
-
-    <!-- Member List -->
-    <div class="member-list" id="memberList">
-        <div class="loading-bar">載入中...</div>
+    <div class="student-list" id="studentList">
+        <div class="loading-state">載入中...</div>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination" id="pagination" style="display:none;"></div>
-</div>
+    <div class="pagination" id="pagination" style="display:none;">
+        <select class="page-select" id="pageSizeSelect" onchange="changePageSize()">
+            <option value="20">20 筆/頁</option>
+            <option value="50" selected>50 筆/頁</option>
+            <option value="100">100 筆/頁</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="prevBtn" onclick="goPage(-1)">← 上一頁</button>
+        <span class="page-info" id="pageInfo">第 1 頁</span>
+        <button class="btn btn-secondary btn-sm" id="nextBtn" onclick="goPage(1)">下一頁 →</button>
+    </div>
 
-<!-- Detail Panel -->
-<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
-<div class="detail-panel glass-strong" id="detailPanel">
-    <div class="detail-handle" onclick="closeDetail()"></div>
-    <div class="detail-header" id="detailHeader"></div>
-    <div class="detail-body" id="detailBody"></div>
-</div>
+    <!-- Detail Modal -->
+    <div class="modal-bg" id="detailModal">
+        <div class="modal-panel">
+            <div class="modal-head">
+                <h2 id="detailTitle">學員資料</h2>
+                <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+            </div>
+            <div class="modal-body" id="detailBody"></div>
+            <div class="modal-footer" id="detailFooter"></div>
+        </div>
+    </div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+    <!-- Edit Modal -->
+    <div class="modal-bg" id="editModal">
+        <div class="modal-panel">
+            <div class="modal-head">
+                <h2 id="editTitle">編輯學員</h2>
+                <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+            </div>
+            <div class="modal-body" id="editBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveStudent()">💾 儲存</button>
+            </div>
+        </div>
+    </div>
 
-<script>
+    <div class="toast" id="toast"></div>
+
+    <script>
     // ====================================================================
     //  CONFIG
     // ====================================================================
-    const CONFIG = {
-        WEBHOOK_URL: 'https://hook.us2.make.com/xufy9muvlrjioip4xyqa313pg4fjrwol',
-        PAGE_SIZE: 20
-    };
-
-    // Try to get webhook URL from parent (portal iframe)
-    try {
-        if (window.parent && window.parent.CONFIG) {
-            CONFIG.WEBHOOK_URL = window.parent.CONFIG.WEBHOOK_URL;
-        }
-    } catch(e) {}
+    const SUPABASE_URL = 'https://mnjilhpztnowaplggvkk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ====================================================================
-    //  STATE
+    //  PERMISSIONS
     // ====================================================================
-    let allMembers = [];
-    let filteredMembers = [];
-    let currentPage = 1;
-    let currentFilter = 'all';
-    let currentGradeFilter = 'all';
-    let searchTerm = '';
+    let currentUser = null;
+    let modulePerms = { view:false, edit:false, create:false, delete:false, export:false };
+    let fieldPerms = {}; // { phone: "masked", email: false, ... }
 
-    // Dynamic color grade palette (auto-assigned)
-    const GRADE_PALETTE = [
-        { bg: 'rgba(231,76,60,0.15)', color: '#c0392b', border: 'rgba(231,76,60,0.3)' },   // 紅
-        { bg: 'rgba(243,156,18,0.15)', color: '#d68910', border: 'rgba(243,156,18,0.3)' },   // 橙
-        { bg: 'rgba(241,196,15,0.15)', color: '#b7950b', border: 'rgba(241,196,15,0.3)' },   // 黃
-        { bg: 'rgba(46,204,113,0.15)', color: '#1e8449', border: 'rgba(46,204,113,0.3)' },   // 綠
-        { bg: 'rgba(52,152,219,0.15)', color: '#2471a3', border: 'rgba(52,152,219,0.3)' },   // 藍
-        { bg: 'rgba(155,89,182,0.15)', color: '#7d3c98', border: 'rgba(155,89,182,0.3)' },   // 紫
-        { bg: 'rgba(149,165,166,0.15)', color: '#717d7e', border: 'rgba(149,165,166,0.3)' },  // 灰
-        { bg: 'rgba(242,172,152,0.15)', color: '#c0735c', border: 'rgba(242,172,152,0.3)' },  // 粉
-    ];
-    let gradeColorMap = {}; // { gradeName: paletteIndex }
-
-    // ====================================================================
-    //  INIT
-    // ====================================================================
-    document.addEventListener('DOMContentLoaded', loadMembers);
-
-    async function loadMembers() {
+    function initPermissions() {
+        // 從 sessionStorage 讀取登入資訊
         try {
-            const r = await fetch(CONFIG.WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ module: 'member', action: 'getList' })
-            });
-            const result = await r.json();
-            if (result.success && result.data) {
-                allMembers = result.data;
-                initGradeColors();
-                renderGradeChips();
-                applyFilters();
+            currentUser = JSON.parse(sessionStorage.getItem('currentStaff'));
+        } catch(e) {}
+
+        if (!currentUser) {
+            // 從 URL 參數備用
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('uid')) {
+                currentUser = { name: params.get('name') || '使用者', role: params.get('role') || 'staff' };
             }
+        }
+
+        if (!currentUser) {
+            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';
+            return false;
+        }
+
+        // 顯示人員名稱
+        document.getElementById('staffName').textContent = currentUser.name;
+
+        // 讀取模組權限
+        if (currentUser.role === 'super_admin' || currentUser.permissions === 'all') {
+            modulePerms = { view:true, edit:true, create:true, delete:true, export:true };
+        } else {
+            modulePerms = (currentUser.permissions && currentUser.permissions['member']) || { view:false };
+        }
+
+        // 讀取欄位權限
+        if (currentUser.role === 'super_admin') {
+            fieldPerms = {};
+        } else {
+            fieldPerms = (currentUser.fieldPermissions && currentUser.fieldPermissions['member']) || {};
+        }
+
+        // 也嘗試從 parent 讀取（iframe 模式）
+        try {
+            if (window.parent && window.parent.getModulePermissions) {
+                const parentPerms = window.parent.getModulePermissions('member');
+                if (parentPerms) modulePerms = parentPerms;
+            }
+            if (window.parent && window.parent.getFieldPermissions) {
+                const parentFields = window.parent.getFieldPermissions('member');
+                if (parentFields) fieldPerms = parentFields;
+            }
+        } catch(e) {}
+
+        // 控制 UI
+        if (modulePerms.create) document.getElementById('addBtn').style.display = 'flex';
+
+        if (!modulePerms.view) {
+            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';
+            return false;
+        }
+
+        return true;
+    }
+
+    // 取得欄位顯示值（依欄位權限）
+    function getFieldDisplay(fieldName, rawValue, maskType) {
+        const perm = fieldPerms[fieldName];
+
+        // 沒有定義 = 預設顯示
+        if (perm === undefined || perm === true) return escHtml(rawValue || '-');
+        if (perm === false) return '<span class="hidden-field">無權限查看</span>';
+        if (perm === 'masked') {
+            if (!rawValue) return '-';
+            try {
+                if (window.parent && window.parent.maskValue) {
+                    return '<span class="masked">' + escHtml(window.parent.maskValue(rawValue, maskType || fieldName)) + '</span>';
+                }
+            } catch(e) {}
+            // Fallback mask
+            const str = String(rawValue);
+            if (maskType === 'phone' && str.length >= 7) return escHtml(str.substring(0,4) + '***' + str.substring(str.length-3));
+            if (maskType === 'email') { const at = str.indexOf('@'); return at > 2 ? escHtml(str.substring(0,2) + '***' + str.substring(at)) : '***'; }
+            return escHtml(str[0] + '***' + str[str.length-1]);
+        }
+        return escHtml(rawValue || '-');
+    }
+
+    // 欄位是否可見
+    function isFieldVisible(fieldName) {
+        const perm = fieldPerms[fieldName];
+        return perm === undefined || perm === true || perm === 'masked';
+    }
+
+    // 欄位是否完整可見（非遮罩）
+    function isFieldFull(fieldName) {
+        const perm = fieldPerms[fieldName];
+        return perm === undefined || perm === true;
+    }
+
+    // ====================================================================
+    //  DATA
+    // ====================================================================
+    let students = [];
+    let totalCount = 0;
+    let currentPage = 1;
+    let pageSize = 50;
+    let searchTerm = '';
+    let searchTimeout = null;
+    let editingStudent = null;
+
+    const genderNames = { 'male':'男', 'female':'女', '男':'男', '女':'女', 'other':'其他' };
+    const genderClass = { 'male':'gender-male', 'female':'gender-female', '男':'gender-female', '女':'gender-female' };
+    const levelNames = { 'normal':'一般', 'silver':'銀卡', 'gold':'金卡', 'diamond':'鑽石', 'vip':'VIP' };
+    const levelClass = { 'normal':'level-normal', 'silver':'level-silver', 'gold':'level-gold', 'diamond':'level-diamond', 'vip':'level-vip' };
+    const experienceNames = { 'pilates':'皮拉提斯', 'weight':'重量訓練', 'stretch':'伸展課程', 'ai':'AI 體態分析' };
+
+    async function loadStudents() {
+        try {
+            let query = sb.from('students').select('*', { count: 'exact' });
+
+            if (searchTerm) {
+                query = query.or(`name.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
+            }
+
+            const from = (currentPage - 1) * pageSize;
+            const { data, error, count } = await query
+                .order('id', { ascending: true })
+                .range(from, from + pageSize - 1);
+
+            if (error) throw error;
+
+            students = data || [];
+            totalCount = count || 0;
+
+            document.getElementById('totalCount').textContent = `${totalCount} 筆`;
+            renderStudents();
+            renderPagination();
+
         } catch(e) {
-            allMembers = generateSampleData();
-            initGradeColors();
-            renderGradeChips();
-            applyFilters();
+            console.error('Load error:', e);
+            document.getElementById('studentList').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';
         }
     }
 
-    // Build dynamic color map from actual data
-    function initGradeColors() {
-        gradeColorMap = {};
-        let idx = 0;
-        allMembers.forEach(m => {
-            const g = (m.color_grade || '').trim();
-            if (g && !(g in gradeColorMap)) {
-                gradeColorMap[g] = idx % GRADE_PALETTE.length;
-                idx++;
+    function renderStudents() {
+        const container = document.getElementById('studentList');
+
+        if (students.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><p>找不到學員資料</p></div>';
+            return;
+        }
+
+        container.innerHTML = students.map(s => {
+            const name = escHtml(s.name || '-');
+            const initial = (s.name || '?')[0];
+            const genderVal = genderNames[s.gender] || '';
+            const isFemale = s.gender === 'female' || s.gender === '女';
+            const levelVal = levelNames[s.member_level] || '一般';
+            const levelCls = levelClass[s.member_level] || 'level-normal';
+
+            // 欄位顯示
+            let fieldsHtml = '';
+
+            if (isFieldVisible('phone')) {
+                fieldsHtml += `<div class="field-row"><span class="field-label">電話</span><span class="field-value">${getFieldDisplay('phone', s.phone, 'phone')}</span></div>`;
             }
-        });
-    }
+            if (isFieldVisible('email') && s.email) {
+                fieldsHtml += `<div class="field-row"><span class="field-label">信箱</span><span class="field-value">${getFieldDisplay('email', s.email, 'email')}</span></div>`;
+            }
+            if (isFieldVisible('line_uid') && s.line_uid) {
+                fieldsHtml += `<div class="field-row"><span class="field-label">LINE</span><span class="field-value" style="font-size:11px;">${getFieldDisplay('line_uid', s.line_uid)}</span></div>`;
+            }
+            if (isFieldVisible('medical_history') && s.medical_history) {
+                fieldsHtml += `<div class="field-row"><span class="field-label">疾病史</span><span class="field-value">${getFieldDisplay('medical_history', s.medical_history)}</span></div>`;
+            }
 
-    function getGradeStyle(grade) {
-        if (!grade || !(grade in gradeColorMap)) return null;
-        return GRADE_PALETTE[gradeColorMap[grade]];
-    }
-
-    // Render grade filter chips
-    function renderGradeChips() {
-        const container = document.getElementById('gradeFilterRow');
-        const grades = Object.keys(gradeColorMap);
-        if (grades.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        container.style.display = 'flex';
-        let html = `<div class="filter-chip active" data-grade="all" onclick="setGradeFilter('all')">全部等級</div>`;
-        grades.forEach(g => {
-            const style = GRADE_PALETTE[gradeColorMap[g]];
-            html += `<div class="filter-chip" data-grade="${g}" onclick="setGradeFilter('${g}')" style="--chip-active-bg:${style.color}">${g}</div>`;
-        });
-        container.innerHTML = html;
-    }
-
-    // ====================================================================
-    //  FILTER & SEARCH
-    // ====================================================================
-    function setFilter(filter) {
-        currentFilter = filter;
-        currentPage = 1;
-        document.querySelectorAll('#filterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === filter));
-        applyFilters();
-    }
-
-    function setGradeFilter(grade) {
-        currentGradeFilter = grade;
-        currentPage = 1;
-        document.querySelectorAll('#gradeFilterRow .filter-chip').forEach(c => c.classList.toggle('active', c.dataset.grade === grade));
-        applyFilters();
-    }
-
-    function onSearch() {
-        searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
-        currentPage = 1;
-        applyFilters();
-    }
-
-    function applyFilters() {
-        let list = [...allMembers];
-
-        // Status filter
-        if (currentFilter !== 'all') {
-            list = list.filter(m => {
-                const s = (m.member_status || '').toLowerCase();
-                if (currentFilter === 'ok') return s.includes('ok') && !s.includes('過去');
-                if (currentFilter === 'vip') return s.includes('vip');
-                if (currentFilter === 'friend') return s.includes('親友');
-                if (currentFilter === 'past') return s.includes('過去') && !s.includes('ok');
-                return true;
-            });
-        }
-
-        // Grade filter
-        if (currentGradeFilter !== 'all') {
-            list = list.filter(m => (m.color_grade || '').trim() === currentGradeFilter);
-        }
-
-        // Search
-        if (searchTerm) {
-            list = list.filter(m =>
-                (m.name || '').toLowerCase().includes(searchTerm) ||
-                (m.nickname || '').toLowerCase().includes(searchTerm) ||
-                (m.phone || '').includes(searchTerm) ||
-                (m.id || '').toString().includes(searchTerm)
-            );
-        }
-
-        filteredMembers = list;
-        document.getElementById('searchCount').textContent = `${list.length} 位`;
-        renderList();
-        renderPagination();
-    }
-
-    // ====================================================================
-    //  RENDER LIST
-    // ====================================================================
-    function renderList() {
-        const container = document.getElementById('memberList');
-        const start = (currentPage - 1) * CONFIG.PAGE_SIZE;
-        const pageData = filteredMembers.slice(start, start + CONFIG.PAGE_SIZE);
-
-        if (filteredMembers.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-icon">😶</div>沒有找到符合條件的學員</div>`;
-            return;
-        }
-
-        container.innerHTML = pageData.map(m => {
-            const genderClass = m.gender === '男' ? 'm' : m.gender === '女' ? 'f' : 'o';
-            const initial = (m.name || '?')[0];
-            const statusClass = getStatusClass(m.member_status);
-            const statusLabel = getStatusLabel(m.member_status);
-            const age = calcAge(m.birth_date);
-            const gradeTag = getGradeTag(m.color_grade);
+            // 操作按鈕
+            let actionsHtml = `<button class="btn btn-secondary btn-sm" onclick="viewStudent('${escAttr(s.id)}')">📋 詳情</button>`;
+            if (modulePerms.edit) actionsHtml += `<button class="btn btn-primary btn-sm" onclick="editStudent('${escAttr(s.id)}')">✏️ 編輯</button>`;
+            if (modulePerms.delete) actionsHtml += `<button class="btn btn-danger btn-sm" onclick="deleteStudent('${escAttr(s.id)}','${escAttr(s.name)}')">🗑️</button>`;
 
             return `
-                <div class="member-card glass-strong" onclick="showDetail('${m.id}')">
+                <div class="student-card" onclick="viewStudent('${escAttr(s.id)}')">
                     <div class="card-top">
-                        <div class="card-avatar ${genderClass}">${initial}</div>
-                        <div class="card-name-area">
-                            <div class="card-name">${m.name || '—'} <span class="card-id">#${m.id}</span>${gradeTag}</div>
-                            ${m.nickname ? `<div class="card-nickname">${m.nickname}</div>` : ''}
+                        <div class="card-avatar ${isFemale ? 'female' : ''}">${escHtml(initial)}</div>
+                        <div class="card-title">
+                            <div class="card-name">
+                                ${name}
+                                ${genderVal ? `<span class="badge ${genderClass[s.gender] || 'badge-gray'}">${genderVal}</span>` : ''}
+                                <span class="badge ${levelCls}">${levelVal}</span>
+                            </div>
+                            <div class="card-sub">${escHtml(s.id || '')} ${s.line_display_name ? '• ' + escHtml(s.line_display_name) : ''}</div>
                         </div>
-                        <div class="card-status ${statusClass}">${statusLabel}</div>
                     </div>
-                    <div class="card-meta">
-                        ${m.phone ? `<span class="meta-item"><span class="meta-icon">📱</span>${m.phone}</span>` : ''}
-                        ${age !== null ? `<span class="meta-item"><span class="meta-icon">🎂</span>${age}歲</span>` : ''}
-                        ${m.pilates_coach ? `<span class="meta-item"><span class="meta-icon">🧘</span>${m.pilates_coach}</span>` : ''}
-                        ${m.weight_coach ? `<span class="meta-item"><span class="meta-icon">🏋️</span>${m.weight_coach}</span>` : ''}
-                    </div>
+                    <div class="card-fields">${fieldsHtml}</div>
+                    <div class="card-actions" onclick="event.stopPropagation();">${actionsHtml}</div>
                 </div>
             `;
         }).join('');
     }
 
-    // ====================================================================
-    //  PAGINATION
-    // ====================================================================
     function renderPagination() {
-        const container = document.getElementById('pagination');
-        const totalPages = Math.ceil(filteredMembers.length / CONFIG.PAGE_SIZE);
+        const totalPages = Math.ceil(totalCount / pageSize) || 1;
+        const pag = document.getElementById('pagination');
+        pag.style.display = totalCount > 0 ? 'flex' : 'none';
 
-        if (totalPages <= 1) {
-            container.style.display = 'none';
-            return;
-        }
-
-        container.style.display = 'flex';
-        let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
-
-        // Show max 5 page buttons
-        let startPage = Math.max(1, currentPage - 2);
-        let endPage = Math.min(totalPages, startPage + 4);
-        if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
-        }
-
-        html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
-        html += `<span class="page-info">${currentPage}/${totalPages}</span>`;
-        container.innerHTML = html;
-    }
-
-    function goPage(page) {
-        const totalPages = Math.ceil(filteredMembers.length / CONFIG.PAGE_SIZE);
-        if (page < 1 || page > totalPages) return;
-        currentPage = page;
-        renderList();
-        renderPagination();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 頁（${totalCount} 筆）`;
+        document.getElementById('prevBtn').disabled = currentPage <= 1;
+        document.getElementById('prevBtn').style.opacity = currentPage <= 1 ? '0.4' : '1';
+        document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        document.getElementById('nextBtn').style.opacity = currentPage >= totalPages ? '0.4' : '1';
     }
 
     // ====================================================================
-    //  DETAIL PANEL
+    //  SEARCH & PAGINATION
     // ====================================================================
-    function showDetail(id) {
-        const m = allMembers.find(x => String(x.id) === String(id));
-        if (!m) return;
-
-        const genderClass = m.gender === '男' ? 'm' : m.gender === '女' ? 'f' : 'o';
-        const initial = (m.name || '?')[0];
-        const age = calcAge(m.birth_date);
-
-        document.getElementById('detailHeader').innerHTML = `
-            <div class="detail-avatar ${genderClass}">${initial}</div>
-            <div>
-                <div class="detail-name">${m.name || '—'}</div>
-                <div class="detail-sub">#${m.id}${m.nickname ? ' · ' + m.nickname : ''}${age !== null ? ' · ' + age + '歲' : ''}</div>
-            </div>
-        `;
-
-        document.getElementById('detailBody').innerHTML = `
-            <div class="detail-section">
-                <div class="detail-section-title">👤 基本資料</div>
-                <div class="detail-grid">
-                    ${field('編號', m.id)}
-                    ${field('狀態', m.member_status)}
-                    ${field('等級', m.color_grade)}
-                    ${field('性別', m.gender)}
-                    ${field('生日', formatDate(m.birth_date))}
-                    ${field('年齡', age !== null ? age + '歲' : null)}
-                    ${field('電話', m.phone)}
-                    ${field('Email', m.email, true)}
-                    ${field('職業', m.occupation)}
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-title">🏋️ 課程資訊</div>
-                <div class="detail-grid">
-                    ${field('皮拉提斯教練', m.pilates_coach)}
-                    ${field('重訓教練', m.weight_coach)}
-                    ${field('伸展課程', m.stretch_course)}
-                    ${field('近30日預約', m.booking_record_30d)}
-                    ${field('加入時間', formatJoinDate(m.join_year, m.join_month))}
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-title">📋 其他資訊</div>
-                <div class="detail-grid">
-                    ${field('病史', m.medical_history, true)}
-                    ${field('目標', m.goals, true)}
-                    ${field('運動經驗', m.exercise_exp, true)}
-                    ${field('備註', m.notes, true)}
-                    ${field('諮詢紀錄', m.consultation_notes, true)}
-                    ${field('關聯學員', m.related_member)}
-                </div>
-            </div>
-        `;
-
-        document.getElementById('detailOverlay').classList.add('show');
-        document.getElementById('detailPanel').classList.add('show');
-        document.body.style.overflow = 'hidden';
+    function handleSearch() {
+        if (searchTimeout) clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchTerm = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            loadStudents();
+        }, 300);
     }
 
-    function closeDetail() {
-        document.getElementById('detailOverlay').classList.remove('show');
-        document.getElementById('detailPanel').classList.remove('show');
-        document.body.style.overflow = '';
+    function goPage(dir) {
+        const totalPages = Math.ceil(totalCount / pageSize) || 1;
+        const newPage = currentPage + dir;
+        if (newPage < 1 || newPage > totalPages) return;
+        currentPage = newPage;
+        loadStudents();
+        window.scrollTo(0, 0);
     }
 
-    function field(label, value, full) {
-        const cls = full ? 'detail-field full' : 'detail-field';
-        const val = (value !== null && value !== undefined && value !== '') ? value : '—';
-        const valCls = val === '—' ? 'field-value empty' : 'field-value';
-        return `<div class="${cls}"><div class="field-label">${label}</div><div class="${valCls}">${val}</div></div>`;
+    function changePageSize() {
+        pageSize = parseInt(document.getElementById('pageSizeSelect').value) || 50;
+        currentPage = 1;
+        loadStudents();
+    }
+
+    // ====================================================================
+    //  VIEW DETAIL
+    // ====================================================================
+    function viewStudent(id) {
+        const s = students.find(x => x.id === id);
+        if (!s) return;
+
+        document.getElementById('detailTitle').textContent = `${s.name || '-'} 的資料`;
+
+        const genderVal = genderNames[s.gender] || '-';
+        const levelVal = levelNames[s.member_level] || '一般';
+        const expVal = experienceNames[s.first_experience] || '-';
+
+        let html = '';
+
+        // 基本資訊
+        html += '<div class="detail-section"><div class="detail-section-title">基本資訊</div>';
+        html += detailRow('編號', s.id);
+        html += detailRow('姓名', s.name);
+        html += detailRow('暱稱', s.line_display_name);
+        html += detailRow('性別', genderVal);
+
+        if (isFieldVisible('birth_date')) html += detailRow('生日', getFieldDisplay('birth_date', s.birth_date));
+        html += detailRow('會員等級', levelVal);
+        html += detailRow('初次體驗', expVal);
+        html += '</div>';
+
+        // 聯絡方式
+        html += '<div class="detail-section"><div class="detail-section-title">聯絡方式</div>';
+        if (isFieldVisible('phone')) html += detailRow('電話', getFieldDisplay('phone', s.phone, 'phone'));
+        if (isFieldVisible('email')) html += detailRow('信箱', getFieldDisplay('email', s.email, 'email'));
+        if (isFieldVisible('line_uid')) html += detailRow('LINE UID', getFieldDisplay('line_uid', s.line_uid));
+        html += '</div>';
+
+        // 健康資訊
+        if (isFieldVisible('medical_history') || isFieldVisible('fitness_goal')) {
+            html += '<div class="detail-section"><div class="detail-section-title">健康資訊</div>';
+            if (isFieldVisible('medical_history')) html += detailRow('疾病史', getFieldDisplay('medical_history', s.medical_history));
+            if (isFieldVisible('fitness_goal')) html += detailRow('健身目標', getFieldDisplay('fitness_goal', s.fitness_goal));
+            html += '</div>';
+        }
+
+        // 系統資訊
+        html += '<div class="detail-section"><div class="detail-section-title">系統資訊</div>';
+        html += detailRow('建立時間', formatDate(s.created_at));
+        html += detailRow('更新時間', formatDate(s.updated_at));
+        html += '</div>';
+
+        document.getElementById('detailBody').innerHTML = html;
+
+        // Footer buttons
+        let footerHtml = '<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
+        if (modulePerms.edit) footerHtml += `<button class="btn btn-primary" onclick="closeModal('detailModal');editStudent('${escAttr(s.id)}')">✏️ 編輯</button>`;
+        document.getElementById('detailFooter').innerHTML = footerHtml;
+
+        openModal('detailModal');
+    }
+
+    function detailRow(label, value) {
+        return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value || '-'}</span></div>`;
+    }
+
+    // ====================================================================
+    //  EDIT
+    // ====================================================================
+    function editStudent(id) {
+        if (!modulePerms.edit) { showToast('您沒有編輯權限'); return; }
+
+        const s = students.find(x => x.id === id);
+        if (!s) return;
+
+        editingStudent = s;
+        document.getElementById('editTitle').textContent = `編輯：${s.name}`;
+
+        // 只顯示有完整權限的欄位可以編輯
+        let html = '';
+        html += formGroup('編號', 'text', 'edit_id', s.id, true);
+        html += formGroup('姓名', 'text', 'edit_name', s.name);
+        html += formGroup('暱稱', 'text', 'edit_nickname', s.line_display_name);
+
+        html += `<div class="form-group"><label class="form-label">性別</label>
+            <select class="form-select" id="edit_gender">
+                <option value="">請選擇</option>
+                <option value="male" ${s.gender==='male'?'selected':''}>男</option>
+                <option value="female" ${s.gender==='female'?'selected':''}>女</option>
+                <option value="other" ${s.gender==='other'?'selected':''}>其他</option>
+            </select></div>`;
+
+        if (isFieldFull('phone')) html += formGroup('電話', 'tel', 'edit_phone', s.phone);
+        if (isFieldFull('email')) html += formGroup('信箱', 'email', 'edit_email', s.email);
+        if (isFieldFull('birth_date')) html += formGroup('生日', 'date', 'edit_birth', s.birth_date);
+        if (isFieldFull('medical_history')) html += formTextarea('疾病史', 'edit_medical', s.medical_history);
+        if (isFieldFull('fitness_goal')) html += formTextarea('健身目標', 'edit_goal', s.fitness_goal);
+
+        html += `<div class="form-group"><label class="form-label">會員等級</label>
+            <select class="form-select" id="edit_level">
+                <option value="normal" ${s.member_level==='normal'?'selected':''}>一般會員</option>
+                <option value="silver" ${s.member_level==='silver'?'selected':''}>銀卡會員</option>
+                <option value="gold" ${s.member_level==='gold'?'selected':''}>金卡會員</option>
+                <option value="diamond" ${s.member_level==='diamond'?'selected':''}>鑽石會員</option>
+                <option value="vip" ${s.member_level==='vip'?'selected':''}>VIP</option>
+            </select></div>`;
+
+        html += `<div class="form-group"><label class="form-label">初次體驗</label>
+            <select class="form-select" id="edit_experience">
+                <option value="">請選擇</option>
+                <option value="pilates" ${s.first_experience==='pilates'?'selected':''}>皮拉提斯</option>
+                <option value="weight" ${s.first_experience==='weight'?'selected':''}>重量訓練</option>
+                <option value="stretch" ${s.first_experience==='stretch'?'selected':''}>伸展課程</option>
+                <option value="ai" ${s.first_experience==='ai'?'selected':''}>AI 體態分析</option>
+            </select></div>`;
+
+        document.getElementById('editBody').innerHTML = html;
+        openModal('editModal');
+    }
+
+    async function saveStudent() {
+        if (!editingStudent) return;
+
+        const updates = {
+            name: val('edit_name'),
+            line_display_name: val('edit_nickname'),
+            gender: val('edit_gender'),
+            member_level: val('edit_level'),
+            first_experience: val('edit_experience'),
+            updated_at: new Date().toISOString()
+        };
+
+        // 只有有完整權限的欄位才更新
+        if (isFieldFull('phone')) updates.phone = val('edit_phone');
+        if (isFieldFull('email')) updates.email = val('edit_email');
+        if (isFieldFull('birth_date')) updates.birth_date = val('edit_birth') || null;
+        if (isFieldFull('medical_history')) updates.medical_history = val('edit_medical');
+        if (isFieldFull('fitness_goal')) updates.fitness_goal = val('edit_goal');
+
+        if (!updates.name) { showToast('請輸入姓名'); return; }
+
+        try {
+            const { error } = await sb.from('students').update(updates).eq('id', editingStudent.id);
+            if (error) throw error;
+
+            showToast('✅ 已更新');
+            closeModal('editModal');
+            editingStudent = null;
+            await loadStudents();
+
+        } catch(e) {
+            console.error('Save error:', e);
+            showToast('❌ 儲存失敗：' + e.message);
+        }
+    }
+
+    // ====================================================================
+    //  ADD
+    // ====================================================================
+    function openAddModal() {
+        if (!modulePerms.create) { showToast('您沒有新增權限'); return; }
+
+        editingStudent = null;
+        document.getElementById('editTitle').textContent = '新增學員';
+
+        let html = '';
+        html += formGroup('姓名 *', 'text', 'edit_name', '');
+        html += formGroup('暱稱', 'text', 'edit_nickname', '');
+
+        html += `<div class="form-group"><label class="form-label">性別 *</label>
+            <select class="form-select" id="edit_gender">
+                <option value="">請選擇</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+                <option value="other">其他</option>
+            </select></div>`;
+
+        html += formGroup('電話 *', 'tel', 'edit_phone', '');
+        html += formGroup('信箱', 'email', 'edit_email', '');
+        html += formGroup('生日', 'date', 'edit_birth', '');
+        html += formTextarea('疾病史', 'edit_medical', '');
+        html += formTextarea('健身目標', 'edit_goal', '');
+
+        html += `<div class="form-group"><label class="form-label">會員等級</label>
+            <select class="form-select" id="edit_level">
+                <option value="normal" selected>一般會員</option>
+                <option value="silver">銀卡會員</option>
+                <option value="gold">金卡會員</option>
+                <option value="diamond">鑽石會員</option>
+                <option value="vip">VIP</option>
+            </select></div>`;
+
+        html += `<div class="form-group"><label class="form-label">初次體驗</label>
+            <select class="form-select" id="edit_experience">
+                <option value="">請選擇</option>
+                <option value="pilates">皮拉提斯</option>
+                <option value="weight">重量訓練</option>
+                <option value="stretch">伸展課程</option>
+                <option value="ai">AI 體態分析</option>
+            </select></div>`;
+
+        document.getElementById('editBody').innerHTML = html;
+        openModal('editModal');
+    }
+
+    // ====================================================================
+    //  DELETE
+    // ====================================================================
+    async function deleteStudent(id, name) {
+        if (!modulePerms.delete) { showToast('您沒有刪除權限'); return; }
+        if (!confirm(`確定要刪除「${name}」嗎？`)) return;
+
+        try {
+            const { error } = await sb.from('students').delete().eq('id', id);
+            if (error) throw error;
+            showToast('✅ 已刪除');
+            await loadStudents();
+        } catch(e) {
+            console.error('Delete error:', e);
+            showToast('❌ 刪除失敗');
+        }
     }
 
     // ====================================================================
     //  HELPERS
     // ====================================================================
-    function calcAge(birth) {
-        if (!birth) return null;
-        const d = new Date(birth);
-        if (isNaN(d)) return null;
-        const today = new Date();
-        let age = today.getFullYear() - d.getFullYear();
-        const mDiff = today.getMonth() - d.getMonth();
-        if (mDiff < 0 || (mDiff === 0 && today.getDate() < d.getDate())) age--;
-        return age;
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    function formGroup(label, type, id, value, readonly) {
+        return `<div class="form-group"><label class="form-label">${label}</label>
+            <input type="${type}" class="form-input" id="${id}" value="${escAttr(value||'')}" ${readonly?'readonly':''}></div>`;
     }
+    function formTextarea(label, id, value) {
+        return `<div class="form-group"><label class="form-label">${label}</label>
+            <textarea class="form-textarea" id="${id}">${escHtml(value||'')}</textarea></div>`;
+    }
+    function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+    function escHtml(t) { if (t==null) return ''; const d=document.createElement('div'); d.textContent=String(t); return d.innerHTML; }
+    function escAttr(t) { if (t==null) return ''; return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function formatDate(d) {
-        if (!d) return null;
+        if (!d) return '-';
         try {
-            const date = new Date(d);
-            return `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}`;
-        } catch { return d; }
+            const dt = new Date(d);
+            return `${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        } catch(e) { return d; }
     }
 
-    function formatJoinDate(y, m) {
-        if (!y) return null;
-        return m ? `${y}年${m}月` : `${y}年`;
-    }
-
-    function getStatusClass(s) {
-        if (!s) return 'status-ok';
-        const l = s.toLowerCase();
-        if (l.includes('vip')) return 'status-vip';
-        if (l.includes('親友')) return 'status-friend';
-        if (l.includes('過去') && !l.includes('ok')) return 'status-past';
-        return 'status-ok';
-    }
-
-    function getStatusLabel(s) {
-        if (!s) return '—';
-        return s;
-    }
-
-    function getGradeTag(grade) {
-        if (!grade || !grade.trim()) return '';
-        const style = getGradeStyle(grade.trim());
-        if (!style) return '';
-        return `<span class="card-grade" style="background:${style.bg};color:${style.color};border:1px solid ${style.border}">${grade.trim()}</span>`;
-    }
-
-    // ====================================================================
-    //  TOAST
-    // ====================================================================
-    function showToast(msg) {
+    let toastTimer = null;
+    function showToast(m) {
         const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
+        t.textContent = m; t.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // ====================================================================
-    //  DEV MODE SAMPLE DATA
-    // ====================================================================
-    function generateSampleData() {
-        const names = ['王小明','李美玲','張大華','陳怡君','林志偉','黃雅婷','吳建宏','周淑芬','劉國華','蔡美惠','楊博文','許雅芳','鄭志明','謝淑娟','郭宗翰','蕭雅琪','曾建志','賴美珍','盧國偉','廖怡萍'];
-        const coaches = ['陳教練','林教練','王教練','李教練','張教練'];
-        const statuses = ['OK','OK','OK','OK','OK','OK','OK','OK','OK,過去夥伴','vip_商務夥伴','親友','過去夥伴'];
-        const grades = [null, null, null, null, null, '紅', '橙', '黃', '綠', '藍'];
-        const genders = ['男','女'];
-        const occupations = ['工程師','設計師','教師','醫師','護理師','業務','會計','自由業','學生','退休'];
+    // Close modal on bg click
+    document.querySelectorAll('.modal-bg').forEach(el => {
+        el.addEventListener('click', e => { if(e.target === el) el.classList.remove('show'); });
+    });
 
-        return Array.from({length: 80}, (_, i) => ({
-            id: `M${String(i+1).padStart(4,'0')}`,
-            name: names[i % names.length] + (i >= names.length ? (i+1) : ''),
-            nickname: i % 3 === 0 ? names[i % names.length][0] + '哥' : null,
-            gender: genders[i % 2],
-            birth_date: `${1970 + Math.floor(Math.random()*35)}-${String(Math.floor(Math.random()*12)+1).padStart(2,'0')}-${String(Math.floor(Math.random()*28)+1).padStart(2,'0')}`,
-            phone: `09${String(Math.floor(Math.random()*100000000)).padStart(8,'0')}`,
-            email: i % 2 === 0 ? `user${i+1}@example.com` : null,
-            member_status: statuses[i % statuses.length],
-            color_grade: grades[i % grades.length],
-            pilates_coach: i % 3 !== 2 ? coaches[i % coaches.length] : null,
-            weight_coach: i % 4 !== 3 ? coaches[(i+1) % coaches.length] : null,
-            stretch_course: i % 5 === 0 ? '基礎伸展' : null,
-            occupation: occupations[i % occupations.length],
-            booking_record_30d: `${Math.floor(Math.random()*12)}次`,
-            join_year: 2020 + Math.floor(Math.random()*5),
-            join_month: Math.floor(Math.random()*12)+1,
-            medical_history: i % 4 === 0 ? '膝蓋舊傷' : null,
-            goals: i % 3 === 0 ? '增肌減脂' : i % 3 === 1 ? '改善體態' : '減重',
-            exercise_exp: i % 2 === 0 ? '有經驗' : '初學者',
-            notes: null,
-            consultation_notes: i % 5 === 0 ? '初次諮詢完成' : null,
-            related_member: null
-        }));
-    }
-</script>
-
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        if (initPermissions()) {
+            loadStudents();
+        }
+    });
+    </script>
 </body>
 </html>
