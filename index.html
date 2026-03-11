@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --green: #7ac19a;
@@ -74,7 +75,8 @@
             z-index: 9999; transition: opacity 0.5s, visibility 0.5s;
         }
         .loading-screen.hide { opacity: 0; visibility: hidden; }
-        .loading-logo { font-size: 28px; font-weight: 900; color: var(--green-dark); letter-spacing: 4px; margin-bottom: 8px; animation: fadeInUp 0.6s ease; }
+        .loading-logo { margin-bottom: 8px; animation: fadeInUp 0.6s ease; }
+        .loading-logo img { height: 48px; }
         .loading-sub { font-size: 13px; color: #999; letter-spacing: 6px; margin-bottom: 40px; animation: fadeInUp 0.6s ease 0.1s both; }
         .loading-spinner { width: 36px; height: 36px; border: 3px solid rgba(122,193,154,0.2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
         .loading-text { margin-top: 20px; font-size: 13px; color: #aaa; animation: fadeInUp 0.6s ease 0.2s both; }
@@ -84,7 +86,8 @@
         /* Header */
         .header { padding: 14px 16px 10px; position: relative; z-index: 1; }
         .header-row { display: flex; align-items: center; gap: 12px; }
-        .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: 900; box-shadow: 0 3px 10px rgba(122,193,154,0.3); flex-shrink: 0; }
+        .brand-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .brand-icon img { width: 100%; height: 100%; object-fit: contain; }
         .header-info { flex: 1; min-width: 0; }
         .header-info-top { display: flex; align-items: center; gap: 6px; margin-bottom: 1px; }
         .welcome-name { font-size: 17px; font-weight: 800; color: #2d3436; }
@@ -114,7 +117,7 @@
         .module-card[data-color="blue"] .module-icon-wrap { background: rgba(159,204,204,0.25); }
         .module-card[data-color="pink"] .module-icon-wrap { background: rgba(242,172,152,0.2); }
         .module-card[data-color="yellow"] .module-icon-wrap { background: rgba(255,224,139,0.3); }
-        .module-card[data-color="purple"] .module-icon-wrap { background: rgba(167,139,250,0.2); }
+        .module-card[data-color="purple"] .module-icon-wrap { background: rgba(167,139,202,0.2); }
         .module-name { font-size: 13px; font-weight: 600; pointer-events: none; }
         .module-dev-tag { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.08); color: #999; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 6px; pointer-events: none; }
 
@@ -149,24 +152,14 @@
 
         .footer { text-align: center; padding: 24px; font-size: 11px; color: #aaa; }
 
-        /* Login */
+        /* Login fallback */
         .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; padding: 40px; }
         .login-screen.show { display: flex; }
-        .login-card { border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
-        .login-title { text-align: center; font-size: 20px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px; }
-        .login-subtitle { text-align: center; font-size: 13px; color: #999; margin-bottom: 28px; }
-        .login-input-group { margin-bottom: 16px; }
-        .login-label { display: block; font-size: 12px; font-weight: 600; color: #2d3436; margin-bottom: 6px; }
-        .login-input { width: 100%; padding: 12px 14px; border: 2px solid rgba(0,0,0,0.06); border-radius: 12px; font-size: 14px; font-family: inherit; transition: border-color 0.2s; outline: none; background: rgba(255,255,255,0.6); }
-        .login-input:focus { border-color: var(--green); }
+        .login-card { border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); text-align: center; }
+        .login-title { font-size: 20px; font-weight: 700; color: var(--green-dark); margin-bottom: 6px; }
+        .login-subtitle { font-size: 13px; color: #999; margin-bottom: 28px; }
         .login-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; margin-top: 8px; }
-        .login-btn-primary { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: white; box-shadow: 0 4px 15px rgba(122,193,154,0.3); }
-        .login-btn-primary:hover { box-shadow: 0 6px 20px rgba(122,193,154,0.4); }
-        .login-btn-secondary { background: rgba(255,255,255,0.6); color: #636e72; margin-top: 10px; }
-        .login-divider { text-align: center; font-size: 12px; color: #bbb; margin: 20px 0; position: relative; }
-        .login-divider::before, .login-divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: rgba(0,0,0,0.06); }
-        .login-divider::before { left: 0; }
-        .login-divider::after { right: 0; }
+        .login-btn-line { background: #06C755; color: white; box-shadow: 0 4px 15px rgba(6,199,85,0.3); }
         .login-error { background: rgba(224,82,82,0.1); color: var(--danger); font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; display: none; }
         .login-error.show { display: block; }
 
@@ -207,7 +200,7 @@
         .modal-item-icon.blue { background: rgba(159,204,204,0.25); }
         .modal-item-icon.pink { background: rgba(242,172,152,0.2); }
         .modal-item-icon.yellow { background: rgba(255,224,139,0.3); }
-        .modal-item-icon.purple { background: rgba(167,139,250,0.2); }
+        .modal-item-icon.purple { background: rgba(167,139,202,0.2); }
         .modal-item-info { flex: 1; }
         .modal-item-name { font-size: 14px; font-weight: 600; }
         .modal-item-desc { font-size: 11px; color: #999; }
@@ -241,41 +234,40 @@
 </head>
 <body>
     <div class="loading-screen" id="loadingScreen">
-        <div class="loading-logo">衡點健身</div>
+        <div class="loading-logo">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
+        </div>
         <div class="loading-sub">BALANCE POINT</div>
         <div class="loading-spinner"></div>
         <div class="loading-text">系統載入中...</div>
     </div>
 
+    <!-- Login fallback (only shows if auto-login fails) -->
     <div class="login-screen" id="loginScreen">
         <div class="login-card glass-strong">
-            <div class="login-title">🏋️ 衡點健身</div>
-            <div class="login-subtitle">管理後台登入</div>
+            <div style="margin-bottom: 16px;">
+                <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" style="height: 40px;">
+            </div>
+            <div class="login-title">衡點健身</div>
+            <div class="login-subtitle">管理後台</div>
             <div class="login-error" id="loginError"></div>
-            <div class="login-input-group">
-                <label class="login-label">帳號</label>
-                <input type="text" class="login-input" id="loginUsername" placeholder="請輸入帳號" autocomplete="username">
-            </div>
-            <div class="login-input-group">
-                <label class="login-label">密碼</label>
-                <input type="password" class="login-input" id="loginPassword" placeholder="請輸入密碼" autocomplete="current-password">
-            </div>
-            <button class="login-btn login-btn-primary" onclick="handleManualLogin()">登入</button>
-            <div class="login-divider">或</div>
-            <button class="login-btn login-btn-secondary" onclick="retryLiffLogin()">使用 LINE 登入</button>
+            <button class="login-btn login-btn-line" onclick="retryLiffLogin()">💬 使用 LINE 登入</button>
+            <p style="margin-top: 20px; font-size: 12px; color: #999;">僅限營運人員使用</p>
         </div>
     </div>
 
     <div id="mainApp" style="display: none;">
         <div class="header">
             <div class="header-row">
-                <div class="brand-icon">衡</div>
+                <div class="brand-icon">
+                    <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點">
+                </div>
                 <div class="header-info">
                     <div class="header-info-top">
                         <span class="welcome-name" id="userName">管理員</span>
                         <span class="welcome-hi" id="greetingText">早安 ☀️</span>
                     </div>
-                    <div class="role-tag"><span>🔑</span><span id="userRoleText">超級管理員</span></div>
+                    <div class="role-tag"><span>🔑</span><span id="userRoleText">營運人員</span></div>
                 </div>
                 <div class="header-actions">
                     <div class="icon-btn glass" onclick="refreshData()" title="重新整理">🔄</div>
@@ -297,7 +289,7 @@
             </div>
             <div class="utility-row" id="utilityRow"></div>
 
-            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v1.2.0</span></div>
+            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v2.0.0</span></div>
         </div>
 
         <div id="modulePage" style="display:none;">
@@ -350,28 +342,37 @@
     <div class="toast" id="toast"></div>
 
     <script>
+    // ====================================================================
+    //  CONFIG
+    // ====================================================================
     const CONFIG = {
         LIFF_ID: '2007947083-YCFwz7Uk',
-        WEBHOOK_URL: 'https://hook.us2.make.com/xufy9muvlrjioip4xyqa313pg4fjrwol',
+        SUPABASE_URL: 'https://mnjilhpztnowaplggvkk.supabase.co',
+        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
-        VERSION: '1.2.0'
+        VERSION: '2.0.0'
     };
 
+    const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
     // ====================================================================
-    //  ALL MODULES — roles 控制誰看得到
+    //  ALL MODULES
     // ====================================================================
     const MODULES = [
-        // ─── 管理模組 ───
         { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理',
           url:'member.html', color:'green',
           roles:['super_admin','admin','staff'] },
 
-        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、權限設定',
+        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、資料管理',
           url:'coach-manage.html', color:'blue',
           roles:['super_admin','admin','staff'] },
 
+        { id:'staff-manage', icon:'👥', name:'營運人員', desc:'營運人員管理',
+          url:'staff-manage.html', color:'green',
+          roles:['super_admin','admin'] },
+
         { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調',
-          url:'admin.html', color:'pink',
+          url:'https://ginger-shu.github.io/hengdian/admin.html', color:'pink',
           roles:['super_admin','admin','coach','staff'] },
 
         { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定',
@@ -390,7 +391,6 @@
           url:'settings.html', color:'pink',
           roles:['super_admin'] },
 
-        // ─── 行政工具 ───
         { id:'moti-booking', icon:'📝', name:'預填Moti名單', desc:'Moti預約名單預填',
           url:'https://oxencust.github.io/moti-bookinglist/', color:'blue',
           roles:['super_admin','admin','staff'] },
@@ -403,7 +403,6 @@
           url:'https://oxencust.github.io/staff-schedule/personal', color:'yellow',
           roles:['super_admin','admin','staff'] },
 
-        // ─── 教練工具 ───
         { id:'trial-schedule', icon:'🗓️', name:'體驗排程', desc:'體驗課可預約時段',
           url:'https://experience3.zeabur.app/', color:'yellow',
           roles:['super_admin','admin','coach'],
@@ -417,16 +416,13 @@
           url:'https://classrecord.zeabur.app', color:'blue',
           roles:['super_admin','admin','coach'] },
 
-        // ─── 分析師 ───
         { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
           url:'https://analyze-form.zeabur.app', color:'purple',
           roles:['super_admin','admin','analyst'] },
     ];
 
-    // 快捷工具候選（排除開發中）
     const ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
 
-    // 各角色預設快捷
     const DEFAULT_SHORTCUTS_BY_ROLE = {
         super_admin: ['sc_personal-schedule', 'sc_moti-booking'],
         admin: ['sc_personal-schedule', 'sc_moti-booking'],
@@ -435,7 +431,7 @@
         analyst: ['sc_moti-analyze']
     };
 
-    let currentUser = null, authToken = null, isEditMode = false;
+    let currentUser = null, isEditMode = false;
 
     // ====================================================================
     //  STORAGE
@@ -447,69 +443,89 @@
     function saveShortcutIds(ids) { try{localStorage.setItem(getStorageKey('shortcuts'),JSON.stringify(ids));}catch{} }
 
     // ====================================================================
-    //  INIT
+    //  INIT — 自動 LINE 登入 → 查 staff 表
     // ====================================================================
     document.addEventListener('DOMContentLoaded', initApp);
 
     async function initApp() {
         try {
             await liff.init({ liffId: CONFIG.LIFF_ID });
+
             if (liff.isLoggedIn()) {
-                const p = await liff.getProfile();
-                await authenticateUser(p.userId, p.displayName, p.pictureUrl, 'liff');
-            } else if (liff.isInClient()) { liff.login(); }
-            else { showLoginScreen(); }
-        } catch(e) { console.error('LIFF init error:', e); showLoginScreen(); }
+                const profile = await liff.getProfile();
+                await authenticateWithStaff(profile.userId, profile.displayName);
+            } else {
+                // 自動跳轉 LINE 登入
+                liff.login({ redirectUri: window.location.href });
+            }
+        } catch(e) {
+            console.error('LIFF init error:', e);
+            showLoginScreen();
+        }
     }
 
     // ====================================================================
-    //  AUTH
+    //  AUTH — 查 Supabase staff 表
     // ====================================================================
-    async function authenticateUser(lineUid, displayName, pictureUrl, method) {
+    async function authenticateWithStaff(lineUid, displayName) {
         try {
             updateLoadingText('驗證身份中...');
-            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'auth', action:'login', data:{lineUid,displayName,method} }) });
-            const result = await r.json();
-            if (result.success && result.user) {
-                currentUser = { id:result.user.id, name:result.user.name||displayName, lineUid, role:result.user.role, permissions:result.user.permissions||[], pictureUrl };
-                authToken = result.token || generateToken(lineUid);
-                updateLoadingText('載入模組中...');
-                renderApp(); hideLoading();
-            } else { showNoPermission(); }
+
+            const { data: staff, error } = await supabaseClient
+                .from('staff')
+                .select('*')
+                .eq('line_id', lineUid)
+                .single();
+
+            if (error || !staff) {
+                showNoPermission(displayName);
+                return;
+            }
+
+            if (staff.status !== 'active') {
+                showNoPermission(displayName, '您的帳號目前為停用狀態');
+                return;
+            }
+
+            // 登入成功 — 建立 currentUser
+            currentUser = {
+                id: staff.id,
+                name: staff.nickname || staff.name || displayName,
+                lineUid: lineUid,
+                role: staff.permission_level || staff.role || 'staff',
+                staff_type: staff.staff_type || '',
+                department: staff.department || '',
+                permissions: staff.permissions || {},
+                staff_data: staff
+            };
+
+            // 存到 sessionStorage，讓 iframe 模組也能讀取
+            sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
+            sessionStorage.setItem('staffLineUid', lineUid);
+
+            updateLoadingText('載入模組中...');
+            renderApp();
+            hideLoading();
+
         } catch(e) {
-            if (CONFIG.WEBHOOK_URL.includes('YOUR_')) {
-                currentUser = { id:1, name:displayName||'開發模式', lineUid:lineUid||'dev_user', role:'super_admin', permissions:['all'], pictureUrl };
-                authToken = generateToken('dev'); renderApp(); hideLoading();
-                showToast('⚠️ 開發模式（請設定 Webhook）');
-            } else { showLoginScreen(); showToast('❌ 連線失敗'); }
+            console.error('Auth error:', e);
+            showLoginScreen();
+            showToast('❌ 連線失敗');
         }
     }
 
-    async function handleManualLogin() {
-        const u = document.getElementById('loginUsername').value.trim();
-        const p = document.getElementById('loginPassword').value.trim();
-        if (!u||!p) { showLoginError('請輸入帳號和密碼'); return; }
-        try {
-            const r = await fetch(CONFIG.WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ module:'auth', action:'manualLogin', data:{username:u,password:p} }) });
-            const result = await r.json();
-            if (result.success && result.user) {
-                document.getElementById('loginScreen').classList.remove('show');
-                document.getElementById('loadingScreen').classList.remove('hide');
-                await authenticateUser(result.user.lineUid, result.user.name, null, 'manual');
-            } else { showLoginError('帳號或密碼錯誤'); }
-        } catch(e) {
-            if (CONFIG.WEBHOOK_URL.includes('YOUR_')) {
-                document.getElementById('loginScreen').classList.remove('show');
-                document.getElementById('loadingScreen').classList.remove('hide');
-                currentUser = { id:1, name:u, lineUid:'manual_'+u, role:'super_admin', permissions:['all'] };
-                authToken = generateToken(u); renderApp(); hideLoading(); showToast('⚠️ 開發模式登入');
-            } else { showLoginError('連線失敗'); }
-        }
+    function retryLiffLogin() {
+        liff.login({ redirectUri: window.location.href });
     }
 
-    function retryLiffLogin() { liff.isInClient() ? liff.login() : liff.login({ redirectUri: window.location.href }); }
-    function handleLogout() { if(confirm('確定要登出嗎？')){ currentUser=null; authToken=null; if(liff.isLoggedIn()) liff.logout(); window.location.reload(); } }
-    function generateToken(s) { return btoa(`${s}:${Date.now()}:${Math.random().toString(36).substring(2,10)}`); }
+    function handleLogout() {
+        if (!confirm('確定要登出嗎？')) return;
+        currentUser = null;
+        sessionStorage.removeItem('currentStaff');
+        sessionStorage.removeItem('staffLineUid');
+        try { if (liff.isLoggedIn()) liff.logout(); } catch(e) {}
+        window.location.reload();
+    }
 
     // ====================================================================
     //  RENDER
@@ -691,17 +707,22 @@
     document.getElementById('shortcutModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeShortcutPicker(); });
 
     // ====================================================================
-    //  NAVIGATION — 支援自訂參數 + 外部 URL
+    //  NAVIGATION — iframe 載入模組
     // ====================================================================
     let currentModuleUrl = '';
 
     function navigateToModule(mod) {
         if (isEditMode) return;
 
-        // 基本參數
-        const baseParams = { uid:currentUser.lineUid, name:currentUser.name, role:currentUser.role, token:authToken, from:'portal' };
+        // 基本參數（從 sessionStorage 傳遞，但也帶 URL 參數作為備用）
+        const baseParams = {
+            uid: currentUser.lineUid,
+            name: currentUser.name,
+            role: currentUser.role,
+            from: 'portal'
+        };
 
-        // 自訂參數（替換 {name}, {uid}, {role}）
+        // 自訂參數
         if (mod.customParams) {
             for (const [key, val] of Object.entries(mod.customParams)) {
                 baseParams[key] = val.replace('{name}', currentUser.name).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
@@ -764,21 +785,49 @@
     //  HELPERS
     // ====================================================================
     async function refreshData() { showToast('🔄 更新中...'); renderModules(); renderUtilities(); showToast('✅ 已更新'); }
+
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
-        if (currentUser.role==='super_admin') return true;
+        if (currentUser.role === 'super_admin') return true;
         if (mod.roles?.includes(currentUser.role)) return true;
-        if (currentUser.permissions.includes('all')||currentUser.permissions.includes(mod.permission)) return true;
+        // 檢查 permissions JSON
+        const perms = currentUser.permissions || {};
+        if (perms[mod.id] === true) return true;
         return false;
     }
-    function setGreeting() { const h=new Date().getHours(); document.getElementById('greetingText').textContent = h<12?'早安 ☀️':h<18?'午安 🌤️':'晚安 🌙'; }
-    function getRoleDisplay(r) { return {super_admin:'超級管理員',admin:'管理員',staff:'行政人員',coach:'教練',analyst:'分析師'}[r]||r; }
-    function updateLoadingText(t) { const e=document.querySelector('.loading-text'); if(e) e.textContent=t; }
-    function hideLoading() { setTimeout(()=>document.getElementById('loadingScreen').classList.add('hide'),300); }
-    function showLoginScreen() { document.getElementById('loadingScreen').classList.add('hide'); document.getElementById('loginScreen').classList.add('show'); }
-    function showLoginError(m) { const e=document.getElementById('loginError'); e.textContent=m; e.classList.add('show'); }
-    function showNoPermission() { document.getElementById('loadingScreen').classList.add('hide'); document.getElementById('mainApp').style.display='block'; document.querySelector('.main').innerHTML=`<div class="no-permission"><div class="no-permission-icon">🔒</div><div class="no-permission-title">尚未授權</div><div class="no-permission-desc">您的帳號尚未開通管理後台權限。<br>請聯繫超級管理員進行授權。</div></div>`; }
-    function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+    function setGreeting() {
+        const h = new Date().getHours();
+        document.getElementById('greetingText').textContent = h < 12 ? '早安 ☀️' : h < 18 ? '午安 🌤️' : '晚安 🌙';
+    }
+
+    function getRoleDisplay(r) {
+        return { super_admin:'超級管理員', admin:'管理員', staff:'營運人員', coach:'教練', analyst:'分析師' }[r] || r;
+    }
+
+    function updateLoadingText(t) { const e = document.querySelector('.loading-text'); if(e) e.textContent = t; }
+    function hideLoading() { setTimeout(() => document.getElementById('loadingScreen').classList.add('hide'), 300); }
+
+    function showLoginScreen() {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('loginScreen').classList.add('show');
+    }
+
+    function showNoPermission(displayName, message) {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').style.display = 'block';
+        const msg = message || '您不在營運人員名單中';
+        document.querySelector('.main').innerHTML = `
+            <div class="no-permission">
+                <div class="no-permission-icon">🔒</div>
+                <div class="no-permission-title">無權限</div>
+                <div class="no-permission-desc">${displayName || ''}，${msg}。<br>請聯繫管理員開通權限。</div>
+                <button onclick="handleLogout()" style="margin-top: 20px; padding: 12px 24px; border: none; border-radius: 12px; background: var(--green); color: white; font-size: 14px; font-weight: 600; cursor: pointer;">登出</button>
+            </div>
+        `;
+    }
+
+    function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
     </script>
 </body>
 </html>
