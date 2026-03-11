@@ -615,7 +615,7 @@
             const { data: staff, error } = await supabaseClient
                 .from('staff')
                 .select('*')
-                .eq('line_id', lineUid)
+                .eq('line_id_edu', lineUid)
                 .single();
 
             if (error || !staff) {
