@@ -434,6 +434,147 @@
     let currentUser = null, isEditMode = false;
 
     // ====================================================================
+    //  三層權限系統：permission_level + staff_type tags + permissions JSON
+    // ====================================================================
+
+    // 第 1 層：依 permission_level（基本角色）預設
+    const ROLE_DEFAULTS = {
+        admin: {
+            member: { view:true, edit:true, create:true, delete:true, export:true },
+            coach: { view:true, edit:true, create:true, delete:true, export:true },
+            'staff-manage': { view:true, edit:true, create:true, delete:false, export:true },
+            substitute: { view:true, edit:true, create:true, delete:true, export:true },
+            schedule: { view:true, edit:true, create:true, delete:false, export:true },
+            punch: { view:true, edit:true, create:false, delete:false, export:true },
+            report: { view:true, edit:false, create:false, delete:false, export:true },
+            settings: { view:true, edit:true, create:true, delete:true, export:false },
+            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false },
+            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
+            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
+            'class-record': { view:true, edit:false, create:false, delete:false, export:true },
+            'moti-analyze': { view:true, edit:false, create:false, delete:false, export:true }
+        },
+        staff: {
+            member: { view:true, edit:false, create:false, delete:false, export:false },
+            coach: { view:true, edit:false, create:false, delete:false, export:false },
+            substitute: { view:true, edit:true, create:false, delete:false, export:false },
+            punch: { view:true, edit:true, create:true, delete:false, export:false },
+            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+        },
+        viewer: {
+            member: { view:true, edit:false, create:false, delete:false, export:false },
+            coach: { view:true, edit:false, create:false, delete:false, export:false },
+            substitute: { view:true, edit:false, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+        }
+    };
+
+    // 第 2 層：依職能標籤自動加開模組（staff_type 用逗號分隔多標籤）
+    const TAG_EXTRAS = {
+        '行政': {
+            schedule: { view:true, edit:false, create:false, delete:false, export:false },
+            punch: { view:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
+            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
+            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+        },
+        '教練': {
+            substitute: { view:true, edit:true, create:true, delete:false, export:false },
+            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
+            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
+            'class-record': { view:true, edit:true, create:true, delete:false, export:true }
+        },
+        '分析師': {
+            'moti-analyze': { view:true, edit:true, create:true, delete:false, export:true }
+        },
+        '管理': {
+            report: { view:true, edit:false, create:false, delete:false, export:true },
+            schedule: { view:true, edit:true, create:true, delete:false, export:true },
+            'staff-manage': { view:true, edit:true, create:false, delete:false, export:true }
+        }
+    };
+
+    // 欄位層級預設（依 permission_level）
+    // true = 顯示, "masked" = 遮罩, false = 隱藏
+    const FIELD_DEFAULTS = {
+        super_admin: {}, // 全開，不需要定義
+        admin: {},       // 全開
+        staff: {
+            member: { phone:'masked', email:false, medical_history:false, line_uid:false },
+            coach: { phone:'masked', email:false, line_uid:false, line_id_edu:false },
+            'staff-manage': { phone:'masked', email:false, emergency_contact:false, emergency_phone:false, address:false, birthday:false }
+        },
+        viewer: {
+            member: { phone:false, email:false, medical_history:false, line_uid:false, birth_date:false, fitness_goal:false },
+            coach: { phone:false, email:false, line_uid:false, line_id_edu:false, birthday:false },
+            'staff-manage': { phone:false, email:false, emergency_contact:false, emergency_phone:false, emergency_relation:false, address:false, birthday:false, hire_date:false, leave_date:false }
+        }
+    };
+
+    // 合併三層權限
+    function resolvePermissions(role, staffType, dbPermissions) {
+        const merged = {};
+
+        // 第 1 層：角色預設
+        const roleDefaults = ROLE_DEFAULTS[role] || {};
+        for (const [modId, perms] of Object.entries(roleDefaults)) {
+            merged[modId] = { ...perms };
+        }
+
+        // 第 2 層：拆分標籤，逐個加開
+        const tags = (staffType || '').split(',').map(t => t.trim()).filter(Boolean);
+        tags.forEach(tag => {
+            const tagExtras = TAG_EXTRAS[tag] || {};
+            for (const [modId, perms] of Object.entries(tagExtras)) {
+                if (!merged[modId]) {
+                    merged[modId] = { ...perms };
+                } else {
+                    for (const [action, allowed] of Object.entries(perms)) {
+                        if (allowed === true) merged[modId][action] = true;
+                    }
+                }
+            }
+        });
+
+        // 第 3 層：DB permissions JSON 覆蓋（可開可關）
+        const overrides = (dbPermissions && dbPermissions.modules) ? dbPermissions.modules : {};
+        for (const [modId, perms] of Object.entries(overrides)) {
+            if (!merged[modId]) merged[modId] = {};
+            for (const [action, allowed] of Object.entries(perms)) {
+                merged[modId][action] = allowed;
+            }
+        }
+
+        return merged;
+    }
+
+    // 合併欄位權限
+    function resolveFieldPermissions(role, dbPermissions) {
+        const defaults = FIELD_DEFAULTS[role] || {};
+        const overrides = (dbPermissions && dbPermissions.fields) ? dbPermissions.fields : {};
+        const merged = {};
+
+        // 套用預設
+        for (const [modId, fields] of Object.entries(defaults)) {
+            merged[modId] = { ...fields };
+        }
+
+        // DB 覆蓋
+        for (const [modId, fields] of Object.entries(overrides)) {
+            if (!merged[modId]) merged[modId] = {};
+            for (const [field, value] of Object.entries(fields)) {
+                merged[modId][field] = value;
+            }
+        }
+
+        return merged;
+    }
+
+    // ====================================================================
     //  STORAGE
     // ====================================================================
     function getStorageKey(k) { return `portal_${currentUser?.lineUid||'default'}_${k}`; }
@@ -487,15 +628,28 @@
                 return;
             }
 
-            // 登入成功 — 建立 currentUser
+            // 登入成功 — 建立 currentUser（三層權限合併）
+            const role = staff.permission_level || staff.role || 'staff';
+            const staffType = staff.staff_type || '';
+            const dbPerms = staff.permissions || {};
+
+            const resolvedModules = role === 'super_admin'
+                ? 'all'
+                : resolvePermissions(role, staffType, dbPerms);
+
+            const resolvedFields = role === 'super_admin'
+                ? {}
+                : resolveFieldPermissions(role, dbPerms);
+
             currentUser = {
                 id: staff.id,
                 name: staff.nickname || staff.name || displayName,
                 lineUid: lineUid,
-                role: staff.permission_level || staff.role || 'staff',
-                staff_type: staff.staff_type || '',
+                role: role,
+                staff_type: staffType,
                 department: staff.department || '',
-                permissions: staff.permissions || {},
+                permissions: resolvedModules,
+                fieldPermissions: resolvedFields,
                 staff_data: staff
             };
 
@@ -789,12 +943,56 @@
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
         if (currentUser.role === 'super_admin') return true;
-        if (mod.roles?.includes(currentUser.role)) return true;
-        // 檢查 permissions JSON
-        const perms = currentUser.permissions || {};
-        if (perms[mod.id] === true) return true;
-        return false;
+        if (currentUser.permissions === 'all') return true;
+
+        const modPerms = currentUser.permissions[mod.id];
+        return modPerms && modPerms.view === true;
     }
+
+    // 檢查特定操作權限
+    function hasPermission(moduleId, action) {
+        if (!currentUser) return false;
+        if (currentUser.role === 'super_admin') return true;
+        if (currentUser.permissions === 'all') return true;
+
+        const modPerms = currentUser.permissions[moduleId];
+        return modPerms && modPerms[action] === true;
+    }
+
+    // 給 iframe 模組讀取模組操作權限
+    window.getModulePermissions = function(moduleId) {
+        if (!currentUser) return { view:false, edit:false, create:false, delete:false, export:false };
+        if (currentUser.role === 'super_admin' || currentUser.permissions === 'all') {
+            return { view:true, edit:true, create:true, delete:true, export:true };
+        }
+        return currentUser.permissions[moduleId] || { view:false, edit:false, create:false, delete:false, export:false };
+    };
+
+    // 給 iframe 模組讀取欄位權限
+    // 回傳: { phone: true/"masked"/false, email: false, ... }
+    // 沒有定義的欄位 = true（預設顯示）
+    window.getFieldPermissions = function(moduleId) {
+        if (!currentUser) return {};
+        if (currentUser.role === 'super_admin') return {}; // 空 = 全開
+        return (currentUser.fieldPermissions || {})[moduleId] || {};
+    };
+
+    // 給 iframe 用的遮罩工具
+    window.maskValue = function(value, type) {
+        if (!value) return '-';
+        const str = String(value);
+        if (type === 'phone') {
+            return str.length >= 7 ? str.substring(0, 4) + '***' + str.substring(str.length - 3) : '***';
+        }
+        if (type === 'email') {
+            const at = str.indexOf('@');
+            if (at > 2) return str.substring(0, 2) + '***' + str.substring(at);
+            return '***' + str.substring(at);
+        }
+        // 一般遮罩
+        if (str.length <= 2) return str[0] + '*';
+        return str[0] + '*'.repeat(str.length - 2) + str[str.length - 1];
+    };
 
     function setGreeting() {
         const h = new Date().getHours();
