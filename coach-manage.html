@@ -336,7 +336,7 @@
         const c=allCoaches.find(x=>x.id===id);if(!c)return;editingCoach=c;
         document.getElementById('editTitle').textContent='編輯：'+c.name;
         const ce=canEditExisting();
-        function ro(v){return(v&&v!=='-'&&!ce)?true:false;}
+        function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
         let h='';
         h+=fg('教練編號','text','edit_code',c.coach_code||c.id,true);
         h+=fg('教練名稱','text','edit_name',c.name,true);
