@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>衡點健身 管理後台</title>
+    <title>衡點健康 Hendia</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -235,9 +235,9 @@
 <body>
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-logo">
-            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健康">
         </div>
-        <div class="loading-sub">BALANCE POINT</div>
+        <div class="loading-sub">Hendia</div>
         <div class="loading-spinner"></div>
         <div class="loading-text">系統載入中...</div>
     </div>
@@ -289,7 +289,7 @@
             </div>
             <div class="utility-row" id="utilityRow"></div>
 
-            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v2.0.0</span></div>
+            <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v3.0.0</span></div>
         </div>
 
         <div id="modulePage" style="display:none;">
@@ -350,7 +350,7 @@
         SUPABASE_URL: 'https://mnjilhpztnowaplggvkk.supabase.co',
         SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
-        VERSION: '2.0.0'
+        VERSION: '3.0.0'
     };
 
     const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
@@ -387,7 +387,7 @@
           url:'report.html', color:'blue',
           roles:['super_admin','admin'] },
 
-        { id:'settings', icon:'🔐', name:'權限設定', desc:'權限管理、系統配置',
+        { id:'settings', icon:'🔐', name:'系統設定', desc:'權限管理、系統配置',
           url:'settings.html', color:'pink',
           roles:['super_admin'] },
 
@@ -456,6 +456,12 @@
             'class-record': { view:true, edit:false, create:false, delete:false, export:true },
             'moti-analyze': { view:true, edit:false, create:false, delete:false, export:true }
         },
+        coach: {
+            substitute: { view:true, edit:true, create:true, delete:false, export:false },
+            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
+            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
+            'class-record': { view:true, edit:true, create:true, delete:false, export:true }
+        },
         staff: {
             member: { view:true, edit:false, create:false, delete:false, export:false },
             coach: { view:true, edit:false, create:false, delete:false, export:false },
@@ -503,6 +509,7 @@
     const FIELD_DEFAULTS = {
         super_admin: {}, // 全開，不需要定義
         admin: {},       // 全開
+        coach: {},       // 教練看自己相關模組全開
         staff: {
             member: { phone:'masked', email:false, medical_history:false, line_uid:false },
             coach: { phone:'masked', email:false, line_uid:false, line_id_edu:false },
@@ -612,27 +619,50 @@
         try {
             updateLoadingText('驗證身份中...');
 
-            const { data: staff, error } = await supabaseClient
-                .from('staff')
-                .select('*')
-                .eq('line_id_edu', lineUid)
-                .single();
+            // 同時查 staff 和 coaches 兩張表
+            const [staffResult, coachResult] = await Promise.all([
+                supabaseClient.from('staff').select('*').eq('line_id_edu', lineUid).single(),
+                supabaseClient.from('coaches').select('*').eq('line_id_edu', lineUid).single()
+            ]);
 
-            if (error || !staff) {
+            const staff = (!staffResult.error && staffResult.data) ? staffResult.data : null;
+            const coach = (!coachResult.error && coachResult.data) ? coachResult.data : null;
+
+            // 兩張表都找不到
+            if (!staff && !coach) {
                 showNoPermission(displayName);
                 return;
             }
 
-            if (staff.status !== 'active') {
+            // 檢查狀態
+            if (staff && staff.status !== 'active' && !coach) {
                 showNoPermission(displayName, '您的帳號目前為停用狀態');
                 return;
             }
+            if (!staff && coach && coach.is_active === false) {
+                showNoPermission(displayName, '您的教練帳號目前為停用狀態');
+                return;
+            }
 
-            // 登入成功 — 建立 currentUser（三層權限合併）
-            const role = staff.permission_level || staff.role || 'staff';
-            const staffType = staff.staff_type || '';
-            const dbPerms = staff.permissions || {};
+            let role, staffType, dbPerms, userName, userId;
 
+            if (staff && staff.status === 'active') {
+                // ---- 有 staff 身分（可能同時有教練身分）----
+                role = staff.permission_level || staff.role || 'staff';
+                staffType = staff.staff_type || '';
+                dbPerms = staff.permissions || {};
+                userName = staff.nickname || staff.name || displayName;
+                userId = staff.id;
+            } else {
+                // ---- 純教練（不在 staff 表）----
+                role = coach.permission_level || 'coach';
+                staffType = '';
+                dbPerms = coach.permissions || {};
+                userName = coach.name || displayName;
+                userId = coach.id;
+            }
+
+            // 三層權限合併
             const resolvedModules = role === 'super_admin'
                 ? 'all'
                 : resolvePermissions(role, staffType, dbPerms);
@@ -642,20 +672,23 @@
                 : resolveFieldPermissions(role, dbPerms);
 
             currentUser = {
-                id: staff.id,
-                name: staff.nickname || staff.name || displayName,
+                id: userId,
+                name: userName,
                 lineUid: lineUid,
                 role: role,
                 staff_type: staffType,
-                department: staff.department || '',
+                department: staff ? (staff.department || '') : '',
                 permissions: resolvedModules,
                 fieldPermissions: resolvedFields,
-                staff_data: staff
+                source: staff ? 'staff' : 'coaches',
+                staff_data: staff || null,
+                coach_data: coach || null
             };
 
-            // 存到 sessionStorage，讓 iframe 模組也能讀取
+            // 存到 sessionStorage
             sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
             sessionStorage.setItem('staffLineUid', lineUid);
+            if (coach) sessionStorage.setItem('currentCoach', JSON.stringify(coach));
 
             updateLoadingText('載入模組中...');
             renderApp();
@@ -677,6 +710,7 @@
         currentUser = null;
         sessionStorage.removeItem('currentStaff');
         sessionStorage.removeItem('staffLineUid');
+        sessionStorage.removeItem('currentCoach');
         try { if (liff.isLoggedIn()) liff.logout(); } catch(e) {}
         window.location.reload();
     }
@@ -689,7 +723,14 @@
         document.getElementById('mainApp').style.display = 'block';
         setGreeting();
         document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userRoleText').textContent = getRoleDisplay(currentUser.role);
+
+        // 顯示角色（如果身兼教練也顯示）
+        let roleText = getRoleDisplay(currentUser.role);
+        if (currentUser.coach_data && currentUser.source === 'staff') {
+            roleText += ' + 教練';
+        }
+        document.getElementById('userRoleText').textContent = roleText;
+
         renderModules();
         renderUtilities();
     }
@@ -865,21 +906,36 @@
     // ====================================================================
     let currentModuleUrl = '';
 
+    // 教練專屬模組列表
+    const COACH_MODULES = ['trial-schedule', 'trial-feedback', 'class-record', 'substitute'];
+
     function navigateToModule(mod) {
         if (isEditMode) return;
 
-        // 基本參數（從 sessionStorage 傳遞，但也帶 URL 參數作為備用）
+        // 判斷是否用教練身分進入此模組
+        const coachData = currentUser.coach_data;
+        const useCoachIdentity = coachData && COACH_MODULES.includes(mod.id);
+
+        // 基本參數
         const baseParams = {
             uid: currentUser.lineUid,
-            name: currentUser.name,
+            name: useCoachIdentity ? coachData.name : currentUser.name,
             role: currentUser.role,
             from: 'portal'
         };
 
-        // 自訂參數
+        // 教練專屬參數
+        if (useCoachIdentity) {
+            baseParams.coach_name = coachData.name;
+            baseParams.coach_id = coachData.id;
+            if (coachData.line_id_edu) baseParams.line_id_edu = coachData.line_id_edu;
+        }
+
+        // 自訂參數（用教練名稱替換）
         if (mod.customParams) {
+            const replaceName = useCoachIdentity ? coachData.name : currentUser.name;
             for (const [key, val] of Object.entries(mod.customParams)) {
-                baseParams[key] = val.replace('{name}', currentUser.name).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
+                baseParams[key] = val.replace('{name}', replaceName).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
             }
         }
 
@@ -1000,7 +1056,7 @@
     }
 
     function getRoleDisplay(r) {
-        return { super_admin:'超級管理員', admin:'管理員', staff:'營運人員', coach:'教練', analyst:'分析師' }[r] || r;
+        return { super_admin:'超級管理員', admin:'管理員', staff:'營運人員', coach:'教練', viewer:'檢視者' }[r] || r;
     }
 
     function updateLoadingText(t) { const e = document.querySelector('.loading-text'); if(e) e.textContent = t; }
