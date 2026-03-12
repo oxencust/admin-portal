@@ -208,7 +208,8 @@
         const s=students.find(x=>x.id===id);if(!s)return;editingStudent=s;
         document.getElementById('editTitle').textContent='編輯：'+s.name;
         let h='';h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name);h+=fg('暱稱','text','edit_nickname',s.line_display_name);
-        h+=fs('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],s.gender);
+        var gVal=s.gender;if(gVal==='男')gVal='male';if(gVal==='女')gVal='female';
+        h+=fs('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],gVal);
         if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',s.phone);
         if(isFieldFull('email'))h+=fg('信箱','email','edit_email',s.email);
         if(isFieldFull('birth_date'))h+=fg('生日','date','edit_birth',s.birth_date);
