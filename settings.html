@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>系統設定</title>
+    <title>權限設定</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -109,7 +109,7 @@
     </style>
 </head>
 <body>
-    <div class="top-bar"><h1>🔐 系統設定</h1><span class="staff-name" id="myName"></span></div>
+    <div class="top-bar"><h1>🔐 權限設定</h1><span class="staff-name" id="myName"></span></div>
 
     <div class="container">
         <div class="tab-bar">
@@ -303,17 +303,36 @@
         return true;
     }
 
+    let allCoaches=[];
+
     async function loadStaff(){
-        const{data,error}=await sb.from('staff').select('*').order('name');
-        if(error){showToast('❌ 載入失敗');return;}
-        allStaff=data||[];
+        const[staffRes,coachRes]=await Promise.all([
+            sb.from('staff').select('*').order('name'),
+            sb.from('coaches').select('*').order('name')
+        ]);
+        if(staffRes.error||coachRes.error){showToast('❌ 載入失敗');return;}
+        allStaff=staffRes.data||[];
+        allCoaches=coachRes.data||[];
+
         const sel=document.getElementById('staffSelect');
         sel.innerHTML='<option value="">— 請選擇 —</option>';
+
+        // 營運人員（排除 super_admin）
+        sel.innerHTML+='<optgroup label="👥 營運人員">';
         allStaff.filter(s=>s.permission_level!=='super_admin').forEach(s=>{
             const role=roleNames[s.permission_level||'staff']||s.permission_level;
             const status=s.status==='active'?'':'（停用）';
-            sel.innerHTML+='<option value="'+s.id+'">'+(s.nickname||s.name)+' — '+role+status+'</option>';
+            sel.innerHTML+='<option value="staff:'+s.id+'">'+(s.nickname||s.name)+' — '+role+status+'</option>';
         });
+        sel.innerHTML+='</optgroup>';
+
+        // 教練
+        sel.innerHTML+='<optgroup label="👨‍🏫 教練">';
+        allCoaches.forEach(c=>{
+            const status=c.is_active!==false?'':'（停用）';
+            sel.innerHTML+='<option value="coach:'+c.id+'">'+escHtml(c.name)+(c.real_name&&c.real_name!==c.name?' ('+escHtml(c.real_name)+')':'')+status+'</option>';
+        });
+        sel.innerHTML+='</optgroup>';
     }
 
     function switchTab(tab){
@@ -324,25 +343,45 @@
     // ====================================================================
     //  STAFF SELECTED
     // ====================================================================
+    const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
+        
+    let selectedType=''; // 'staff' or 'coach'
+
     function onStaffSelected(){
-        const id=document.getElementById('staffSelect').value;
-        if(!id){
+        const rawVal=document.getElementById('staffSelect').value;
+        if(!rawVal){
             document.getElementById('permContent').style.display='none';
             document.getElementById('noSelection').style.display='block';
             document.getElementById('saveBar').classList.remove('show');
             selectedStaff=null;
+            selectedType='';
             return;
         }
 
-        selectedStaff=allStaff.find(s=>s.id===id);
+        const[type,id]=rawVal.split(':');
+        selectedType=type;
+
+        if(type==='staff'){
+            selectedStaff=allStaff.find(s=>s.id===id);
+        }else{
+            selectedStaff=allCoaches.find(c=>c.id===id);
+        }
         if(!selectedStaff)return;
 
         // 顯示人員資訊
-        const role=selectedStaff.permission_level||'staff';
-        const tags=(selectedStaff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
-        let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-        info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
-        tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
+        let info='';
+        if(selectedType==='staff'){
+            const role=selectedStaff.permission_level||'staff';
+            const tags=(selectedStaff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+            info+='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
+            info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
+            tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
+        }else{
+            info+='<span class="badge badge-staff">教練</span>';
+            info+='<span class="badge '+(selectedStaff.is_active!==false?'badge-active':'badge-inactive')+'">'+(selectedStaff.is_active!==false?'啟用':'停用')+'</span>';
+            const specs=Array.isArray(selectedStaff.specialties)?selectedStaff.specialties:(selectedStaff.specialties?[selectedStaff.specialties]:[]);
+            specs.forEach(s=>{info+='<span class="badge type-tag">'+(specNames[s]||s)+'</span>';});
+        }
         document.getElementById('selectedInfo').innerHTML=info;
 
         document.getElementById('noSelection').style.display='none';
@@ -357,12 +396,21 @@
     // ====================================================================
     //  計算此人員的有效權限（預設+標籤）
     // ====================================================================
-    function getEffectiveModulePerms(staff){
-        const role=staff.permission_level||'staff';
+    function getEffectiveModulePerms(person){
+        if(selectedType==='coach'){
+            // 教練預設：只開教練相關模組
+            return{
+                substitute:{view:true,edit:true,create:true,delete:false,export:false},
+                'trial-schedule':{view:true,edit:true,create:true,delete:false,export:false},
+                'trial-feedback':{view:true,edit:true,create:true,delete:false,export:true},
+                'class-record':{view:true,edit:true,create:true,delete:false,export:true}
+            };
+        }
+        const role=person.permission_level||'staff';
         const merged={};
         const rd=ROLE_DEFAULTS[role]||{};
         for(const[m,p]of Object.entries(rd)){merged[m]={...p};}
-        const tags=(staff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+        const tags=(person.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
         tags.forEach(tag=>{
             const ex=TAG_EXTRAS[tag]||{};
             for(const[m,p]of Object.entries(ex)){
@@ -373,8 +421,12 @@
         return merged;
     }
 
-    function getEffectiveFieldPerms(staff){
-        const role=staff.permission_level||'staff';
+    function getEffectiveFieldPerms(person){
+        if(selectedType==='coach'){
+            // 教練預設：自己的敏感欄位全開
+            return{};
+        }
+        const role=person.permission_level||'staff';
         return FIELD_DEFAULTS[role]||{};
     }
 
@@ -531,9 +583,9 @@
         if(Object.keys(fields).length>0)perms.fields=fields;
 
         try{
-            const{error}=await sb.from('staff').update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
+            const table=selectedType==='coach'?'coaches':'staff';
+            const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
             if(error)throw error;
-
             selectedStaff.permissions=perms;
             hasChanges=false;
             document.getElementById('saveBar').classList.remove('show');
