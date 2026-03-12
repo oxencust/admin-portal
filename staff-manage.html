@@ -46,16 +46,16 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .a-avatar.staff{background:linear-gradient(135deg,var(--blue-light),#bbdefb);color:var(--blue-dark);}
 .a-avatar.viewer{background:linear-gradient(135deg,#f5f5f5,#e0e0e0);color:#999;}
 .a-info{flex:1;min-width:0;}
-.a-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.a-meta{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.a-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.a-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
 .a-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
-.a-tag{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;}
-.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
-.a-field{display:flex;gap:4px;align-items:baseline;}.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:11px;}.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.a-tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-field{display:flex;gap:4px;align-items:baseline;}.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:12px;}.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .a-field.full{grid-column:1/-1;}
 .a-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
 .a-card.expanded .a-expand{display:block;}
-.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
+.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
 .a-actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;}
 .a-toggle{text-align:center;margin-top:6px;font-size:10px;color:var(--green);font-weight:600;}
 .a-card.expanded .a-toggle{display:none;}
@@ -107,7 +107,8 @@ let allStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=n
 const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',viewer:'檢視者'};
 const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',viewer:'badge-viewer'};
 const roleAvatar={super_admin:'admin',admin:'admin',staff:'staff',viewer:'viewer'};
-const genderNames={'male':'男','female':'女','other':'其他'};
+const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
+const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
@@ -235,7 +236,7 @@ function editStaff(id){
     h+=fg('暱稱','text','e_nick',s.nickname,ro(s.nickname));
     h+=fg('人員類型','text','e_type',s.staff_type,ro(s.staff_type));
     if(!ro(s.staff_type))h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';
-    h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],s.gender||'',ro(s.gender));
+    h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
     h+=fg('部門','text','e_dept',s.department,ro(s.department));
     h+=fg('角色','text','e_role',s.role,ro(s.role));
     h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],s.permission_level||'staff');
@@ -260,7 +261,7 @@ async function saveStaff(){
     chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('role','e_role',s.role);
     const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
     const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
-    chk('gender','e_gender',s.gender);chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
+    chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
     const bd=val('e_bday');if(bd!==(s.birthday||''))u.birthday=bd||null;
     chk('address','e_addr',s.address);chk('emergency_contact','e_ec',s.emergency_contact);chk('emergency_phone','e_ep',s.emergency_phone);
     chk('emergency_relation','e_er',s.emergency_relation);
