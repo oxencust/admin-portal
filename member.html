@@ -173,8 +173,7 @@ function renderStudents(){
         if(!s.occupation&&s.age)grid+=af('年齡',s.age+'歲');
         let exp='';
         if(isFieldVisible('email')&&s.email)exp+=af('信箱',getFieldDisplay('email',s.email,'email'));
-        if(isFieldVisible('birth_date')&&s.birth_date)exp+=af('生日',escHtml(s.birth_date));
-        if(s.age&&s.occupation)exp+=af('年齡',s.age+'歲');
+        if(isFieldVisible('birth_date')&&s.birth_date)exp+=af('生日',escHtml(s.birth_date)+(s.age?' ('+s.age+'歲)':''));
         if(s.related_member)exp+=af('關係會員',escHtml(s.related_member));
         if(ed)exp+=af('初次體驗',ed);
         if(s.line_display_name)exp+=af('LINE',escHtml(s.line_display_name));
@@ -203,7 +202,7 @@ function viewDetail(id){
     document.getElementById('detailTitle').textContent=s.name||'-';
     let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
     h+=ddf('編號',escHtml(s.id));h+=ddf('姓名',escHtml(s.name));h+=ddf('暱稱',escHtml(s.line_display_name||'-'));h+=ddf('性別',genderNames[s.gender]||'-');
-    if(s.age)h+=ddf('年齡',s.age+'歲');if(isFieldVisible('birth_date'))h+=ddf('出生日期',getFieldDisplay('birth_date',s.birth_date));
+    if(s.age)h+=ddf('年齡',s.age+'歲');if(isFieldVisible('birth_date'))h+=ddf('出生日期',getFieldDisplay('birth_date',s.birth_date)+(s.age?' ('+s.age+'歲)':''));
     if(s.occupation)h+=ddf('職業',escHtml(s.occupation));h+=ddf('會員等級',levelNames[s.member_level]||'一般');h+=ddf('初次體驗',expNames[s.first_experience]||'-');
     if(s.join_year||s.join_month)h+=ddf('加入時間',(s.join_year||'?')+'年'+(s.join_month||'?')+'月');
     h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
