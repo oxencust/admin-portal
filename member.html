@@ -192,7 +192,6 @@
             grid+=fc('建立時間',fmtDate(s.created_at));
             grid+=fc('更新時間',fmtDate(s.updated_at));            let acts='';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
-            if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">🗑️</button>';
             return '<div class="s-card" id="card-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+gk+'">'+escHtml(init)+'</div><div class="s-info"><div class="s-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="s-meta"><span>'+escHtml(s.id)+'</span>'+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div><div class="s-right">'+ph+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div><div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
         }).join('');
     }
