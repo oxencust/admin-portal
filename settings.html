@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>系統設定</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green:#7ac19a; --green-dark:#5f846f; --green-light:#e2ede6;
+            --pink:#f2ac98; --pink-light:#faece8; --pink-dark:#c67566;
+            --blue:#9fcccc; --blue-light:#daedec; --blue-dark:#66888e;
+            --yellow:#ffe08b; --yellow-light:#fcf4e3;
+            --purple:#a78bca; --purple-light:#f3e8ff; --purple-dark:#7b5ea7;
+            --bg:#f5f6f8; --card:#fff; --text:#333; --text-secondary:#666; --text-muted:#999; --border:#e5e5e5;
+            --danger:#e05252;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%); background-attachment:fixed; color:var(--text); min-height:100vh; }
+
+        .top-bar { background:var(--card); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
+        .top-bar h1 { font-size:17px; font-weight:700; color:var(--green-dark); display:flex; align-items:center; gap:8px; }
+        .staff-name { font-size:12px; color:var(--text-muted); }
+
+        .container { max-width:700px; margin:0 auto; padding:16px; padding-bottom:100px; }
+
+        /* Tab bar */
+        .tab-bar { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        .tab-bar::-webkit-scrollbar { display:none; }
+        .tab-btn { padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; border:1.5px solid var(--border); background:white; color:var(--text-secondary); cursor:pointer; white-space:nowrap; transition:all 0.2s; font-family:inherit; }
+        .tab-btn.active { background:var(--green); color:white; border-color:var(--green); }
+
+        /* Staff selector */
+        .staff-selector { background:var(--card); border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+        .selector-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.5px; }
+        .staff-select { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:inherit; outline:none; background:white; }
+        .staff-select:focus { border-color:var(--green); }
+        .selected-info { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+        .info-chip { padding:4px 12px; border-radius:10px; font-size:12px; font-weight:600; }
+
+        /* Section */
+        .section { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+        .section-title { font-size:13px; font-weight:700; color:var(--green-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+        .section-desc { font-size:11px; color:var(--text-muted); margin-bottom:12px; }
+
+        /* Module permission table */
+        .perm-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .perm-table th { text-align:center; padding:8px 4px; color:var(--text-muted); font-weight:600; font-size:10px; letter-spacing:0.5px; border-bottom:2px solid var(--green-light); }
+        .perm-table th:first-child { text-align:left; }
+        .perm-table td { padding:8px 4px; text-align:center; border-bottom:1px solid #f5f5f5; }
+        .perm-table td:first-child { text-align:left; font-weight:500; font-size:13px; }
+        .perm-table tr:last-child td { border-bottom:none; }
+        .perm-table tr:hover { background:#f8faf8; }
+        .perm-table input[type="checkbox"] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
+        .mod-icon { margin-right:4px; }
+
+        /* Field permission table */
+        .field-section { margin-top:8px; }
+        .field-module-title { font-size:12px; font-weight:700; color:var(--text-secondary); padding:10px 0 6px; border-bottom:1.5px solid var(--green-light); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .field-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px; }
+        .field-table th { text-align:center; padding:6px 4px; color:var(--text-muted); font-weight:600; font-size:10px; border-bottom:1.5px solid #eee; }
+        .field-table th:first-child { text-align:left; }
+        .field-table td { padding:8px 4px; text-align:center; border-bottom:1px solid #f8f8f8; }
+        .field-table td:first-child { text-align:left; font-weight:500; font-size:13px; color:var(--text-secondary); }
+        .field-table input[type="radio"] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
+        .field-table tr:hover { background:#fafbfa; }
+
+        /* Status indicators */
+        .status-show { color:var(--green-dark); }
+        .status-mask { color:#f57c00; }
+        .status-hide { color:var(--danger); }
+
+        /* Save bar */
+        .save-bar { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1px solid var(--border); padding:12px 16px; display:none; gap:10px; justify-content:center; box-shadow:0 -2px 10px rgba(0,0,0,0.06); z-index:100; }
+        .save-bar.show { display:flex; }
+        .save-bar .btn { max-width:350px; flex:1; justify-content:center; padding:14px; font-size:15px; }
+        .btn { padding:10px 16px; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.15s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+        .btn:active { transform:scale(0.96); }
+        .btn-primary { background:linear-gradient(135deg,var(--green-dark),var(--green)); color:white; box-shadow:0 2px 8px rgba(122,193,154,0.3); }
+        .btn-secondary { background:var(--blue-light); color:var(--blue-dark); }
+        .btn-danger { background:var(--pink-light); color:var(--pink-dark); }
+
+        .badge { display:inline-flex; padding:3px 10px; border-radius:8px; font-size:12px; font-weight:600; }
+        .badge-super { background:linear-gradient(135deg,#667eea,#764ba2); color:white; }
+        .badge-admin { background:var(--purple-light); color:var(--purple-dark); }
+        .badge-staff { background:var(--blue-light); color:var(--blue-dark); }
+        .badge-viewer { background:#f5f5f5; color:#666; }
+        .badge-active { background:#e8f5e9; color:#2e7d32; }
+        .badge-inactive { background:#f5f5f5; color:#999; }
+        .type-tag { background:var(--yellow-light); color:#856404; }
+
+        .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
+        .empty-icon { font-size:40px; margin-bottom:10px; }
+
+        .hint-box { background:var(--yellow-light); border:1px solid #ffe082; border-radius:10px; padding:12px 14px; font-size:12px; color:#856404; line-height:1.5; margin-bottom:16px; }
+
+        .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(45,52,54,0.9); color:white; padding:10px 24px; border-radius:12px; font-size:13px; z-index:9999; transition:transform 0.3s; opacity:0; }
+        .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+        .reset-btn { font-size:11px; color:var(--danger); background:none; border:none; cursor:pointer; font-family:inherit; font-weight:600; padding:4px 8px; border-radius:6px; }
+        .reset-btn:hover { background:var(--pink-light); }
+
+        @media(max-width:480px) {
+            .perm-table th, .perm-table td { padding:6px 2px; font-size:11px; }
+            .perm-table input[type="checkbox"] { width:16px; height:16px; }
+            .field-table input[type="radio"] { width:14px; height:14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar"><h1>🔐 系統設定</h1><span class="staff-name" id="myName"></span></div>
+
+    <div class="container">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>
+        </div>
+
+        <!-- 權限管理 -->
+        <div id="tab-permissions">
+            <div class="hint-box">
+                💡 super_admin 擁有全部權限，不需要設定。<br>
+                其他角色會先載入預設權限，你在這裡做的調整會覆蓋預設值。
+            </div>
+
+            <div class="staff-selector">
+                <div class="selector-label">選擇人員</div>
+                <select class="staff-select" id="staffSelect" onchange="onStaffSelected()">
+                    <option value="">— 請選擇 —</option>
+                </select>
+                <div class="selected-info" id="selectedInfo"></div>
+            </div>
+
+            <div id="permContent" style="display:none;">
+                <!-- 模組權限 -->
+                <div class="section">
+                    <div class="section-title">📦 模組權限 <button class="reset-btn" onclick="resetModulePerms()">重置為預設</button></div>
+                    <div class="section-desc">控制此人員可以存取哪些模組，以及在模組內的操作權限</div>
+                    <table class="perm-table" id="modulePermTable">
+                        <thead>
+                            <tr><th>模組</th><th>查看</th><th>編輯</th><th>新增</th><th>刪除</th><th>匯出</th></tr>
+                        </thead>
+                        <tbody id="modulePermBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 欄位權限 -->
+                <div class="section">
+                    <div class="section-title">🔒 欄位權限 <button class="reset-btn" onclick="resetFieldPerms()">重置為預設</button></div>
+                    <div class="section-desc">控制敏感欄位的顯示方式：顯示（完整）、遮罩（部分隱藏）、隱藏（不顯示）</div>
+                    <div class="field-section" id="fieldPermSection"></div>
+                </div>
+            </div>
+
+            <div id="noSelection">
+                <div class="empty-state">
+                    <div class="empty-icon">👆</div>
+                    <p>請先選擇一位人員</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-bar" id="saveBar">
+        <button class="btn btn-secondary" onclick="cancelChanges()">取消</button>
+        <button class="btn btn-primary" onclick="savePermissions()">💾 儲存權限</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
+    const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+    const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+    let currentUser=null;
+    let allStaff=[];
+    let selectedStaff=null;
+    let hasChanges=false;
+
+    // 模組定義
+    const ALL_MODULES=[
+        {id:'member',icon:'👤',name:'學員管理'},
+        {id:'coach',icon:'👨‍🏫',name:'教練管理'},
+        {id:'staff-manage',icon:'👥',name:'營運人員'},
+        {id:'substitute',icon:'📋',name:'代課管理'},
+        {id:'schedule',icon:'🗓️',name:'行政排班'},
+        {id:'punch',icon:'⏰',name:'上下班打卡'},
+        {id:'report',icon:'📊',name:'報表統計'},
+        {id:'settings',icon:'🔐',name:'系統設定'},
+        {id:'moti-booking',icon:'📝',name:'預填Moti'},
+        {id:'leave-manage',icon:'🏥',name:'學員請假'},
+        {id:'personal-schedule',icon:'📅',name:'個人排班'},
+        {id:'trial-schedule',icon:'🗓️',name:'體驗排程'},
+        {id:'trial-feedback',icon:'💬',name:'體驗回報'},
+        {id:'class-record',icon:'📋',name:'課表紀錄'},
+        {id:'moti-analyze',icon:'🔬',name:'Moti檢測'}
+    ];
+
+    const ACTIONS=['view','edit','create','delete','export'];
+    const ACTION_LABELS={view:'查看',edit:'編輯',create:'新增',delete:'刪除',export:'匯出'};
+
+    // 欄位權限定義
+    const FIELD_MODULES={
+        member:{name:'學員管理',icon:'👤',fields:[
+            {id:'phone',name:'電話'},
+            {id:'email',name:'信箱'},
+            {id:'birth_date',name:'生日'},
+            {id:'medical_history',name:'疾病史'},
+            {id:'fitness_goal',name:'健身目標'},
+            {id:'line_uid',name:'LINE UID'}
+        ]},
+        coach:{name:'教練管理',icon:'👨‍🏫',fields:[
+            {id:'phone',name:'電話'},
+            {id:'email',name:'信箱'},
+            {id:'birthday',name:'生日'},
+            {id:'line_uid',name:'衡點LINE'},
+            {id:'line_id_edu',name:'教務LINE'}
+        ]},
+        'staff-manage':{name:'營運人員',icon:'👥',fields:[
+            {id:'phone',name:'電話'},
+            {id:'email',name:'信箱'},
+            {id:'birthday',name:'生日'},
+            {id:'address',name:'地址'},
+            {id:'emergency_contact',name:'緊急聯絡人'},
+            {id:'emergency_phone',name:'緊急電話'},
+            {id:'line_id',name:'衡點LINE'},
+            {id:'line_id_edu',name:'教務LINE'}
+        ]}
+    };
+
+    // 預設權限（同 index.html）
+    const ROLE_DEFAULTS={
+        admin:{
+            member:{view:true,edit:true,create:true,delete:true,export:true},
+            coach:{view:true,edit:true,create:true,delete:true,export:true},
+            'staff-manage':{view:true,edit:true,create:true,delete:false,export:true},
+            substitute:{view:true,edit:true,create:true,delete:true,export:true},
+            schedule:{view:true,edit:true,create:true,delete:false,export:true},
+            punch:{view:true,edit:true,create:false,delete:false,export:true},
+            report:{view:true,edit:false,create:false,delete:false,export:true},
+            settings:{view:true,edit:true,create:true,delete:true,export:false},
+            'moti-booking':{view:true,edit:true,create:true,delete:false,export:false},
+            'leave-manage':{view:true,edit:true,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false},
+            'trial-schedule':{view:true,edit:true,create:true,delete:false,export:false},
+            'trial-feedback':{view:true,edit:true,create:true,delete:false,export:true},
+            'class-record':{view:true,edit:false,create:false,delete:false,export:true},
+            'moti-analyze':{view:true,edit:false,create:false,delete:false,export:true}
+        },
+        staff:{
+            member:{view:true,edit:false,create:false,delete:false,export:false},
+            coach:{view:true,edit:false,create:false,delete:false,export:false},
+            substitute:{view:true,edit:true,create:false,delete:false,export:false},
+            punch:{view:true,edit:true,create:true,delete:false,export:false},
+            'moti-booking':{view:true,edit:true,create:true,delete:false,export:false},
+            'leave-manage':{view:true,edit:true,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false}
+        },
+        viewer:{
+            member:{view:true,edit:false,create:false,delete:false,export:false},
+            coach:{view:true,edit:false,create:false,delete:false,export:false},
+            substitute:{view:true,edit:false,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false}
+        }
+    };
+
+    const TAG_EXTRAS={
+        '行政':{schedule:{view:true},punch:{view:true,edit:true,create:true},'leave-manage':{view:true,edit:true},'moti-booking':{view:true,edit:true,create:true},'personal-schedule':{view:true}},
+        '教練':{substitute:{view:true,edit:true,create:true},'trial-schedule':{view:true,edit:true,create:true},'trial-feedback':{view:true,edit:true,create:true,export:true},'class-record':{view:true,edit:true,create:true,export:true}},
+        '分析師':{'moti-analyze':{view:true,edit:true,create:true,export:true}},
+        '管理':{report:{view:true,export:true},schedule:{view:true,edit:true,create:true},'staff-manage':{view:true,edit:true,export:true}}
+    };
+
+    const FIELD_DEFAULTS={
+        admin:{},
+        staff:{
+            member:{phone:'masked',email:false,medical_history:false,line_uid:false},
+            coach:{phone:'masked',email:false,line_uid:false,line_id_edu:false},
+            'staff-manage':{phone:'masked',email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false}
+        },
+        viewer:{
+            member:{phone:false,email:false,medical_history:false,line_uid:false,birth_date:false,fitness_goal:false},
+            coach:{phone:false,email:false,line_uid:false,line_id_edu:false,birthday:false},
+            'staff-manage':{phone:false,email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false,line_id:false,line_id_edu:false}
+        }
+    };
+
+    const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',viewer:'檢視者'};
+    const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',viewer:'badge-viewer'};
+
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    function initPermissions(){
+        try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
+        if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}
+        if(!currentUser||currentUser.role!=='super_admin'){
+            document.querySelector('.container').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>僅限超級管理員存取</p></div>';
+            return false;
+        }
+        document.getElementById('myName').textContent=currentUser.name;
+        return true;
+    }
+
+    async function loadStaff(){
+        const{data,error}=await sb.from('staff').select('*').order('name');
+        if(error){showToast('❌ 載入失敗');return;}
+        allStaff=data||[];
+        const sel=document.getElementById('staffSelect');
+        sel.innerHTML='<option value="">— 請選擇 —</option>';
+        allStaff.filter(s=>s.permission_level!=='super_admin').forEach(s=>{
+            const role=roleNames[s.permission_level||'staff']||s.permission_level;
+            const status=s.status==='active'?'':'（停用）';
+            sel.innerHTML+='<option value="'+s.id+'">'+(s.nickname||s.name)+' — '+role+status+'</option>';
+        });
+    }
+
+    function switchTab(tab){
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    // ====================================================================
+    //  STAFF SELECTED
+    // ====================================================================
+    function onStaffSelected(){
+        const id=document.getElementById('staffSelect').value;
+        if(!id){
+            document.getElementById('permContent').style.display='none';
+            document.getElementById('noSelection').style.display='block';
+            document.getElementById('saveBar').classList.remove('show');
+            selectedStaff=null;
+            return;
+        }
+
+        selectedStaff=allStaff.find(s=>s.id===id);
+        if(!selectedStaff)return;
+
+        // 顯示人員資訊
+        const role=selectedStaff.permission_level||'staff';
+        const tags=(selectedStaff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+        let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
+        info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
+        tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
+        document.getElementById('selectedInfo').innerHTML=info;
+
+        document.getElementById('noSelection').style.display='none';
+        document.getElementById('permContent').style.display='block';
+
+        renderModulePerms();
+        renderFieldPerms();
+        hasChanges=false;
+        document.getElementById('saveBar').classList.remove('show');
+    }
+
+    // ====================================================================
+    //  計算此人員的有效權限（預設+標籤）
+    // ====================================================================
+    function getEffectiveModulePerms(staff){
+        const role=staff.permission_level||'staff';
+        const merged={};
+        const rd=ROLE_DEFAULTS[role]||{};
+        for(const[m,p]of Object.entries(rd)){merged[m]={...p};}
+        const tags=(staff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+        tags.forEach(tag=>{
+            const ex=TAG_EXTRAS[tag]||{};
+            for(const[m,p]of Object.entries(ex)){
+                if(!merged[m])merged[m]={};
+                for(const[a,v]of Object.entries(p)){if(v===true)merged[m][a]=true;}
+            }
+        });
+        return merged;
+    }
+
+    function getEffectiveFieldPerms(staff){
+        const role=staff.permission_level||'staff';
+        return FIELD_DEFAULTS[role]||{};
+    }
+
+    // ====================================================================
+    //  RENDER MODULE PERMISSIONS
+    // ====================================================================
+    function renderModulePerms(){
+        const tbody=document.getElementById('modulePermBody');
+        tbody.innerHTML='';
+
+        const defaults=getEffectiveModulePerms(selectedStaff);
+        const overrides=((selectedStaff.permissions||{}).modules)||{};
+
+        ALL_MODULES.forEach(mod=>{
+            const dp=defaults[mod.id]||{};
+            const op=overrides[mod.id]||{};
+            const tr=document.createElement('tr');
+
+            let html='<td><span class="mod-icon">'+mod.icon+'</span>'+mod.name+'</td>';
+            ACTIONS.forEach(action=>{
+                const defaultVal=dp[action]===true;
+                const overrideVal=op[action];
+                const checked=(overrideVal!==undefined)?overrideVal:defaultVal;
+                const isOverridden=overrideVal!==undefined;
+                html+='<td><input type="checkbox" data-mod="'+mod.id+'" data-action="'+action+'" '+(checked?'checked':'')+' onchange="onModulePermChange()" '+(isOverridden?'style="outline:2px solid var(--green);"':'')+'></td>';
+            });
+            tr.innerHTML=html;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function onModulePermChange(){
+        hasChanges=true;
+        document.getElementById('saveBar').classList.add('show');
+    }
+
+    // ====================================================================
+    //  RENDER FIELD PERMISSIONS
+    // ====================================================================
+    function renderFieldPerms(){
+        const section=document.getElementById('fieldPermSection');
+        section.innerHTML='';
+
+        const defaults=getEffectiveFieldPerms(selectedStaff);
+        const overrides=((selectedStaff.permissions||{}).fields)||{};
+
+        for(const[modId,modDef]of Object.entries(FIELD_MODULES)){
+            let html='<div class="field-module-title">'+modDef.icon+' '+modDef.name+'</div>';
+            html+='<table class="field-table"><thead><tr><th>欄位</th><th class="status-show">顯示</th><th class="status-mask">遮罩</th><th class="status-hide">隱藏</th></tr></thead><tbody>';
+
+            const dFields=defaults[modId]||{};
+            const oFields=overrides[modId]||{};
+
+            modDef.fields.forEach(field=>{
+                const defaultVal=dFields[field.id]; // true, "masked", false, or undefined(=true)
+                const overrideVal=oFields[field.id];
+                const currentVal=(overrideVal!==undefined)?overrideVal:(defaultVal!==undefined?defaultVal:true);
+
+                const name='field_'+modId+'_'+field.id;
+                const isShow=currentVal===true||currentVal===undefined;
+                const isMask=currentVal==='masked';
+                const isHide=currentVal===false;
+
+                html+='<tr><td>'+field.name+'</td>';
+                html+='<td><input type="radio" name="'+name+'" value="true" '+(isShow?'checked':'')+' onchange="onFieldPermChange()"></td>';
+                html+='<td><input type="radio" name="'+name+'" value="masked" '+(isMask?'checked':'')+' onchange="onFieldPermChange()"></td>';
+                html+='<td><input type="radio" name="'+name+'" value="false" '+(isHide?'checked':'')+' onchange="onFieldPermChange()"></td>';
+                html+='</tr>';
+            });
+
+            html+='</tbody></table>';
+            section.innerHTML+=html;
+        }
+    }
+
+    function onFieldPermChange(){
+        hasChanges=true;
+        document.getElementById('saveBar').classList.add('show');
+    }
+
+    // ====================================================================
+    //  RESET
+    // ====================================================================
+    function resetModulePerms(){
+        if(!selectedStaff)return;
+        if(!confirm('重置為角色預設值？已覆蓋的設定將被清除。'))return;
+        // 清除 DB 中的 modules override
+        const perms=selectedStaff.permissions||{};
+        delete perms.modules;
+        selectedStaff.permissions=perms;
+        renderModulePerms();
+        hasChanges=true;
+        document.getElementById('saveBar').classList.add('show');
+        showToast('已重置模組權限為預設');
+    }
+
+    function resetFieldPerms(){
+        if(!selectedStaff)return;
+        if(!confirm('重置為角色預設值？已覆蓋的設定將被清除。'))return;
+        const perms=selectedStaff.permissions||{};
+        delete perms.fields;
+        selectedStaff.permissions=perms;
+        renderFieldPerms();
+        hasChanges=true;
+        document.getElementById('saveBar').classList.add('show');
+        showToast('已重置欄位權限為預設');
+    }
+
+    // ====================================================================
+    //  SAVE
+    // ====================================================================
+    async function savePermissions(){
+        if(!selectedStaff)return;
+
+        // 收集模組權限
+        const modules={};
+        const defaults=getEffectiveModulePerms(selectedStaff);
+        document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb=>{
+            const mod=cb.dataset.mod;
+            const action=cb.dataset.action;
+            const checked=cb.checked;
+            const defaultVal=(defaults[mod]&&defaults[mod][action]===true)||false;
+
+            // 只存跟預設不同的（覆蓋）
+            if(checked!==defaultVal){
+                if(!modules[mod])modules[mod]={};
+                modules[mod][action]=checked;
+            }
+        });
+
+        // 收集欄位權限
+        const fields={};
+        const fieldDefaults=getEffectiveFieldPerms(selectedStaff);
+
+        for(const[modId,modDef]of Object.entries(FIELD_MODULES)){
+            const dFields=fieldDefaults[modId]||{};
+            modDef.fields.forEach(field=>{
+                const name='field_'+modId+'_'+field.id;
+                const radios=document.querySelectorAll('input[name="'+name+'"]');
+                let val=true;
+                radios.forEach(r=>{if(r.checked){if(r.value==='true')val=true;else if(r.value==='masked')val='masked';else val=false;}});
+
+                const defaultVal=dFields[field.id]!==undefined?dFields[field.id]:true;
+                if(val!==defaultVal){
+                    if(!fields[modId])fields[modId]={};
+                    fields[modId][field.id]=val;
+                }
+            });
+        }
+
+        // 組合 permissions JSON
+        const perms={};
+        if(Object.keys(modules).length>0)perms.modules=modules;
+        if(Object.keys(fields).length>0)perms.fields=fields;
+
+        try{
+            const{error}=await sb.from('staff').update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
+            if(error)throw error;
+
+            selectedStaff.permissions=perms;
+            hasChanges=false;
+            document.getElementById('saveBar').classList.remove('show');
+            showToast('✅ 權限已儲存');
+        }catch(e){
+            console.error('Save error:',e);
+            showToast('❌ 儲存失敗：'+e.message);
+        }
+    }
+
+    function cancelChanges(){
+        if(hasChanges&&!confirm('放棄未儲存的變更？'))return;
+        hasChanges=false;
+        document.getElementById('saveBar').classList.remove('show');
+        if(selectedStaff)onStaffSelected();
+    }
+
+    // ====================================================================
+    //  HELPERS
+    // ====================================================================
+    function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
+    let toastTimer=null;
+    function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+
+    // ====================================================================
+    //  INIT
+    // ====================================================================
+    document.addEventListener('DOMContentLoaded',async()=>{
+        if(initPermissions()){
+            await loadStaff();
+        }
+    });
+    </script>
+</body>
+</html>
