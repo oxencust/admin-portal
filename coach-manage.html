@@ -89,7 +89,7 @@
         .c-actions .btn { flex:1; justify-content:center; }
 
         /* Badges */
-        .badge { display:inline-flex; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
+        .badge { display:inline-flex; padding:3px 10px; border-radius:8px; font-size:12px; font-weight:600; }
         .badge-active { background:#e8f5e9; color:#2e7d32; }
         .badge-inactive { background:#f5f5f5; color:#999; }
         .badge-pilates { background:var(--green-light); color:var(--green-dark); }
@@ -161,7 +161,7 @@
     <div class="coach-list" id="coachList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
 
     <!-- Detail Modal -->
-    <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">教練資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
+    <div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">教練資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
 
     <!-- Edit Modal -->
     <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯教練</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveCoach()">💾 儲存</button></div></div></div>
@@ -287,7 +287,7 @@
             grid+=fc('建立時間',fmtDate(c.created_at));
             grid+=fc('更新時間',fmtDate(c.updated_at));
 
-            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
+            let acts='';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(c.name)+'\')">🗑️</button>';
 
@@ -297,42 +297,6 @@
 
     function fc(label,valueHtml,full){return '<div class="c-field'+(full?' full':'')+'"><div class="c-field-label">'+label+'</div><div class="c-field-value">'+valueHtml+'</div></div>';}
     function toggleCard(id){const c=document.getElementById('ccard-'+id);if(c)c.classList.toggle('expanded');}
-
-    // ====================================================================
-    //  DETAIL
-    // ====================================================================
-    function viewDetail(id){
-        const c=filteredCoaches.find(x=>x.id===id)||allCoaches.find(x=>x.id===id);if(!c)return;
-        document.getElementById('detailTitle').textContent=c.name||'-';
-        let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
-        h+=dd('教練名稱',escHtml(c.name));h+=dd('本名',escHtml(c.real_name||'-'));h+=dd('性別',genderNames[c.gender]||'-');
-        h+=dd('狀態',c.is_active?'✅ 啟用':'❌ 停用');
-        h+=dd('課程類型',(c.specialties||[]).map(s=>specIcons[s]+' '+(specNames[s]||s)).join('、')||'-',true);
-        h+='</div></div>';
-        h+='<div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
-        if(isFieldVisible('phone'))h+=dd('電話',getFieldDisplay('phone',c.phone,'phone'));
-        if(isFieldVisible('email'))h+=dd('信箱',getFieldDisplay('email',c.email,'email'));
-        if(isFieldVisible('birthday'))h+=dd('生日',getFieldDisplay('birthday',c.birthday));
-        if(isFieldVisible('line_uid'))h+=dd('衡點 LINE',getFieldDisplay('line_uid',c.line_uid),true);
-        if(isFieldVisible('line_id_edu'))h+=dd('教務 LINE',getFieldDisplay('line_id_edu',c.line_id_edu),true);
-        h+='</div></div>';
-        if(c.certifications||c.notes||c.permission_level){
-            h+='<div class="detail-section"><div class="detail-section-title">其他資訊</div><div class="detail-grid">';
-            if(c.certifications)h+=dd('證照紀錄',escHtml(c.certifications),true);
-            if(c.notes)h+=dd('備註',escHtml(c.notes),true);
-            if(c.permission_level)h+=dd('權限等級',escHtml(c.permission_level));
-            h+='</div></div>';
-        }
-        h+='<div class="detail-section"><div class="detail-section-title">系統資訊</div><div class="detail-grid">';
-        h+=dd('建立時間',fmtDate(c.created_at));h+=dd('更新時間',fmtDate(c.updated_at));
-        h+='</div></div>';
-        document.getElementById('detailBody').innerHTML=h;
-        let ft='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
-        if(modulePerms.edit)ft+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(c.id)+'\')">✏️ 編輯</button>';
-        document.getElementById('detailFooter').innerHTML=ft;
-        openModal('detailModal');
-    }
-    function dd(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
 
     // ====================================================================
     //  EDIT
