@@ -19,11 +19,11 @@
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
         body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%); background-attachment:fixed; color:var(--text); min-height:100vh; }
 
-        .top-bar { background:var(--card); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
+        .top-bar { background:var(--card); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; max-width:600px; margin:0 auto; }
         .top-bar h1 { font-size:17px; font-weight:700; color:var(--green-dark); display:flex; align-items:center; gap:8px; }
         .staff-name { font-size:12px; color:var(--text-muted); }
 
-        .container { max-width:700px; margin:0 auto; padding:16px; padding-bottom:100px; }
+        .container { max-width:600px; margin:0 auto; padding:16px; padding-bottom:100px; }
 
         /* Tab bar */
         .tab-bar { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -53,6 +53,21 @@
         .perm-table tr:last-child td { border-bottom:none; }
         .perm-table tr:hover { background:#f8faf8; }
         .perm-table input[type="checkbox"] { width:18px; height:18px; accent-color:var(--green); cursor:pointer; }
+
+        /* Sync buttons */
+        .sync-btn { display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; border:1.5px solid var(--border); border-radius:12px; background:white; cursor:pointer; font-family:inherit; transition:all 0.2s; text-align:left; }
+        .sync-btn:hover { border-color:var(--green); background:#f8faf8; }
+        .sync-btn:active { transform:scale(0.98); }
+        .sync-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        .sync-icon { font-size:24px; }
+        .sync-info { flex:1; }
+        .sync-name { font-size:14px; font-weight:600; color:var(--text); }
+        .sync-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+        .sync-arrow { font-size:16px; color:var(--text-muted); }
+        .sync-result-item { padding:8px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
+        .sync-result-item:last-child { border-bottom:none; }
+        .sync-result-item .label { color:var(--text-muted); font-size:11px; }
+        .sync-result-item .value { font-weight:600; }
         .mod-icon { margin-right:4px; }
 
         /* Field permission table */
@@ -114,6 +129,7 @@
     <div class="container">
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>
+            <button class="tab-btn" onclick="switchTab('sync')">🔄 手動同步</button>
         </div>
 
         <!-- 權限管理 -->
@@ -138,7 +154,7 @@
                     <div class="section-desc">控制此人員可以存取哪些模組，以及在模組內的操作權限</div>
                     <table class="perm-table" id="modulePermTable">
                         <thead>
-                            <tr><th>模組</th><th>查看</th><th>編輯</th><th>新增</th><th>刪除</th><th>匯出</th></tr>
+                            <tr><th>模組</th><th>查看</th><th>填寫</th><th>修改</th><th>新增</th><th>刪除</th><th>匯出</th></tr>
                         </thead>
                         <tbody id="modulePermBody"></tbody>
                     </table>
@@ -157,6 +173,58 @@
                     <div class="empty-icon">👆</div>
                     <p>請先選擇一位人員</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- 手動同步 -->
+        <div id="tab-sync" style="display:none;">
+            <div class="hint-box">
+                💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>
+                正常情況下每天凌晨 3:00 會自動同步，這裡是需要即時更新時使用。<br>
+                同步採差異比對，只更新有變動的資料。
+            </div>
+
+            <div class="section">
+                <div class="section-title">🔄 選擇同步目標</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button class="sync-btn" onclick="runManualSync('all')">
+                        <span class="sync-icon">🌐</span>
+                        <div class="sync-info">
+                            <div class="sync-name">全部同步</div>
+                            <div class="sync-desc">學員 + 教練 + 營運人員</div>
+                        </div>
+                        <span class="sync-arrow">→</span>
+                    </button>
+                    <button class="sync-btn" onclick="runManualSync('students')">
+                        <span class="sync-icon">👤</span>
+                        <div class="sync-info">
+                            <div class="sync-name">學員同步</div>
+                            <div class="sync-desc">MySQL → Supabase（約 1000 筆）</div>
+                        </div>
+                        <span class="sync-arrow">→</span>
+                    </button>
+                    <button class="sync-btn" onclick="runManualSync('coaches')">
+                        <span class="sync-icon">👨‍🏫</span>
+                        <div class="sync-info">
+                            <div class="sync-name">教練同步</div>
+                            <div class="sync-desc">Sheet → MySQL → Supabase</div>
+                        </div>
+                        <span class="sync-arrow">→</span>
+                    </button>
+                    <button class="sync-btn" onclick="runManualSync('staff')">
+                        <span class="sync-icon">👥</span>
+                        <div class="sync-info">
+                            <div class="sync-name">營運人員同步</div>
+                            <div class="sync-desc">Sheet → MySQL → Supabase</div>
+                        </div>
+                        <span class="sync-arrow">→</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="section" id="syncResult" style="display:none;">
+                <div class="section-title">📊 同步結果</div>
+                <div id="syncResultBody"></div>
             </div>
         </div>
     </div>
@@ -187,7 +255,7 @@
         {id:'schedule',icon:'🗓️',name:'行政排班'},
         {id:'punch',icon:'⏰',name:'上下班打卡'},
         {id:'report',icon:'📊',name:'報表統計'},
-        {id:'settings',icon:'🔐',name:'系統設定'},
+        {id:'settings',icon:'🔐',name:'權限設定'},
         {id:'moti-booking',icon:'📝',name:'預填Moti'},
         {id:'leave-manage',icon:'🏥',name:'學員請假'},
         {id:'personal-schedule',icon:'📅',name:'個人排班'},
@@ -197,8 +265,8 @@
         {id:'moti-analyze',icon:'🔬',name:'Moti檢測'}
     ];
 
-    const ACTIONS=['view','edit','create','delete','export'];
-    const ACTION_LABELS={view:'查看',edit:'編輯',create:'新增',delete:'刪除',export:'匯出'};
+    const ACTIONS=['view','fill','edit','create','delete','export'];
+    const ACTION_LABELS={view:'查看',fill:'填寫',edit:'修改',create:'新增',delete:'刪除',export:'匯出'};
 
     // 欄位權限定義
     const FIELD_MODULES={
@@ -229,47 +297,53 @@
         ]}
     };
 
-    // 預設權限（同 index.html）
+    // 預設權限（同 index.html）— fill=填空白, edit=改已有資料
     const ROLE_DEFAULTS={
         admin:{
-            member:{view:true,edit:true,create:true,delete:true,export:true},
-            coach:{view:true,edit:true,create:true,delete:true,export:true},
-            'staff-manage':{view:true,edit:true,create:true,delete:false,export:true},
-            substitute:{view:true,edit:true,create:true,delete:true,export:true},
-            schedule:{view:true,edit:true,create:true,delete:false,export:true},
-            punch:{view:true,edit:true,create:false,delete:false,export:true},
-            report:{view:true,edit:false,create:false,delete:false,export:true},
-            settings:{view:true,edit:true,create:true,delete:true,export:false},
-            'moti-booking':{view:true,edit:true,create:true,delete:false,export:false},
-            'leave-manage':{view:true,edit:true,create:false,delete:false,export:false},
-            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false},
-            'trial-schedule':{view:true,edit:true,create:true,delete:false,export:false},
-            'trial-feedback':{view:true,edit:true,create:true,delete:false,export:true},
-            'class-record':{view:true,edit:false,create:false,delete:false,export:true},
-            'moti-analyze':{view:true,edit:false,create:false,delete:false,export:true}
+            member:{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            coach:{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            'staff-manage':{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            substitute:{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            schedule:{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            punch:{view:true,fill:true,edit:true,create:false,delete:false,export:true},
+            report:{view:true,fill:false,edit:false,create:false,delete:false,export:true},
+            settings:{view:true,fill:false,edit:true,create:true,delete:false,export:false},
+            'moti-booking':{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'leave-manage':{view:true,fill:true,edit:true,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false},
+            'trial-schedule':{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'trial-feedback':{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            'class-record':{view:true,fill:false,edit:false,create:false,delete:false,export:true},
+            'moti-analyze':{view:true,fill:false,edit:false,create:false,delete:false,export:true}
+        },
+        coach:{
+            substitute:{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'trial-schedule':{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'trial-feedback':{view:true,fill:true,edit:true,create:true,delete:false,export:true},
+            'class-record':{view:true,fill:true,edit:true,create:true,delete:false,export:true}
         },
         staff:{
-            member:{view:true,edit:false,create:false,delete:false,export:false},
-            coach:{view:true,edit:false,create:false,delete:false,export:false},
-            substitute:{view:true,edit:true,create:false,delete:false,export:false},
-            punch:{view:true,edit:true,create:true,delete:false,export:false},
-            'moti-booking':{view:true,edit:true,create:true,delete:false,export:false},
-            'leave-manage':{view:true,edit:true,create:false,delete:false,export:false},
-            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false}
+            member:{view:true,fill:true,edit:false,create:false,delete:false,export:false},
+            coach:{view:true,fill:false,edit:false,create:false,delete:false,export:false},
+            substitute:{view:true,fill:true,edit:true,create:false,delete:false,export:false},
+            punch:{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'moti-booking':{view:true,fill:true,edit:true,create:true,delete:false,export:false},
+            'leave-manage':{view:true,fill:true,edit:true,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false}
         },
         viewer:{
-            member:{view:true,edit:false,create:false,delete:false,export:false},
-            coach:{view:true,edit:false,create:false,delete:false,export:false},
-            substitute:{view:true,edit:false,create:false,delete:false,export:false},
-            'personal-schedule':{view:true,edit:false,create:false,delete:false,export:false}
+            member:{view:true,fill:false,edit:false,create:false,delete:false,export:false},
+            coach:{view:true,fill:false,edit:false,create:false,delete:false,export:false},
+            substitute:{view:true,fill:false,edit:false,create:false,delete:false,export:false},
+            'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false}
         }
     };
 
     const TAG_EXTRAS={
-        '行政':{schedule:{view:true},punch:{view:true,edit:true,create:true},'leave-manage':{view:true,edit:true},'moti-booking':{view:true,edit:true,create:true},'personal-schedule':{view:true}},
-        '教練':{substitute:{view:true,edit:true,create:true},'trial-schedule':{view:true,edit:true,create:true},'trial-feedback':{view:true,edit:true,create:true,export:true},'class-record':{view:true,edit:true,create:true,export:true}},
-        '分析師':{'moti-analyze':{view:true,edit:true,create:true,export:true}},
-        '管理':{report:{view:true,export:true},schedule:{view:true,edit:true,create:true},'staff-manage':{view:true,edit:true,export:true}}
+        '行政':{schedule:{view:true},punch:{view:true,fill:true,edit:true,create:true},'leave-manage':{view:true,fill:true,edit:true},'moti-booking':{view:true,fill:true,edit:true,create:true},'personal-schedule':{view:true}},
+        '教練':{substitute:{view:true,fill:true,edit:true,create:true},'trial-schedule':{view:true,fill:true,edit:true,create:true},'trial-feedback':{view:true,fill:true,edit:true,create:true,export:true},'class-record':{view:true,fill:true,edit:true,create:true,export:true}},
+        '分析師':{'moti-analyze':{view:true,fill:true,edit:true,create:true,export:true}},
+        '管理':{report:{view:true,export:true},schedule:{view:true,fill:true,edit:true,create:true},'staff-manage':{view:true,fill:true,edit:true,export:true}}
     };
 
     const FIELD_DEFAULTS={
@@ -303,36 +377,17 @@
         return true;
     }
 
-    let allCoaches=[];
-
     async function loadStaff(){
-        const[staffRes,coachRes]=await Promise.all([
-            sb.from('staff').select('*').order('name'),
-            sb.from('coaches').select('*').order('name')
-        ]);
-        if(staffRes.error||coachRes.error){showToast('❌ 載入失敗');return;}
-        allStaff=staffRes.data||[];
-        allCoaches=coachRes.data||[];
-
+        const{data,error}=await sb.from('staff').select('*').order('name');
+        if(error){showToast('❌ 載入失敗');return;}
+        allStaff=data||[];
         const sel=document.getElementById('staffSelect');
         sel.innerHTML='<option value="">— 請選擇 —</option>';
-
-        // 營運人員（排除 super_admin）
-        sel.innerHTML+='<optgroup label="👥 營運人員">';
         allStaff.filter(s=>s.permission_level!=='super_admin').forEach(s=>{
             const role=roleNames[s.permission_level||'staff']||s.permission_level;
             const status=s.status==='active'?'':'（停用）';
-            sel.innerHTML+='<option value="staff:'+s.id+'">'+(s.nickname||s.name)+' — '+role+status+'</option>';
+            sel.innerHTML+='<option value="'+s.id+'">'+(s.nickname||s.name)+' — '+role+status+'</option>';
         });
-        sel.innerHTML+='</optgroup>';
-
-        // 教練
-        sel.innerHTML+='<optgroup label="👨‍🏫 教練">';
-        allCoaches.forEach(c=>{
-            const status=c.is_active!==false?'':'（停用）';
-            sel.innerHTML+='<option value="coach:'+c.id+'">'+escHtml(c.name)+(c.real_name&&c.real_name!==c.name?' ('+escHtml(c.real_name)+')':'')+status+'</option>';
-        });
-        sel.innerHTML+='</optgroup>';
     }
 
     function switchTab(tab){
@@ -343,45 +398,25 @@
     // ====================================================================
     //  STAFF SELECTED
     // ====================================================================
-    const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
-        
-    let selectedType=''; // 'staff' or 'coach'
-
     function onStaffSelected(){
-        const rawVal=document.getElementById('staffSelect').value;
-        if(!rawVal){
+        const id=document.getElementById('staffSelect').value;
+        if(!id){
             document.getElementById('permContent').style.display='none';
             document.getElementById('noSelection').style.display='block';
             document.getElementById('saveBar').classList.remove('show');
             selectedStaff=null;
-            selectedType='';
             return;
         }
 
-        const[type,id]=rawVal.split(':');
-        selectedType=type;
-
-        if(type==='staff'){
-            selectedStaff=allStaff.find(s=>s.id===id);
-        }else{
-            selectedStaff=allCoaches.find(c=>c.id===id);
-        }
+        selectedStaff=allStaff.find(s=>s.id===id);
         if(!selectedStaff)return;
 
         // 顯示人員資訊
-        let info='';
-        if(selectedType==='staff'){
-            const role=selectedStaff.permission_level||'staff';
-            const tags=(selectedStaff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
-            info+='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-            info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
-            tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
-        }else{
-            info+='<span class="badge badge-staff">教練</span>';
-            info+='<span class="badge '+(selectedStaff.is_active!==false?'badge-active':'badge-inactive')+'">'+(selectedStaff.is_active!==false?'啟用':'停用')+'</span>';
-            const specs=Array.isArray(selectedStaff.specialties)?selectedStaff.specialties:(selectedStaff.specialties?[selectedStaff.specialties]:[]);
-            specs.forEach(s=>{info+='<span class="badge type-tag">'+(specNames[s]||s)+'</span>';});
-        }
+        const role=selectedStaff.permission_level||'staff';
+        const tags=(selectedStaff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+        let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
+        info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
+        tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
         document.getElementById('selectedInfo').innerHTML=info;
 
         document.getElementById('noSelection').style.display='none';
@@ -396,21 +431,12 @@
     // ====================================================================
     //  計算此人員的有效權限（預設+標籤）
     // ====================================================================
-    function getEffectiveModulePerms(person){
-        if(selectedType==='coach'){
-            // 教練預設：只開教練相關模組
-            return{
-                substitute:{view:true,edit:true,create:true,delete:false,export:false},
-                'trial-schedule':{view:true,edit:true,create:true,delete:false,export:false},
-                'trial-feedback':{view:true,edit:true,create:true,delete:false,export:true},
-                'class-record':{view:true,edit:true,create:true,delete:false,export:true}
-            };
-        }
-        const role=person.permission_level||'staff';
+    function getEffectiveModulePerms(staff){
+        const role=staff.permission_level||'staff';
         const merged={};
         const rd=ROLE_DEFAULTS[role]||{};
         for(const[m,p]of Object.entries(rd)){merged[m]={...p};}
-        const tags=(person.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
+        const tags=(staff.staff_type||'').split(',').map(t=>t.trim()).filter(Boolean);
         tags.forEach(tag=>{
             const ex=TAG_EXTRAS[tag]||{};
             for(const[m,p]of Object.entries(ex)){
@@ -421,12 +447,8 @@
         return merged;
     }
 
-    function getEffectiveFieldPerms(person){
-        if(selectedType==='coach'){
-            // 教練預設：自己的敏感欄位全開
-            return{};
-        }
-        const role=person.permission_level||'staff';
+    function getEffectiveFieldPerms(staff){
+        const role=staff.permission_level||'staff';
         return FIELD_DEFAULTS[role]||{};
     }
 
@@ -583,9 +605,9 @@
         if(Object.keys(fields).length>0)perms.fields=fields;
 
         try{
-            const table=selectedType==='coach'?'coaches':'staff';
-            const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
+            const{error}=await sb.from('staff').update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
             if(error)throw error;
+
             selectedStaff.permissions=perms;
             hasChanges=false;
             document.getElementById('saveBar').classList.remove('show');
@@ -601,6 +623,65 @@
         hasChanges=false;
         document.getElementById('saveBar').classList.remove('show');
         if(selectedStaff)onStaffSelected();
+    }
+
+    // ====================================================================
+    //  TAB SWITCHING
+    // ====================================================================
+    function switchTab(tab){
+        document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',b.textContent.includes(tab==='permissions'?'權限':'同步')));
+        document.getElementById('tab-permissions').style.display=tab==='permissions'?'':'none';
+        document.getElementById('tab-sync').style.display=tab==='sync'?'':'none';
+    }
+
+    // ====================================================================
+    //  MANUAL SYNC
+    // ====================================================================
+    const GAS_URL='https://script.google.com/macros/s/AKfycbyOGRzAKYnSzOc-c8m0Xdy1MPwK3u8z9cRJYUXEfyoB-ZG908nycOk8moGiip_08Rh6cA/exec';
+
+    async function runManualSync(target){
+        const targetNames={all:'全部',students:'學員',coaches:'教練',staff:'營運人員'};
+        const btns=document.querySelectorAll('.sync-btn');
+        btns.forEach(b=>b.disabled=true);
+
+        showToast('⏳ 正在同步'+targetNames[target]+'...');
+        document.getElementById('syncResult').style.display='none';
+
+        try{
+            const resp=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'manualSync',target:target})});
+            const result=await resp.json();
+
+            if(!result.success){
+                showToast('❌ 同步失敗：'+(result.error||'未知錯誤'));
+                btns.forEach(b=>b.disabled=false);
+                return;
+            }
+
+            // 顯示結果
+            let html='';
+            const r=result.results||{};
+            if(r.students){
+                html+='<div class="sync-result-item">👤 <span class="label">學員</span> <span class="value">更新 '+r.students.updated+' / 新增 '+r.students.inserted+' / 略過 '+r.students.skipped+'</span></div>';
+            }
+            if(r.coaches){
+                html+='<div class="sync-result-item">👨‍🏫 <span class="label">教練</span> <span class="value">更新 '+(r.coaches.updated||0)+' / 新增 '+(r.coaches.inserted||0)+' / 略過 '+(r.coaches.skipped||0)+'</span></div>';
+            }
+            if(r.staff){
+                html+='<div class="sync-result-item">👥 <span class="label">營運</span> <span class="value">'+r.staff+' 筆</span></div>';
+            }
+            if(!html) html='<div class="sync-result-item">✅ 同步完成</div>';
+
+            html+='<div class="sync-result-item" style="color:var(--text-muted);font-size:11px;">⏰ '+new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+'</div>';
+
+            document.getElementById('syncResultBody').innerHTML=html;
+            document.getElementById('syncResult').style.display='';
+            showToast('✅ 同步完成');
+
+        }catch(e){
+            showToast('❌ 同步失敗：'+e.message);
+        }
+
+        btns.forEach(b=>b.disabled=false);
     }
 
     // ====================================================================
