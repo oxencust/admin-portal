@@ -271,6 +271,7 @@
 
             // 展開區格子
             let grid='';
+            grid+=fc('編號',escHtml(c.coach_code||'-'));
             grid+=fc('狀態',statusBadge);
             grid+=fc('本名',escHtml(c.real_name||'-'));
             grid+=fc('性別',genderNames[c.gender]?'<span class="badge gender-'+genderKey(c.gender)+'">'+genderNames[c.gender]+'</span>':'-');
@@ -289,7 +290,7 @@
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(c.name)+'\')">🗑️</button>';
 
-            return '<div class="c-card'+(isActive?'':' inactive')+'" id="ccard-'+sid+'"><div class="c-main" onclick="toggleCard(\''+sid+'\')"><div class="c-avatar '+avatarCls+'">'+escHtml(init)+'<div class="c-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="c-info"><div class="c-name">'+escHtml(c.name)+(c.real_name&&c.real_name!==c.name?' <span class="c-realname">('+escHtml(c.real_name)+')</span>':'')+'</div><div class="c-meta">'+specs.map(s=>'<span>'+specIcons[s]+' '+(specNames[s]||s)+'</span>').join('')+'</div></div><div class="c-right"><span class="c-chevron">▼</span></div></div><div class="c-expand"><div class="c-expand-inner"><div class="c-divider"></div>'+(specBadges?'<div class="c-tags">'+specBadges+' '+statusBadge+'</div>':'')+'<div class="c-grid">'+grid+'</div><div class="c-actions">'+acts+'</div></div></div></div>';
+            return '<div class="c-card'+(isActive?'':' inactive')+'" id="ccard-'+sid+'"><div class="c-main" onclick="toggleCard(\''+sid+'\')"><div class="c-avatar '+avatarCls+'">'+escHtml(init)+'<div class="c-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="c-info"><div class="c-name">'+escHtml(c.name)+(c.real_name&&c.real_name!==c.name?' <span class="c-realname">('+escHtml(c.real_name)+')</span>':'')+'<div class="c-meta">'+(c.coach_code?'<span>'+escHtml(c.coach_code)+'</span>':'')+specs.map(s=>'<span>'+specIcons[s]+' '+(specNames[s]||s)+'</span>').join('')+'</div></div><div class="c-right"><span class="c-chevron">▼</span></div></div><div class="c-expand"><div class="c-expand-inner"><div class="c-divider"></div>'+(specBadges?'<div class="c-tags">'+specBadges+' '+statusBadge+'</div>':'')+'<div class="c-grid">'+grid+'</div><div class="c-actions">'+acts+'</div></div></div></div>';
         }).join('');
     }
 
