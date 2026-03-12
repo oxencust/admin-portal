@@ -174,14 +174,27 @@
             let ph='-';
             if(isFieldVisible('phone')&&s.phone){ph=isMasked('phone')?'<span class="s-phone masked">'+getFieldDisplay('phone',s.phone,'phone')+'</span>':'<span class="s-phone">'+escHtml(s.phone)+'</span>';}
             let grid='';
+            grid+=fc('編號',escHtml(s.id));
             if(gd)grid+=fc('性別','<span class="badge gender-'+gk+'">'+gd+'</span>');
+            if(s.age)grid+=fc('年齡',s.age+'歲');
             grid+=fc('會員等級','<span class="badge '+lc+'">'+ld+'</span>');
             if(isFieldVisible('phone'))grid+=fc('電話','<span'+(isMasked('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('phone',s.phone,'phone')+'</span>');
             if(isFieldVisible('email')&&s.email)grid+=fc('信箱','<span'+(isMasked('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+getFieldDisplay('email',s.email,'email')+'</span>');
+            if(isFieldVisible('birth_date')&&s.birth_date)grid+=fc('出生日期',escHtml(s.birth_date));
+            if(s.occupation)grid+=fc('職業',escHtml(s.occupation));
             if(ed)grid+=fc('初次體驗','<span class="badge '+ec+'">'+ed+'</span>');
             if(s.line_display_name)grid+=fc('LINE名稱',escHtml(s.line_display_name));
+            if(s.pilates_coach)grid+=fc('🧘 皮教練',escHtml(s.pilates_coach));
+            if(s.weight_coach)grid+=fc('💪 重訓教練',escHtml(s.weight_coach));
+            if(s.stretch_course)grid+=fc('🤸 伸展課程',escHtml(s.stretch_course));
+            if(s.related_member)grid+=fc('關係會員',escHtml(s.related_member));
+            if(s.join_year||s.join_month)grid+=fc('加入時間',(s.join_year||'?')+'/'+(s.join_month||'?'));
             if(isFieldVisible('medical_history')&&s.medical_history){const warn=s.medical_history&&s.medical_history!=='無';grid+=fc('疾病史','<span'+(warn?' style="color:var(--pink-dark);"':'')+'>'+getFieldDisplay('medical_history',s.medical_history)+'</span>',true);}
             if(isFieldVisible('fitness_goal')&&s.fitness_goal)grid+=fc('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
+            if(s.booking_record_30d)grid+=fc('30日預約',escHtml(s.booking_record_30d),true);
+            if(s.notes)grid+=fc('備註',escHtml(s.notes),true);
+            if(s.consultation_notes)grid+=fc('諮詢備註',escHtml(s.consultation_notes),true);
+            if(s.ai_report)grid+=fc('AI報告',escHtml(s.ai_report),true);
             if(isFieldVisible('line_uid')&&s.line_uid)grid+=fc('LINE UID','<span style="font-size:11px;word-break:break-all;'+(isMasked('line_uid')?'color:var(--text-muted);font-style:italic;':'')+'">'+getFieldDisplay('line_uid',s.line_uid)+'</span>',true);
             let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
@@ -200,14 +213,38 @@
         document.getElementById('detailTitle').textContent=s.name||'-';
         let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
         h+=df('編號',escHtml(s.id));h+=df('姓名',escHtml(s.name));h+=df('暱稱',escHtml(s.line_display_name||'-'));h+=df('性別',genderNames[s.gender]||'-');
-        if(isFieldVisible('birth_date'))h+=df('生日',getFieldDisplay('birth_date',s.birth_date));
+        if(s.age)h+=df('年齡',s.age+'歲');
+        if(isFieldVisible('birth_date'))h+=df('出生日期',getFieldDisplay('birth_date',s.birth_date));
+        if(s.occupation)h+=df('職業',escHtml(s.occupation));
         h+=df('會員等級',levelNames[s.member_level]||'一般');h+=df('初次體驗',expNames[s.first_experience]||'-');
-        h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
+        if(s.join_year||s.join_month)h+=df('加入時間',(s.join_year||'?')+'年'+(s.join_month||'?')+'月');
+        h+='</div></div>';
+        h+='<div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
         if(isFieldVisible('phone'))h+=df('電話',getFieldDisplay('phone',s.phone,'phone'));
         if(isFieldVisible('email'))h+=df('信箱',getFieldDisplay('email',s.email,'email'));
+        if(s.related_member)h+=df('關係會員',escHtml(s.related_member));
         if(isFieldVisible('line_uid'))h+=df('LINE UID',getFieldDisplay('line_uid',s.line_uid),true);
+        if(s.line_display_name)h+=df('LINE名稱',escHtml(s.line_display_name));
         h+='</div></div>';
-        if(isFieldVisible('medical_history')||isFieldVisible('fitness_goal')){h+='<div class="detail-section"><div class="detail-section-title">健康資訊</div><div class="detail-grid">';if(isFieldVisible('medical_history'))h+=df('疾病史',getFieldDisplay('medical_history',s.medical_history),true);if(isFieldVisible('fitness_goal'))h+=df('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);h+='</div></div>';}
+        h+='<div class="detail-section"><div class="detail-section-title">課程資訊</div><div class="detail-grid">';
+        h+=df('🧘 皮教練',escHtml(s.pilates_coach||'-'));
+        h+=df('💪 重訓教練',escHtml(s.weight_coach||'-'));
+        h+=df('🤸 伸展課程',escHtml(s.stretch_course||'-'));
+        if(s.booking_record_30d)h+=df('30日預約',escHtml(s.booking_record_30d),true);
+        h+='</div></div>';
+        if(isFieldVisible('medical_history')||isFieldVisible('fitness_goal')||s.ai_report){
+            h+='<div class="detail-section"><div class="detail-section-title">健康資訊</div><div class="detail-grid">';
+            if(isFieldVisible('medical_history'))h+=df('疾病史',getFieldDisplay('medical_history',s.medical_history),true);
+            if(isFieldVisible('fitness_goal'))h+=df('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
+            if(s.ai_report)h+=df('AI報告',escHtml(s.ai_report),true);
+            h+='</div></div>';
+        }
+        if(s.notes||s.consultation_notes){
+            h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';
+            if(s.notes)h+=df('備註',escHtml(s.notes),true);
+            if(s.consultation_notes)h+=df('諮詢備註',escHtml(s.consultation_notes),true);
+            h+='</div></div>';
+        }
         h+='<div class="detail-section"><div class="detail-section-title">系統資訊</div><div class="detail-grid">';h+=df('建立時間',fmtDate(s.created_at));h+=df('更新時間',fmtDate(s.updated_at));h+='</div></div>';
         document.getElementById('detailBody').innerHTML=h;
         let ft='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
