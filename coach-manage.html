@@ -76,7 +76,10 @@
 
         .c-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
 
-        .c-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+        .c-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px; }
+.c-field-value { font-size:14px; font-weight:500; margin-top:3px; line-height:1.4; }
+@media(max-width:480px) { .c-grid { grid-template-columns:repeat(2, 1fr); } }
+@media(min-width:769px) { .c-grid { grid-template-columns:repeat(4, 1fr); } }
         .c-field { background:#f8f9fa; border-radius:10px; padding:10px 12px; }
         .c-field.full { grid-column:1/-1; }
         .c-field-label { font-size:10px; color:var(--text-muted); font-weight:600; letter-spacing:0.5px; }
