@@ -222,6 +222,7 @@
 
             // 展開格子
             let grid='';
+            grid+=fc('編號',escHtml(s.id));
             grid+=fc('狀態',isActive?'<span class="badge badge-active">在職</span>':'<span class="badge badge-inactive">停用</span>');
             grid+=fc('權限等級','<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>');
             grid+=fc('暱稱',escHtml(s.nickname||'-'));
@@ -261,7 +262,7 @@
             const tagBadges=tags.map(t=>'<span class="badge type-tag">'+escHtml(t)+'</span>').join(' ');
             const phoneTxt=isVis('phone')&&s.phone?(isMsk('phone')?'<span style="font-size:12px;color:var(--text-muted);font-style:italic;">'+gfd('phone',s.phone,'phone')+'</span>':'<span style="font-size:12px;color:var(--text-secondary);">'+escHtml(s.phone)+'</span>'):'';
 
-            return '<div class="s-card'+(isActive?'':' inactive')+'" id="scard-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+avCls+'">'+escHtml(init)+'<div class="s-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="s-info"><div class="s-name">'+escHtml(s.nickname||s.name)+' <span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span></div><div class="s-meta">'+(s.name!==s.nickname&&s.nickname?'<span>'+escHtml(s.name)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+(tags.length?'<span>'+tags.join(',')+'</span>':'')+'</div></div><div class="s-right">'+phoneTxt+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div>'+(tagBadges?'<div class="s-tags">'+tagBadges+'</div>':'')+'<div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
+            return '<div class="s-card'+(isActive?'':' inactive')+'" id="scard-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+avCls+'">'+escHtml(init)+'<div class="s-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="s-info"><div class="s-name">'+escHtml(s.nickname||s.name)+' <span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span></div><div class="s-meta"><span>'+escHtml(s.id)+'</span>'+(s.name!==s.nickname&&s.nickname?'<span>'+escHtml(s.name)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+(tags.length?'<span>'+tags.join(',')+'</span>':'')+'</div></div><div class="s-right">'+phoneTxt+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div>'+(tagBadges?'<div class="s-tags">'+tagBadges+'</div>':'')+'<div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
         }).join('');
     }
     function fc(l,v,full){return '<div class="s-field'+(full?' full':'')+'"><div class="s-field-label">'+l+'</div><div class="s-field-value">'+v+'</div></div>';}
