@@ -221,7 +221,7 @@
         const s=students.find(x=>x.id===id);if(!s)return;editingStudent=s;
         document.getElementById('editTitle').textContent='編輯：'+s.name;
         const ce=canEditExisting();
-        function ro(v){return(v&&v!=='-'&&!ce)?true:false;}
+        function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
         let h='';
         h+=fg('編號','text','edit_id',s.id,true);
         h+=fg('姓名','text','edit_name',s.name,true);
