@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>衡點健康 Hendia</title>
+    <title>衡點健身 管理後台</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -235,9 +235,9 @@
 <body>
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-logo">
-            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健康">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
         </div>
-        <div class="loading-sub">Hendia</div>
+        <div class="loading-sub">BALANCE POINT</div>
         <div class="loading-spinner"></div>
         <div class="loading-text">系統載入中...</div>
     </div>
@@ -372,7 +372,7 @@
           roles:['super_admin','admin'] },
 
         { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調',
-          url:'https://oxencust.github.io/coach_coordinate/admin.html', color:'pink',
+          url:'https://ginger-shu.github.io/hengdian/admin.html', color:'pink',
           roles:['super_admin','admin','coach','staff'] },
 
         { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定',
@@ -440,67 +440,67 @@
     // 第 1 層：依 permission_level（基本角色）預設
     const ROLE_DEFAULTS = {
         admin: {
-            member: { view:true, edit:true, create:true, delete:false, export:true },
-            coach: { view:true, edit:true, create:true, delete:true, export:true },
-            'staff-manage': { view:true, edit:true, create:true, delete:false, export:true },
-            substitute: { view:true, edit:true, create:true, delete:true, export:true },
-            schedule: { view:true, edit:true, create:true, delete:false, export:true },
-            punch: { view:true, edit:true, create:false, delete:false, export:true },
-            report: { view:true, edit:false, create:false, delete:false, export:true },
-            settings: { view:true, edit:true, create:true, delete:true, export:false },
-            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
-            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false },
-            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
-            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
-            'class-record': { view:true, edit:false, create:false, delete:false, export:true },
-            'moti-analyze': { view:true, edit:false, create:false, delete:false, export:true }
+            member: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            coach: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            'staff-manage': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            substitute: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            schedule: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            punch: { view:true, fill:true, edit:true, create:false, delete:false, export:true },
+            report: { view:true, fill:false, edit:false, create:false, delete:false, export:true },
+            settings: { view:true, fill:false, edit:true, create:true, delete:false, export:false },
+            'moti-booking': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, fill:true, edit:true, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            'trial-schedule': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            'class-record': { view:true, fill:false, edit:false, create:false, delete:false, export:true },
+            'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true }
         },
         coach: {
-            substitute: { view:true, edit:true, create:true, delete:false, export:false },
-            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
-            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
-            'class-record': { view:true, edit:true, create:true, delete:false, export:true }
+            substitute: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'trial-schedule': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            'class-record': { view:true, fill:true, edit:true, create:true, delete:false, export:true }
         },
         staff: {
-            member: { view:true, edit:false, create:false, delete:false, export:false },
-            coach: { view:true, edit:false, create:false, delete:false, export:false },
-            substitute: { view:true, edit:true, create:false, delete:false, export:false },
-            punch: { view:true, edit:true, create:true, delete:false, export:false },
-            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
-            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+            member: { view:true, fill:true, edit:false, create:false, delete:false, export:false },
+            coach: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            substitute: { view:true, fill:true, edit:true, create:false, delete:false, export:false },
+            punch: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'moti-booking': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, fill:true, edit:true, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
         },
         viewer: {
-            member: { view:true, edit:false, create:false, delete:false, export:false },
-            coach: { view:true, edit:false, create:false, delete:false, export:false },
-            substitute: { view:true, edit:false, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+            member: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            coach: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            substitute: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
         }
     };
 
     // 第 2 層：依職能標籤自動加開模組（staff_type 用逗號分隔多標籤）
     const TAG_EXTRAS = {
         '行政': {
-            schedule: { view:true, edit:false, create:false, delete:false, export:false },
-            punch: { view:true, edit:true, create:true, delete:false, export:false },
-            'leave-manage': { view:true, edit:true, create:false, delete:false, export:false },
-            'moti-booking': { view:true, edit:true, create:true, delete:false, export:false },
-            'personal-schedule': { view:true, edit:false, create:false, delete:false, export:false }
+            schedule: { view:true },
+            punch: { view:true, fill:true, edit:true, create:true },
+            'leave-manage': { view:true, fill:true, edit:true },
+            'moti-booking': { view:true, fill:true, edit:true, create:true },
+            'personal-schedule': { view:true }
         },
         '教練': {
-            substitute: { view:true, edit:true, create:true, delete:false, export:false },
-            'trial-schedule': { view:true, edit:true, create:true, delete:false, export:false },
-            'trial-feedback': { view:true, edit:true, create:true, delete:false, export:true },
-            'class-record': { view:true, edit:true, create:true, delete:false, export:true }
+            substitute: { view:true, fill:true, edit:true, create:true },
+            'trial-schedule': { view:true, fill:true, edit:true, create:true },
+            'trial-feedback': { view:true, fill:true, edit:true, create:true, export:true },
+            'class-record': { view:true, fill:true, edit:true, create:true, export:true }
         },
         '分析師': {
-            'moti-analyze': { view:true, edit:true, create:true, delete:false, export:true }
+            'moti-analyze': { view:true, fill:true, edit:true, create:true, export:true }
         },
         '管理': {
-            report: { view:true, edit:false, create:false, delete:false, export:true },
-            schedule: { view:true, edit:true, create:true, delete:false, export:true },
-            'staff-manage': { view:true, edit:true, create:false, delete:false, export:true }
+            report: { view:true, export:true },
+            schedule: { view:true, fill:true, edit:true, create:true },
+            'staff-manage': { view:true, fill:true, edit:true, export:true }
         }
     };
 
