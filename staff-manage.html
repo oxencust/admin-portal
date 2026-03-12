@@ -221,38 +221,36 @@
             let grid='';
             grid+=fc('狀態',isActive?'<span class="badge badge-active">在職</span>':'<span class="badge badge-inactive">停用</span>');
             grid+=fc('權限等級','<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>');
-            if(s.nickname)grid+=fc('暱稱',escHtml(s.nickname));
-            if(genderNames[s.gender])grid+=fc('性別','<span class="badge gender-'+genderKey(s.gender)+'">'+genderNames[s.gender]+'</span>');
-            if(s.department)grid+=fc('部門',escHtml(s.department));
-            if(s.role)grid+=fc('角色',escHtml(s.role));
+            grid+=fc('暱稱',escHtml(s.nickname||'-'));
+            grid+=fc('性別',genderNames[s.gender]?'<span class="badge gender-'+genderKey(s.gender)+'">'+genderNames[s.gender]+'</span>':'-');
+            grid+=fc('部門',escHtml(s.department||'-'));
+            grid+=fc('角色',escHtml(s.role||'-'));
 
-            // 聯絡方式
-            let hasContact=false;
-            let contactGrid='';
-            if(isVis('phone')&&s.phone){contactGrid+=fc('電話','<span'+(isMsk('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+gfd('phone',s.phone,'phone')+'</span>');hasContact=true;}
-            if(isVis('email')&&s.email){contactGrid+=fc('信箱','<span'+(isMsk('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+gfd('email',s.email,'email')+'</span>');hasContact=true;}
-            if(isVis('birthday')&&s.birthday){contactGrid+=fc('生日',gfd('birthday',s.birthday));hasContact=true;}
-            if(isVis('address')&&s.address){contactGrid+=fc('地址',gfd('address',s.address),true);hasContact=true;}
+            grid+='<div class="s-section-label">聯絡方式</div>';
+            if(isVis('phone'))grid+=fc('電話','<span'+(isMsk('phone')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+gfd('phone',s.phone,'phone')+'</span>');
+            if(isVis('email'))grid+=fc('信箱','<span'+(isMsk('email')?' style="color:var(--text-muted);font-style:italic;"':'')+'>'+gfd('email',s.email,'email')+'</span>');
+            if(isVis('birthday'))grid+=fc('生日',gfd('birthday',s.birthday));
+            if(isVis('address'))grid+=fc('地址',gfd('address',s.address),true);
 
-            // 緊急聯絡
-            let hasEmergency=false;
-            let emergencyGrid='';
-            if(isVis('emergency_contact')&&s.emergency_contact){emergencyGrid+=fc('緊急聯絡人',gfd('emergency_contact',s.emergency_contact));hasEmergency=true;}
-            if(isVis('emergency_phone')&&s.emergency_phone){emergencyGrid+=fc('聯絡電話',gfd('emergency_phone',s.emergency_phone,'phone'));hasEmergency=true;}
-            if(s.emergency_relation){emergencyGrid+=fc('關係',escHtml(s.emergency_relation));hasEmergency=true;}
+            grid+='<div class="s-section-label">緊急聯絡</div>';
+            if(isVis('emergency_contact'))grid+=fc('緊急聯絡人',gfd('emergency_contact',s.emergency_contact));
+            if(isVis('emergency_phone'))grid+=fc('聯絡電話',gfd('emergency_phone',s.emergency_phone,'phone'));
+            grid+=fc('關係',escHtml(s.emergency_relation||'-'));
 
-            // 任職資訊
-            let jobGrid='';
-            if(s.hire_date)jobGrid+=fc('到職日',escHtml(s.hire_date));
-            if(s.leave_date)jobGrid+=fc('離職日',escHtml(s.leave_date));
+            grid+='<div class="s-section-label">任職資訊</div>';
+            grid+=fc('到職日',escHtml(s.hire_date||'-'));
+            grid+=fc('離職日',escHtml(s.leave_date||'-'));
 
-            // LINE
-            let lineGrid='';
-            if(isVis('line_id')&&s.line_id)lineGrid+=fc('衡點LINE','<span style="font-size:11px;word-break:break-all;">'+gfd('line_id',s.line_id)+'</span>',true);
-            if(isVis('line_id_edu')&&s.line_id_edu)lineGrid+=fc('教務LINE','<span style="font-size:11px;word-break:break-all;">'+gfd('line_id_edu',s.line_id_edu)+'</span>',true);
+            grid+='<div class="s-section-label">LINE 帳號</div>';
+            if(isVis('line_id'))grid+=fc('衡點LINE','<span style="font-size:11px;word-break:break-all;">'+gfd('line_id',s.line_id)+'</span>',true);
+            if(isVis('line_id_edu'))grid+=fc('教務LINE','<span style="font-size:11px;word-break:break-all;">'+gfd('line_id_edu',s.line_id_edu)+'</span>',true);
 
-            if(s.availability)grid+=fc('備註',escHtml(s.availability),true);
+            grid+='<div class="s-section-label">其他</div>';
+            grid+=fc('備註',escHtml(s.availability||'-'),true);
+            grid+=fc('建立時間',fmtDate(s.created_at));
+            grid+=fc('更新時間',fmtDate(s.updated_at));
 
+            let hasContact=true,contactGrid='',hasEmergency=true,emergencyGrid='',jobGrid='',lineGrid='';
             let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStaff(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete&&s.id!==currentUser?.id)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">⛔</button>';
@@ -260,7 +258,7 @@
             const tagBadges=tags.map(t=>'<span class="badge type-tag">'+escHtml(t)+'</span>').join(' ');
             const phoneTxt=isVis('phone')&&s.phone?(isMsk('phone')?'<span style="font-size:12px;color:var(--text-muted);font-style:italic;">'+gfd('phone',s.phone,'phone')+'</span>':'<span style="font-size:12px;color:var(--text-secondary);">'+escHtml(s.phone)+'</span>'):'';
 
-            return '<div class="s-card'+(isActive?'':' inactive')+'" id="scard-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+avCls+'">'+escHtml(init)+'<div class="s-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="s-info"><div class="s-name">'+escHtml(s.nickname||s.name)+' <span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span></div><div class="s-meta">'+(s.name!==s.nickname&&s.nickname?'<span>'+escHtml(s.name)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+(tags.length?'<span>'+tags.join(',')+'</span>':'')+'</div></div><div class="s-right">'+phoneTxt+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div>'+(tagBadges?'<div class="s-tags">'+tagBadges+'</div>':'')+'<div class="s-grid">'+grid+(hasContact?'<div class="s-section-label">聯絡方式</div>'+contactGrid:'')+(hasEmergency?'<div class="s-section-label">緊急聯絡</div>'+emergencyGrid:'')+(jobGrid?'<div class="s-section-label">任職資訊</div>'+jobGrid:'')+(lineGrid?'<div class="s-section-label">LINE 帳號</div>'+lineGrid:'')+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
+            return '<div class="s-card'+(isActive?'':' inactive')+'" id="scard-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+avCls+'">'+escHtml(init)+'<div class="s-status-dot '+(isActive?'active':'inactive')+'"></div></div><div class="s-info"><div class="s-name">'+escHtml(s.nickname||s.name)+' <span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span></div><div class="s-meta">'+(s.name!==s.nickname&&s.nickname?'<span>'+escHtml(s.name)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+(tags.length?'<span>'+tags.join(',')+'</span>':'')+'</div></div><div class="s-right">'+phoneTxt+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div>'+(tagBadges?'<div class="s-tags">'+tagBadges+'</div>':'')+'<div class="s-grid">'+grid+'</div>
         }).join('');
     }
     function fc(l,v,full){return '<div class="s-field'+(full?' full':'')+'"><div class="s-field-label">'+l+'</div><div class="s-field-value">'+v+'</div></div>';}
