@@ -62,7 +62,7 @@
         .s-field-value { font-size:13px; font-weight:500; margin-top:3px; line-height:1.4; }
         .s-actions { display:flex; gap:8px; }
         .s-actions .btn { flex:1; justify-content:center; }
-        .badge { display:inline-flex; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
+        .badge { display:inline-flex; padding:3px 10px; border-radius:8px; font-size:12px; font-weight:600; }
         .level-normal{background:#f0f0f0;color:#666;} .level-silver{background:#e0e0e0;color:#424242;} .level-gold{background:#fff8e1;color:#f57c00;} .level-diamond{background:#e3f2fd;color:#1565c0;} .level-vip{background:#fce4ec;color:#c2185b;}
         .gender-m{background:var(--blue-light);color:var(--blue-dark);} .gender-f{background:var(--pink-light);color:var(--pink-dark);}
         .exp-pilates{background:var(--green-light);color:var(--green-dark);} .exp-weight{background:var(--pink-light);color:var(--pink-dark);} .exp-stretch{background:var(--blue-light);color:var(--blue-dark);} .exp-ai{background:var(--yellow-light);color:#856404;}
@@ -121,7 +121,7 @@
     <div class="action-bar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、編號、電話..." oninput="handleSearch()"><button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button></div>
     <div class="student-list" id="studentList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
     <div class="pagination" id="pagination" style="display:none;"><select class="page-select" id="pageSizeSelect" onchange="changePageSize()"><option value="20">20筆</option><option value="50" selected>50筆</option><option value="100">100筆</option></select><button class="btn btn-secondary btn-sm" id="prevBtn" onclick="goPage(-1)">←</button><span class="page-info" id="pageInfo">1/1</span><button class="btn btn-secondary btn-sm" id="nextBtn" onclick="goPage(1)">→</button></div>
-    <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">學員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
+    <div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">學員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
     <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯學員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStudent()">💾 儲存</button></div></div></div>
     <div class="delete-modal" id="deleteModal"><div class="delete-card"><div class="delete-icon">⚠️</div><div class="delete-title">確認刪除學員</div><div class="delete-desc">即將刪除 <span class="delete-name" id="deleteStudentName">-</span><br>此操作<strong>無法復原</strong>。<br><br>請輸入學員姓名以確認：</div><input type="text" class="delete-confirm-input" id="deleteConfirmInput" placeholder="請輸入學員姓名..." oninput="checkDeleteConfirm()"><div class="delete-actions"><button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button><button class="btn delete-btn-confirm" id="deleteConfirmBtn" onclick="confirmDelete()">🗑️ 確認刪除</button></div></div></div>
     <div class="toast" id="toast"></div>
@@ -190,7 +190,7 @@
             if(isFieldVisible('fitness_goal'))grid+=fc('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);
             if(isFieldVisible('line_uid'))grid+=fc('LINE UID','<span style="font-size:11px;word-break:break-all;'+(isMasked('line_uid')?'color:var(--text-muted);font-style:italic;':'')+'">'+getFieldDisplay('line_uid',s.line_uid)+'</span>',true);
             grid+=fc('建立時間',fmtDate(s.created_at));
-            grid+=fc('更新時間',fmtDate(s.updated_at));            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
+            grid+=fc('更新時間',fmtDate(s.updated_at));            let acts='';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">🗑️</button>';
             return '<div class="s-card" id="card-'+sid+'"><div class="s-main" onclick="toggleCard(\''+sid+'\')"><div class="s-avatar '+gk+'">'+escHtml(init)+'</div><div class="s-info"><div class="s-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="s-meta"><span>'+escHtml(s.id)+'</span>'+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div><div class="s-right">'+ph+'<span class="s-chevron">▼</span></div></div><div class="s-expand"><div class="s-expand-inner"><div class="s-divider"></div><div class="s-grid">'+grid+'</div><div class="s-actions">'+acts+'</div></div></div></div>';
@@ -202,27 +202,6 @@
     function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;loadStudents();},300);}
     function goPage(d){const tp=Math.ceil(totalCount/pageSize)||1;const np=currentPage+d;if(np<1||np>tp)return;currentPage=np;loadStudents();window.scrollTo(0,0);}
     function changePageSize(){pageSize=parseInt(document.getElementById('pageSizeSelect').value)||50;currentPage=1;loadStudents();}
-
-    function viewDetail(id){
-        const s=students.find(x=>x.id===id);if(!s)return;
-        document.getElementById('detailTitle').textContent=s.name||'-';
-        let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
-        h+=df('編號',escHtml(s.id));h+=df('姓名',escHtml(s.name));h+=df('暱稱',escHtml(s.line_display_name||'-'));h+=df('性別',genderNames[s.gender]||'-');
-        if(isFieldVisible('birth_date'))h+=df('生日',getFieldDisplay('birth_date',s.birth_date));
-        h+=df('會員等級',levelNames[s.member_level]||'一般');h+=df('初次體驗',expNames[s.first_experience]||'-');
-        h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
-        if(isFieldVisible('phone'))h+=df('電話',getFieldDisplay('phone',s.phone,'phone'));
-        if(isFieldVisible('email'))h+=df('信箱',getFieldDisplay('email',s.email,'email'));
-        if(isFieldVisible('line_uid'))h+=df('LINE UID',getFieldDisplay('line_uid',s.line_uid),true);
-        h+='</div></div>';
-        if(isFieldVisible('medical_history')||isFieldVisible('fitness_goal')){h+='<div class="detail-section"><div class="detail-section-title">健康資訊</div><div class="detail-grid">';if(isFieldVisible('medical_history'))h+=df('疾病史',getFieldDisplay('medical_history',s.medical_history),true);if(isFieldVisible('fitness_goal'))h+=df('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);h+='</div></div>';}
-        h+='<div class="detail-section"><div class="detail-section-title">系統資訊</div><div class="detail-grid">';h+=df('建立時間',fmtDate(s.created_at));h+=df('更新時間',fmtDate(s.updated_at));h+='</div></div>';
-        document.getElementById('detailBody').innerHTML=h;
-        let ft='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
-        if(modulePerms.edit)ft+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStudent(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
-        document.getElementById('detailFooter').innerHTML=ft;openModal('detailModal');
-    }
-    function df(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
 
     function editStudent(id){
         if(!modulePerms.edit){showToast('您沒有編輯權限');return;}
