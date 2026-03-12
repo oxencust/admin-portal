@@ -161,9 +161,6 @@
     <div class="action-bar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋教練姓名、本名..." oninput="handleSearch()"><button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button></div>
     <div class="coach-list" id="coachList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
 
-    <!-- Detail Modal -->
-    <div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">教練資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
-
     <!-- Edit Modal -->
     <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯教練</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveCoach()">💾 儲存</button></div></div></div>
 
