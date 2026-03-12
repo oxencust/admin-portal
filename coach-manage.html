@@ -45,16 +45,16 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .a-avatar.m{background:linear-gradient(135deg,var(--blue-light),#bbdefb);color:var(--blue-dark);}
 .a-avatar.f{background:linear-gradient(135deg,var(--pink-light),#f8bbd0);color:var(--pink-dark);}
 .a-info{flex:1;min-width:0;}
-.a-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.a-meta{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.a-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.a-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
 .a-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
-.a-tag{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;}
-.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
-.a-field{display:flex;gap:4px;align-items:baseline;}.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:11px;}.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.a-tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-field{display:flex;gap:4px;align-items:baseline;}.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:12px;}.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .a-field.full{grid-column:1/-1;}
 .a-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
 .a-card.expanded .a-expand{display:block;}
-.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
+.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
 .a-actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;}
 .a-toggle{text-align:center;margin-top:6px;font-size:10px;color:var(--green);font-weight:600;}
 .a-card.expanded .a-toggle{display:none;}
@@ -106,8 +106,9 @@ let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoa
 const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
 const specIcons={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'};
 const specClass={pilates:'badge-pilates',weight:'badge-weight',stretch:'badge-stretch',ai:'badge-ai'};
-const genderNames={'male':'男','female':'女','other':'其他'};
+const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
 const genderKey=g=>(g==='female'||g==='女')?'f':'m';
+const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
@@ -223,7 +224,7 @@ function editCoach(id){
     h+=fg('教練編號','text','e_code',co.coach_code||co.id,true);
     h+=fg('教練名稱','text','e_name',co.name,true);
     h+=fg('本名','text','e_rname',co.real_name,ro(co.real_name));
-    h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],co.gender||'',ro(co.gender));
+    h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(co.gender),ro(co.gender));
     if(isFull('phone'))h+=fg('電話','tel','e_phone',co.phone,ro(co.phone));
     if(isFull('email'))h+=fg('信箱','email','e_email',co.email,ro(co.email));
     if(isFull('birthday'))h+=fg('生日','date','e_bday',co.birthday,ro(co.birthday));
@@ -240,7 +241,7 @@ function editCoach(id){
 async function saveCoach(){
     if(!editingCoach)return;const co=editingCoach;const u={};
     const rn=val('e_rname');if(rn!==(co.real_name||''))u.real_name=rn;
-    const gv=val('e_gender');if(gv!==(co.gender||''))u.gender=gv;
+    const gv=val('e_gender');if(gv!==genderNorm(co.gender))u.gender=gv;
     const av=val('e_active');if(av!==String(co.is_active!==false))u.is_active=av==='true';
     const cv=val('e_cert');if(cv!==(co.certifications||''))u.certifications=cv;
     const nv=val('e_notes');if(nv!==(co.notes||''))u.notes=nv;
