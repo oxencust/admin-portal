@@ -116,6 +116,8 @@ function initPermissions(){
     else{modulePerms=(currentUser.permissions&&currentUser.permissions['member'])||{view:false};}
     if(currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['member'])||{};}
     try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('member');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('member');}catch(e){}
+    // 向下相容：如果 fill 未定義，從 edit 繼承
+    if(modulePerms.fill===undefined)modulePerms.fill=modulePerms.edit||false;
     if(modulePerms.create)document.getElementById('addBtn').style.display='flex';
     if(!modulePerms.view){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';return false;}
     return true;
