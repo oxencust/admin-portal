@@ -74,7 +74,7 @@
         .s-section-label { font-size:10px; font-weight:700; color:var(--text-muted); letter-spacing:1px; margin:12px 0 8px; padding-bottom:4px; border-bottom:1.5px solid var(--green-light); grid-column:1/-1; }
         .s-actions { display:flex; gap:8px; }
         .s-actions .btn { flex:1; justify-content:center; }
-        .badge { display:inline-flex; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
+        .badge { display:inline-flex; padding:3px 10px; border-radius:8px; font-size:12px; font-weight:600; }
         .badge-active { background:#e8f5e9; color:#2e7d32; }
         .badge-inactive { background:#f5f5f5; color:#999; }
         .badge-super { background:linear-gradient(135deg,#667eea,#764ba2); color:white; }
@@ -137,7 +137,7 @@
     <div class="filter-bar" id="filterBar"></div>
     <div class="action-bar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、暱稱、部門..." oninput="handleSearch()"><button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button></div>
     <div class="staff-list" id="staffList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
-    <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">人員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
+    <div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">人員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
     <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯人員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStaff()">💾 儲存</button></div></div></div>
     <div class="delete-modal" id="deleteModal"><div class="delete-card"><div class="delete-icon">⚠️</div><div class="delete-title">確認停用人員</div><div class="delete-desc">即將停用 <span class="delete-name" id="deleteName">-</span><br>停用後該人員將<strong>無法登入系統</strong>。<br><br>請輸入人員姓名以確認：</div><input type="text" class="delete-confirm-input" id="deleteConfirmInput" placeholder="請輸入姓名..." oninput="checkDeleteConfirm()"><div class="delete-actions"><button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button><button class="btn delete-btn-confirm" id="deleteConfirmBtn" onclick="confirmDelete()">⛔ 確認停用</button></div></div></div>
     <div class="toast" id="toast"></div>
@@ -255,7 +255,7 @@
             grid+=fc('更新時間',fmtDate(s.updated_at));
 
             let hasContact=true,contactGrid='',hasEmergency=true,emergencyGrid='',jobGrid='',lineGrid='';
-            let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 完整資料</button>';
+            let acts='';
             if(modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStaff(\''+sid+'\')">✏️ 編輯</button>';
             if(modulePerms.delete&&s.id!==currentUser?.id)acts+='<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();openDeleteModal(\''+sid+'\',\''+escAttr(s.name)+'\')">⛔</button>';
 
@@ -267,49 +267,6 @@
     }
     function fc(l,v,full){return '<div class="s-field'+(full?' full':'')+'"><div class="s-field-label">'+l+'</div><div class="s-field-value">'+v+'</div></div>';}
     function toggleCard(id){const c=document.getElementById('scard-'+id);if(c)c.classList.toggle('expanded');}
-
-    function viewDetail(id){
-        const s=allStaff.find(x=>x.id===id);if(!s)return;
-        document.getElementById('detailTitle').textContent=s.nickname||s.name||'-';
-        const role=s.permission_level||'staff';
-        let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
-        h+=dd('姓名',escHtml(s.name));if(s.nickname)h+=dd('暱稱',escHtml(s.nickname));
-        h+=dd('人員類型',escHtml(s.staff_type||'-'));h+=dd('性別',genderNames[s.gender]||'-');
-        h+=dd('部門',escHtml(s.department||'-'));h+=dd('角色',escHtml(s.role||'-'));
-        h+=dd('權限等級',(roleNames[role]||role));h+=dd('狀態',s.status==='active'?'✅ 在職':'❌ 停用');
-        h+='</div></div>';
-        h+='<div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
-        if(isVis('phone'))h+=dd('電話',gfd('phone',s.phone,'phone'));
-        if(isVis('email'))h+=dd('信箱',gfd('email',s.email,'email'));
-        if(isVis('birthday'))h+=dd('生日',gfd('birthday',s.birthday));
-        if(isVis('address'))h+=dd('地址',gfd('address',s.address),true);
-        h+='</div></div>';
-        if(isVis('emergency_contact')||isVis('emergency_phone')){
-            h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡</div><div class="detail-grid">';
-            if(isVis('emergency_contact'))h+=dd('聯絡人',gfd('emergency_contact',s.emergency_contact));
-            if(isVis('emergency_phone'))h+=dd('電話',gfd('emergency_phone',s.emergency_phone,'phone'));
-            if(s.emergency_relation)h+=dd('關係',escHtml(s.emergency_relation));
-            h+='</div></div>';
-        }
-        h+='<div class="detail-section"><div class="detail-section-title">任職資訊</div><div class="detail-grid">';
-        h+=dd('到職日',escHtml(s.hire_date||'-'));h+=dd('離職日',escHtml(s.leave_date||'-'));
-        h+='</div></div>';
-        if(isVis('line_id')||isVis('line_id_edu')){
-            h+='<div class="detail-section"><div class="detail-section-title">LINE 帳號</div><div class="detail-grid">';
-            if(isVis('line_id'))h+=dd('衡點LINE',gfd('line_id',s.line_id),true);
-            if(isVis('line_id_edu'))h+=dd('教務LINE',gfd('line_id_edu',s.line_id_edu),true);
-            h+='</div></div>';
-        }
-        if(s.availability){h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';h+=dd('',escHtml(s.availability),true);h+='</div></div>';}
-        h+='<div class="detail-section"><div class="detail-section-title">系統資訊</div><div class="detail-grid">';
-        h+=dd('建立時間',fmtDate(s.created_at));h+=dd('更新時間',fmtDate(s.updated_at));
-        h+='</div></div>';
-        document.getElementById('detailBody').innerHTML=h;
-        let ft='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\')">關閉</button>';
-        if(modulePerms.edit)ft+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
-        document.getElementById('detailFooter').innerHTML=ft;openModal('detailModal');
-    }
-    function dd(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
 
     function editStaff(id){
         if(!modulePerms.edit){showToast('您沒有編輯權限');return;}
