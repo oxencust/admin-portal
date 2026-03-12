@@ -38,18 +38,18 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .a-avatar.m{background:linear-gradient(135deg,var(--blue-light),#bbdefb);color:var(--blue-dark);}
 .a-avatar.f{background:linear-gradient(135deg,var(--pink-light),#f8bbd0);color:var(--pink-dark);}
 .a-info{flex:1;min-width:0;}
-.a-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.a-meta{font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.a-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.a-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
 .a-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
-.a-tag{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;}
-.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
+.a-tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
 .a-field{display:flex;gap:4px;align-items:baseline;}
-.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:11px;}
+.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:12px;}
 .a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .a-field.full{grid-column:1/-1;}
 .a-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
 .a-card.expanded .a-expand{display:block;}
-.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
+.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
 .a-actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;}
 .a-toggle{text-align:center;margin-top:6px;font-size:10px;color:var(--green);font-weight:600;}
 .a-card.expanded .a-toggle{display:none;}
@@ -102,6 +102,7 @@ let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
 const genderKey=g=>(g==='female'||g==='女')?'f':'m';
+const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
 const levelNames={'normal':'一般','silver':'銀卡','gold':'金卡','diamond':'鑽石','vip':'VIP'};
 const levelClass={'normal':'level-normal','silver':'level-silver','gold':'level-gold','diamond':'level-diamond','vip':'level-vip'};
 const expNames={'pilates':'皮拉提斯','weight':'重量訓練','stretch':'伸展課程','ai':'AI 體態分析'};
@@ -230,7 +231,7 @@ function editStudent(id){
     let h='';
     h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name,true);
     h+=fg('暱稱','text','edit_nickname',s.line_display_name,ro(s.line_display_name));
-    h+=fsel('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],s.gender,ro(s.gender));
+    h+=fsel('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
     if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',s.phone,ro(s.phone));
     if(isFieldFull('email'))h+=fg('信箱','email','edit_email',s.email,ro(s.email));
     if(isFieldFull('birth_date'))h+=fg('生日','date','edit_birth',s.birth_date,ro(s.birth_date));
@@ -245,7 +246,7 @@ async function saveStudent(){
     if(!editingStudent)return;
     const u={};
     const nn=val('edit_nickname');if(nn!==escAttr(editingStudent.line_display_name||''))u.line_display_name=nn;
-    const gv=val('edit_gender');if(gv!==(editingStudent.gender||''))u.gender=gv;
+    const gv=val('edit_gender');if(gv!==genderNorm(editingStudent.gender))u.gender=gv;
     const lv=val('edit_level');if(lv!==(editingStudent.member_level||'normal'))u.member_level=lv;
     const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==(editingStudent.phone||''))u.phone=pv;}
     const ee=document.getElementById('edit_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(editingStudent.email||''))u.email=ev;}
