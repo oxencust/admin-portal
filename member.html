@@ -97,7 +97,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbyfhm3DkNFvRHVMoOukjScaPwxjI8srxw5SsgWnbO-jybOmUaJudCVREJp2onXx0UzRJg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbzmBngEXKfWYpqRJjuKyEllPaeUVndDkYpvMsLWrJxttKZm9Jmp892KazMT2iPLV0qIbQ/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
