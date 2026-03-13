@@ -371,9 +371,13 @@
           url:'staff-manage.html', color:'green',
           roles:['super_admin','admin'] },
 
-        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、聊天協調',
+        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、管理協調',
           url:'https://oxencust.github.io/coach_coordinate/admin.html', color:'pink',
-          roles:['super_admin','admin','coach','staff'] },
+          roles:['super_admin','admin','staff'] },
+
+        { id:'substitute-coach', icon:'💬', name:'代課協調', desc:'代課回應、聊天協調',
+          url:'https://oxencust.github.io/coach_coordinate/coach.html', color:'pink',
+          roles:['coach'] },
 
         { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定',
           url:'https://oxencust.github.io/staff-schedule/', color:'yellow',
@@ -457,7 +461,7 @@
             'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true }
         },
         coach: {
-            substitute: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'substitute-coach': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'trial-schedule': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             'class-record': { view:true, fill:true, edit:true, create:true, delete:false, export:true }
@@ -489,7 +493,7 @@
             'personal-schedule': { view:true }
         },
         '教練': {
-            substitute: { view:true, fill:true, edit:true, create:true },
+            'substitute-coach': { view:true, fill:true, edit:true, create:true },
             'trial-schedule': { view:true, fill:true, edit:true, create:true },
             'trial-feedback': { view:true, fill:true, edit:true, create:true, export:true },
             'class-record': { view:true, fill:true, edit:true, create:true, export:true }
@@ -907,10 +911,10 @@
     let currentModuleUrl = '';
 
     // 教練專屬模組列表
-    const COACH_MODULES = ['trial-schedule', 'trial-feedback', 'class-record', 'substitute'];
+    const COACH_MODULES = ['trial-schedule', 'trial-feedback', 'class-record', 'substitute', 'substitute-coach'];
 
     // 外部模組：需要自己做 LIFF 登入，用新分頁開啟（不載入 iframe）
-    const EXTERNAL_MODULES = ['substitute', 'trial-schedule', 'trial-feedback', 'class-record', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
+    const EXTERNAL_MODULES = ['substitute', 'substitute-coach', 'trial-schedule', 'trial-feedback', 'class-record', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
 
     function navigateToModule(mod) {
         if (isEditMode) return;
