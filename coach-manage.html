@@ -26,6 +26,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .filter-bar::-webkit-scrollbar{display:none;}
 .filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
 .filter-chip.active{background:var(--green);color:white;border-color:var(--green);}
+.filter-chip.status-chip.active[onclick*="archived"]{background:#999;border-color:#999;}
 .filter-chip .cnt{background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;}
 .filter-chip.active .cnt{background:rgba(255,255,255,0.3);}
 .action-bar{max-width:600px;margin:8px auto 0;padding:0 12px;display:flex;gap:8px;align-items:center;}
@@ -77,9 +78,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--green);}
 .form-textarea{min-height:70px;resize:vertical;}
 .checkbox-row{display:flex;gap:10px;flex-wrap:wrap;}.checkbox-item{display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;}
-.detail-section{margin-bottom:16px;}.detail-section-title{font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
+.detail-section{margin-bottom:16px;}.detail-section-title{font-size:12px;font-weight:700;color:var(--green-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.detail-field{font-size:13px;}.detail-field.full{grid-column:1/-1;}
-.detail-field-label{font-size:12px;color:var(--text-muted);margin-bottom:1px;}.detail-field-value{font-size:15px;font-weight:500;}
+.detail-field-label{font-size:10px;color:var(--text-muted);margin-bottom:1px;}.detail-field-value{font-weight:500;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
 @media(min-width:769px){.modal-bg{align-items:center;}.modal-panel{border-radius:20px;max-height:85vh;}.modal-footer{position:sticky;bottom:0;}}
@@ -102,7 +103,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const GAS_URL='https://script.google.com/macros/s/AKfycbzmBngEXKfWYpqRJjuKyEllPaeUVndDkYpvMsLWrJxttKZm9Jmp892KazMT2iPLV0qIbQ/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
-let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoach=null,currentFilter='all';
+let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoach=null,currentFilter='all',statusFilter='active';
 const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
 const specIcons={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'};
 const specClass={pilates:'badge-pilates',weight:'badge-weight',stretch:'badge-stretch',ai:'badge-ai'};
@@ -140,22 +141,32 @@ async function loadCoaches(){
 }
 function renderStats(){
     const active=allCoaches.filter(c=>c.is_active!==false).length;
+    const inactive=allCoaches.length-active;
     const specs={};allCoaches.forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
     document.getElementById('quickStats').innerHTML=
         '<div class="qs"><div class="qs-num">'+active+'</div><div class="qs-label">啟用</div></div>'+
         '<div class="qs"><div class="qs-num">'+(specs.pilates||0)+'</div><div class="qs-label">🧘 皮拉提斯</div></div>'+
         '<div class="qs"><div class="qs-num">'+(specs.weight||0)+'</div><div class="qs-label">💪 重訓</div></div>'+
-        '<div class="qs"><div class="qs-num">'+(specs.stretch||0)+'</div><div class="qs-label">🤸 伸展</div></div>';
+        '<div class="qs"><div class="qs-num">'+(specs.stretch||0)+'</div><div class="qs-label">🤸 伸展</div></div>'+
+        (inactive>0?'<div class="qs"><div class="qs-num" style="color:#999;">'+inactive+'</div><div class="qs-label">📦 封存</div></div>':'');
 }
 function renderFilters(){
-    const specs={};allCoaches.forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
-    let h='<span class="filter-chip active" onclick="setFilter(\'all\',this)">全部<span class="cnt">'+allCoaches.length+'</span></span>';
-    Object.keys(specNames).forEach(s=>{if(specs[s])h+='<span class="filter-chip" onclick="setFilter(\''+s+'\',this)">'+specIcons[s]+' '+specNames[s]+'<span class="cnt">'+specs[s]+'</span></span>';});
+    const activeCount=allCoaches.filter(c=>c.is_active!==false).length;
+    const inactiveCount=allCoaches.length-activeCount;
+    const specs={};allCoaches.filter(c=>statusFilter==='active'?c.is_active!==false:c.is_active===false).forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
+    let h='<span class="filter-chip status-chip'+(statusFilter==='active'?' active':'')+'" onclick="setStatusFilter(\'active\',this)">✅ 啟用中<span class="cnt">'+activeCount+'</span></span>';
+    h+='<span class="filter-chip status-chip'+(statusFilter==='archived'?' active':'')+'" style="'+(statusFilter==='archived'?'background:#999;border-color:#999;':'border-color:#bbb;color:#999;')+'" onclick="setStatusFilter(\'archived\',this)">📦 封存<span class="cnt">'+inactiveCount+'</span></span>';
+    h+='<span style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px;"></span>';
+    h+='<span class="filter-chip'+(currentFilter==='all'?' active':'')+'" onclick="setFilter(\'all\',this)">全部</span>';
+    Object.keys(specNames).forEach(s=>{if(specs[s])h+='<span class="filter-chip'+(currentFilter===s?' active':'')+'" onclick="setFilter(\''+s+'\',this)">'+specIcons[s]+' '+specNames[s]+'<span class="cnt">'+specs[s]+'</span></span>';});
     document.getElementById('filterBar').innerHTML=h;
 }
-function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');applyFilter();}
+function setStatusFilter(f,el){statusFilter=f;currentFilter='all';renderFilters();applyFilter();}
+function setFilter(f,el){currentFilter=f;renderFilters();applyFilter();}
 function applyFilter(){
     filteredCoaches=allCoaches.filter(c=>{
+        if(statusFilter==='active'&&c.is_active===false)return false;
+        if(statusFilter==='archived'&&c.is_active!==false)return false;
         if(currentFilter!=='all'&&!(c.specialties||[]).includes(currentFilter))return false;
         if(searchTerm&&!((c.name||'').includes(searchTerm)||(c.real_name||'').includes(searchTerm)||(c.coach_code||'').includes(searchTerm)))return false;
         return true;
@@ -166,8 +177,15 @@ function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeo
 
 function renderCoaches(){
     const c=document.getElementById('coachList');
-    if(filteredCoaches.length===0){c.innerHTML='<div class="empty-state"><div class="empty-icon">👨‍🏫</div><p>找不到教練</p></div>';return;}
-    c.innerHTML=filteredCoaches.map(co=>{
+    if(filteredCoaches.length===0){
+        const emptyMsg=statusFilter==='archived'?'沒有已封存的教練':'找不到啟用中的教練';
+        const emptyIcon=statusFilter==='archived'?'📦':'👨‍🏫';
+        c.innerHTML='<div class="empty-state"><div class="empty-icon">'+emptyIcon+'</div><p>'+emptyMsg+'</p></div>';
+    } else {
+        c.innerHTML=filteredCoaches.map(co=>renderCoachCard(co)).join('');
+    }
+}
+function renderCoachCard(co){
         const init=(co.name||'?')[0],gk=genderKey(co.gender),isActive=co.is_active!==false,sid=escAttr(co.id),specs=(co.specialties||[]);
         let tags='';specs.forEach(s=>{tags+='<span class="a-tag '+(specClass[s]||'')+'">'+specIcons[s]+' '+(specNames[s]||s)+'</span>';});
         tags+='<span class="a-tag '+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'啟用':'停用')+'</span>';
@@ -181,12 +199,14 @@ function renderCoaches(){
         if(isVis('birthday')&&co.birthday)exp+=af('生日',escHtml(co.birthday));
         if(co.certifications)exp+=aff('證照',escHtml(co.certifications));
         if(co.notes)exp+=aff('備註',escHtml(co.notes));
+        if(co.emergency_contact)exp+=af('緊急聯絡人',escHtml(co.emergency_contact));
+        if(co.emergency_phone)exp+=af('緊急電話',escHtml(co.emergency_phone));
+        if(co.emergency_relation)exp+=af('與聯絡人關係',escHtml(co.emergency_relation));
         if(isVis('line_uid')&&co.line_uid)exp+=aff('衡點LINE','<span style="font-size:10px;">'+getFD('line_uid',co.line_uid)+'</span>');
         if(isVis('line_id_edu')&&co.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',co.line_id_edu)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
         if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
         return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(co.name)+(co.real_name&&co.real_name!==co.name?' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(co.real_name)+')</span>':'')+'</div><div class="a-meta"><span>'+(co.coach_code||co.id.substring(0,8))+'</span>'+specs.map(s=>'<span>'+(specNames[s]||s)+'</span>').join('')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
-    }).join('');
 }
 function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'</span><span class="a-field-value">'+v+'</span></div>';}
 function aff(l,v){return '<div class="a-field full"><span class="a-field-label">'+l+'</span><span class="a-field-value" style="white-space:normal;">'+v+'</span></div>';}
@@ -207,6 +227,7 @@ function viewDetail(id){
     if(isVis('line_uid'))h+=ddf('衡點LINE',getFD('line_uid',co.line_uid),true);
     if(isVis('line_id_edu'))h+=ddf('教務LINE',getFD('line_id_edu',co.line_id_edu),true);
     h+='</div></div>';
+    if(co.emergency_contact||co.emergency_phone){h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡人</div><div class="detail-grid">';h+=ddf('聯絡人',escHtml(co.emergency_contact||'-'));h+=ddf('電話',escHtml(co.emergency_phone||'-'));h+=ddf('關係',escHtml(co.emergency_relation||'-'));h+='</div></div>';}
     if(co.certifications||co.notes){h+='<div class="detail-section"><div class="detail-section-title">其他</div><div class="detail-grid">';if(co.certifications)h+=ddf('證照紀錄',escHtml(co.certifications),true);if(co.notes)h+=ddf('備註',escHtml(co.notes),true);h+='</div></div>';}
     h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(co.created_at));h+=ddf('更新',fmtDate(co.updated_at));h+='</div></div>';
     document.getElementById('detailBody').innerHTML=h;
@@ -228,8 +249,11 @@ function editCoach(id){
     if(isFull('phone'))h+=fg('電話','tel','e_phone',co.phone,ro(co.phone));
     if(isFull('email'))h+=fg('信箱','email','e_email',co.email,ro(co.email));
     if(isFull('birthday'))h+=fg('生日','date','e_bday',co.birthday,ro(co.birthday));
-    if(isFull('line_uid'))h+=fg('衡點LINE','text','e_luid',co.line_uid,true);
-    if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',co.line_id_edu,true);
+    if(isFull('line_uid'))h+=fg('衡點LINE','text','e_luid',co.line_uid,false);
+    if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',co.line_id_edu,false);
+    h+=fg('緊急聯絡人','text','e_ec',co.emergency_contact||'',ro(co.emergency_contact));
+    h+=fg('緊急電話','tel','e_ep',co.emergency_phone||'',ro(co.emergency_phone));
+    h+=fg('與緊急聯絡人關係','text','e_er',co.emergency_relation||'',ro(co.emergency_relation));
     h+='<div class="form-group"><label class="form-label">課程類型</label><div class="checkbox-row">';
     ['pilates','weight','stretch','ai'].forEach(s=>{h+='<label class="checkbox-item"><input type="checkbox" id="e_spec_'+s+'" '+((co.specialties||[]).includes(s)?'checked':'')+'>'+specIcons[s]+' '+specNames[s]+'</label>';});
     h+='</div></div>';
@@ -250,11 +274,16 @@ async function saveCoach(){
     const pe=document.getElementById('e_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==(co.phone||''))u.phone=pv;}
     const ee=document.getElementById('e_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(co.email||''))u.email=ev;}
     const be=document.getElementById('e_bday');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(co.birthday||''))u.birthday=bv||null;}
+    const le=document.getElementById('e_luid');if(le&&!le.readOnly){const lv=le.value.trim();if(lv!==(co.line_uid||''))u.line_uid=lv;}
+    const lde=document.getElementById('e_ledu');if(lde&&!lde.readOnly){const ldv=lde.value.trim();if(ldv!==(co.line_id_edu||''))u.line_id_edu=ldv;}
+    const ece=document.getElementById('e_ec');if(ece&&!ece.readOnly){const ecv=ece.value.trim();if(ecv!==(co.emergency_contact||''))u.emergency_contact=ecv;}
+    const epe=document.getElementById('e_ep');if(epe&&!epe.readOnly){const epv=epe.value.trim();if(epv!==(co.emergency_phone||''))u.emergency_phone=epv;}
+    const ere=document.getElementById('e_er');if(ere&&!ere.readOnly){const erv=ere.value.trim();if(erv!==(co.emergency_relation||''))u.emergency_relation=erv;}
     if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
-    try{showToast('⏳ 儲存中...');const gf=Object.assign({},u);gf.name=co.name;gf.line_uid=co.line_uid||'';const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateCoach',fields:gf})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
+    try{showToast('⏳ 儲存中...');const gf=Object.assign({},u);gf.name=co.name;if(!u.line_uid)gf.line_uid=co.line_uid||'';const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateCoach',fields:gf})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
     try{u.updated_at=new Date().toISOString();const{error}=await sb.from('coaches').update(u).eq('id',co.id);if(error)throw error;showToast('✅ 已更新');closeModal('editModal');editingCoach=null;await loadCoaches();}catch(e){showToast('⚠️ Sheet/MySQL已更新但Supabase失敗');}
 }
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingCoach=null;document.getElementById('editTitle').textContent='新增教練';let h='';h+=fg('教練名稱 *','text','e_name','');h+=fg('本名','text','e_rname','');h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+='<div class="form-group"><label class="form-label">課程類型</label><div class="checkbox-row">';['pilates','weight','stretch','ai'].forEach(s=>{h+='<label class="checkbox-item"><input type="checkbox" id="e_spec_'+s+'">'+specIcons[s]+' '+specNames[s]+'</label>';});h+='</div></div>';h+=fsel('狀態','e_active',[['true','啟用'],['false','停用']],'true');h+=fta('證照紀錄','e_cert','');h+=fta('備註','e_notes','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingCoach=null;document.getElementById('editTitle').textContent='新增教練';let h='';h+=fg('教練名稱 *','text','e_name','');h+=fg('本名','text','e_rname','');h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('與緊急聯絡人關係','text','e_er','');h+='<div class="form-group"><label class="form-label">課程類型</label><div class="checkbox-row">';['pilates','weight','stretch','ai'].forEach(s=>{h+='<label class="checkbox-item"><input type="checkbox" id="e_spec_'+s+'">'+specIcons[s]+' '+specNames[s]+'</label>';});h+='</div></div>';h+=fsel('狀態','e_active',[['true','啟用'],['false','停用']],'true');h+=fta('證照紀錄','e_cert','');h+=fta('備註','e_notes','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
@@ -266,7 +295,7 @@ function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.
 function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
 let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
-document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show');});});
+document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadCoaches();});
 </script>
 </body>
