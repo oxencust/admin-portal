@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>衡點健康 Hendia</title>
+    <title>衡點健身 管理後台</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -235,9 +235,9 @@
 <body>
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-logo">
-            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健康">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
         </div>
-        <div class="loading-sub">Hendia</div>
+        <div class="loading-sub">BALANCE POINT</div>
         <div class="loading-spinner"></div>
         <div class="loading-text">系統載入中...</div>
     </div>
@@ -909,6 +909,9 @@
     // 教練專屬模組列表
     const COACH_MODULES = ['trial-schedule', 'trial-feedback', 'class-record', 'substitute'];
 
+    // 外部模組：需要自己做 LIFF 登入，用新分頁開啟（不載入 iframe）
+    const EXTERNAL_MODULES = ['substitute', 'trial-schedule', 'trial-feedback', 'class-record', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
+
     function navigateToModule(mod) {
         if (isEditMode) return;
 
@@ -951,6 +954,13 @@
             fullUrl = `${base}${mod.url}?${params}`;
         }
 
+        // 外部模組 → 新分頁（自己做 LIFF 登入驗證身分）
+        if (EXTERNAL_MODULES.includes(mod.id)) {
+            window.open(fullUrl, '_blank');
+            return;
+        }
+
+        // 內部模組 → iframe
         currentModuleUrl = fullUrl;
         document.getElementById('moduleIcon').textContent = mod.icon;
         document.getElementById('moduleTitle').textContent = mod.name;
@@ -982,7 +992,7 @@
 
     window.addEventListener('popstate', () => { if(document.getElementById('modulePage').style.display==='flex') backToHome(); });
     const _origNav = navigateToModule;
-    navigateToModule = function(mod) { history.pushState({module:mod.id},'',`#${mod.id}`); _origNav(mod); };
+    navigateToModule = function(mod) { if(!EXTERNAL_MODULES.includes(mod.id)) history.pushState({module:mod.id},'',`#${mod.id}`); _origNav(mod); };
 
     // ====================================================================
     //  DEVELOPING MODAL
