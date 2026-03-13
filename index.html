@@ -127,6 +127,15 @@
         .module-grid.edit-mode .module-card:nth-child(even) { animation-delay: 0.15s; }
         @keyframes wiggle { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
         .module-grid.edit-mode .module-card::after { content: '⠿'; position: absolute; top: 6px; left: 6px; font-size: 14px; color: rgba(0,0,0,0.2); pointer-events: none; }
+        .module-grid.edit-mode .module-card .hide-btn { display: flex; }
+        .hide-btn { display: none; position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: #e05252; color: white; border: 2px solid white; font-size: 12px; font-weight: 700; cursor: pointer; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2); line-height: 1; }
+        .hidden-section { margin-top: 16px; display: none; }
+        .hidden-section.show { display: block; }
+        .hidden-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+        .hidden-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+        .hidden-chip { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.5); border: 1.5px dashed #ccc; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
+        .hidden-chip:hover { border-color: var(--green); background: rgba(255,255,255,0.8); }
+        .hidden-chip .plus { color: var(--green); font-weight: 700; }
 
         .module-card:nth-child(1) { animation: fadeInUp 0.35s ease 0.12s both; }
         .module-card:nth-child(2) { animation: fadeInUp 0.35s ease 0.17s both; }
@@ -279,9 +288,13 @@
         <div class="main">
             <div class="section-header" style="margin-top: 6px;">
                 <div class="section-title">功能模組</div>
-                <button class="section-edit-btn" id="editModuleBtn" onclick="toggleEditMode()">編輯排序</button>
+                <button class="section-edit-btn" id="editModuleBtn" onclick="toggleEditMode()">編輯</button>
             </div>
             <div class="module-grid" id="moduleGrid"></div>
+            <div class="hidden-section" id="hiddenSection">
+                <div class="hidden-title">已隱藏的模組（點擊加回）</div>
+                <div class="hidden-grid" id="hiddenGrid"></div>
+            </div>
 
             <div class="section-header">
                 <div class="section-title">快捷工具</div>
@@ -752,7 +765,8 @@
     function renderModules() {
         const grid = document.getElementById('moduleGrid');
         grid.innerHTML = '';
-        const ordered = getOrderedModules();
+        const hidden = loadHiddenModules();
+        const ordered = getOrderedModules().filter(m => !hidden.includes(m.id));
 
         ordered.forEach(mod => {
             const card = document.createElement('a');
@@ -767,7 +781,8 @@
             };
 
             const badgeHtml = mod.developing ? '<div class="module-dev-tag">開發中</div>' : '';
-            card.innerHTML = `${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
+            const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
+            card.innerHTML = `${hideBtn}${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
             grid.appendChild(card);
         });
 
@@ -800,20 +815,57 @@
     // ====================================================================
     let dragState = null;
 
+    function loadHiddenModules() { try { const s=localStorage.getItem(getStorageKey('hidden_modules')); return s?JSON.parse(s):[]; } catch{return[];} }
+    function saveHiddenModules(ids) { localStorage.setItem(getStorageKey('hidden_modules'), JSON.stringify(ids)); }
+
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const btn = document.getElementById('editModuleBtn');
         const grid = document.getElementById('moduleGrid');
+        const hiddenSec = document.getElementById('hiddenSection');
         if (isEditMode) {
-            btn.textContent = '完成'; btn.classList.add('active');
+            btn.textContent = '✅ 完成'; btn.classList.add('active');
             grid.classList.add('edit-mode'); initDragAndDrop();
-            showToast('🔀 拖動模組可調整順序');
+            renderHiddenModules();
+            showToast('🔀 拖動排序 / ✕ 隱藏模組');
         } else {
-            btn.textContent = '編輯排序'; btn.classList.remove('active');
+            btn.textContent = '編輯'; btn.classList.remove('active');
             grid.classList.remove('edit-mode'); cleanupDrag();
+            hiddenSec.classList.remove('show');
             const order = Array.from(grid.querySelectorAll('.module-card')).map(c => c.dataset.id);
-            saveModuleOrder(order); showToast('✅ 排序已儲存');
+            saveModuleOrder(order); showToast('✅ 已儲存');
         }
+    }
+
+    function hideModule(modId) {
+        if (!confirm('隱藏此模組？可在編輯模式中加回。')) return;
+        const hidden = loadHiddenModules();
+        if (!hidden.includes(modId)) hidden.push(modId);
+        saveHiddenModules(hidden);
+        renderModules();
+        renderHiddenModules();
+        showToast('已隱藏');
+    }
+
+    function unhideModule(modId) {
+        const hidden = loadHiddenModules().filter(id => id !== modId);
+        saveHiddenModules(hidden);
+        renderModules();
+        renderHiddenModules();
+        showToast('已加回');
+    }
+
+    function renderHiddenModules() {
+        const hidden = loadHiddenModules();
+        const sec = document.getElementById('hiddenSection');
+        const grid = document.getElementById('hiddenGrid');
+        const visible = MODULES.filter(m => hasModuleAccess(m));
+        const hiddenMods = visible.filter(m => hidden.includes(m.id));
+        if (hiddenMods.length === 0) { sec.classList.remove('show'); return; }
+        sec.classList.add('show');
+        grid.innerHTML = hiddenMods.map(m =>
+            '<div class="hidden-chip" onclick="unhideModule(\''+m.id+'\')"><span class="plus">+</span>'+m.icon+' '+m.name+'</div>'
+        ).join('');
     }
 
     function initDragAndDrop() {
