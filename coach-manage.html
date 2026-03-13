@@ -101,7 +101,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbwFzTLDPcY1dTBKlLOHV2Ug7uM098v8wHIq0N1Vf2FSs7kRJoQBlxMRLeXjEG135emTZw/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwQeAQYgMVvCTWdDDst3QhuoFTBeTmnwSYMwzrTgVaPkyG-5wQSo0nWIHLk8k6Kx4DaoA/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoach=null,currentFilter='all',statusFilter='active';
 const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
@@ -205,6 +205,7 @@ function renderCoachCard(co){
         if(co.emergency_relation)exp+=af('與聯絡人關係',escHtml(co.emergency_relation));
         if(isVis('line_uid')&&co.line_uid)exp+=aff('衡點LINE','<span style="font-size:10px;">'+getFD('line_uid',co.line_uid)+'</span>');
         if(isVis('line_id_edu')&&co.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',co.line_id_edu)+'</span>');
+        if(co.line_group_id)exp+=aff('教務群組ID','<span style="font-size:10px;">'+escHtml(co.line_group_id)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
         if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
         return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(co.name)+(co.real_name&&co.real_name!==co.name?' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(co.real_name)+')</span>':'')+'</div><div class="a-meta"><span>'+(co.coach_code||co.id.substring(0,8))+'</span>'+specs.map(s=>'<span>'+(specNames[s]||s)+'</span>').join('')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
@@ -227,6 +228,7 @@ function viewDetail(id){
     if(isVis('email'))h+=ddf('信箱',getFD('email',co.email));
     if(isVis('line_uid'))h+=ddf('衡點LINE',getFD('line_uid',co.line_uid),true);
     if(isVis('line_id_edu'))h+=ddf('教務LINE',getFD('line_id_edu',co.line_id_edu),true);
+    h+=ddf('教務群組ID',escHtml(co.line_group_id||'-'),true);
     h+='</div></div>';
     if(co.emergency_contact||co.emergency_phone){h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡人</div><div class="detail-grid">';h+=ddf('聯絡人',escHtml(co.emergency_contact||'-'));h+=ddf('電話',escHtml(co.emergency_phone||'-'));h+=ddf('關係',escHtml(co.emergency_relation||'-'));h+='</div></div>';}
     if(co.certifications||co.notes){h+='<div class="detail-section"><div class="detail-section-title">其他</div><div class="detail-grid">';if(co.certifications)h+=ddf('證照紀錄',escHtml(co.certifications),true);if(co.notes)h+=ddf('備註',escHtml(co.notes),true);h+='</div></div>';}
@@ -252,6 +254,7 @@ function editCoach(id){
     if(isFull('birthday'))h+=fg('生日','date','e_bday',co.birthday,ro(co.birthday));
     if(isFull('line_uid'))h+=fg('衡點LINE','text','e_luid',co.line_uid,false);
     if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',co.line_id_edu,false);
+    h+=fg('教務群組ID','text','e_lgid',co.line_group_id||'',false);
     h+=fg('緊急聯絡人','text','e_ec',co.emergency_contact||'',ro(co.emergency_contact));
     h+=fg('緊急電話','tel','e_ep',formatPhone(co.emergency_phone||''),ro(co.emergency_phone));
     h+=fg('與緊急聯絡人關係','text','e_er',co.emergency_relation||'',ro(co.emergency_relation));
@@ -277,6 +280,7 @@ async function saveCoach(){
     const be=document.getElementById('e_bday');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(co.birthday||''))u.birthday=bv||null;}
     const le=document.getElementById('e_luid');if(le&&!le.readOnly){const lv=le.value.trim();if(lv!==(co.line_uid||''))u.line_uid=lv;}
     const lde=document.getElementById('e_ledu');if(lde&&!lde.readOnly){const ldv=lde.value.trim();if(ldv!==(co.line_id_edu||''))u.line_id_edu=ldv;}
+    const lge=document.getElementById('e_lgid');if(lge&&!lge.readOnly){const lgv=lge.value.trim();if(lgv!==(co.line_group_id||''))u.line_group_id=lgv;}
     const ece=document.getElementById('e_ec');if(ece&&!ece.readOnly){const ecv=ece.value.trim();if(ecv!==(co.emergency_contact||''))u.emergency_contact=ecv;}
     const epe=document.getElementById('e_ep');if(epe&&!epe.readOnly){const epv=epe.value.trim();if(epv!==formatPhone(co.emergency_phone||''))u.emergency_phone=epv;}
     const ere=document.getElementById('e_er');if(ere&&!ere.readOnly){const erv=ere.value.trim();if(erv!==(co.emergency_relation||''))u.emergency_relation=erv;}
