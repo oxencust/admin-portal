@@ -80,6 +80,54 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
 @media(min-width:769px){.modal-bg{align-items:center;}.modal-panel{border-radius:20px;max-height:85vh;}.modal-footer{position:sticky;bottom:0;}}
+/* MOTI/InBody 按鈕 */
+.record-btns{display:flex;gap:8px;margin:10px 0 6px;flex-wrap:wrap;}
+.record-btn{flex:1;min-width:0;padding:10px 8px;border:1.5px solid var(--border);border-radius:10px;background:white;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;}
+.record-btn:active{transform:scale(0.97);}
+.record-btn.moti{border-color:#A78BCA;color:#7B5EA7;}.record-btn.moti:hover{background:#F3E8FF;}
+.record-btn.inbody{border-color:#5DCAA5;color:#0F6E56;}.record-btn.inbody:hover{background:#E1F5EE;}
+.record-btn .r-icon{font-size:16px;flex-shrink:0;}
+.record-btn .r-info{flex:1;min-width:0;text-align:left;}
+.record-btn .r-label{font-weight:600;font-size:12px;}
+.record-btn .r-hint{font-size:10px;color:var(--text-muted);margin-top:1px;}
+.record-btn .r-arrow{color:var(--text-muted);font-size:11px;flex-shrink:0;}
+/* 紀錄 Modal */
+.record-timeline{display:flex;flex-direction:column;gap:10px;}
+.record-item{background:#f8faf8;border-radius:12px;padding:14px;border-left:4px solid #A78BCA;cursor:pointer;transition:all 0.2s;}
+.record-item:active{transform:scale(0.99);}
+.record-item.inbody-item{border-left-color:#5DCAA5;}
+.record-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.record-item-date{font-size:14px;font-weight:600;}
+.record-item-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(167,139,202,0.15);color:#7B5EA7;}
+.record-item.inbody-item .record-item-badge{background:rgba(93,202,165,0.15);color:#0F6E56;}
+.record-item-summary{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+.record-item-images{display:flex;gap:6px;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.record-item-images img{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;cursor:pointer;}
+/* 紀錄詳情 */
+.record-detail{padding:0;}
+.rd-section{margin-bottom:16px;}
+.rd-section-title{font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.rd-field{font-size:12px;}.rd-field.full{grid-column:1/-1;}
+.rd-field-label{color:var(--text-muted);font-size:10px;}.rd-field-value{font-weight:500;margin-top:1px;}
+.rd-risk{display:flex;gap:6px;margin-bottom:4px;}
+.rd-risk-tag{padding:4px 10px;border-radius:8px;font-size:12px;font-weight:500;}
+.rd-risk-tag:nth-child(1){background:#fce8e2;color:#c67566;}
+.rd-risk-tag:nth-child(2){background:#fcf4e3;color:#ba9e60;}
+.rd-risk-tag:nth-child(3){background:#e4f2f2;color:#6ba3a3;}
+.rd-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+.rd-gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;}
+.rd-gallery img:active{opacity:0.7;}
+/* InBody 數據卡 */
+.inbody-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.ib-card{background:white;border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border);}
+.ib-card-value{font-size:18px;font-weight:700;color:#0F6E56;}
+.ib-card-label{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.ib-card-unit{font-size:10px;color:var(--text-muted);}
+/* 圖片燈箱 */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;display:none;align-items:center;justify-content:center;cursor:pointer;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:95%;max-height:90vh;object-fit:contain;border-radius:8px;}
 </style>
 </head>
 <body>
@@ -92,12 +140,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="pagination" id="pagination" style="display:none;"><select class="page-select" id="pageSizeSelect" onchange="changePageSize()"><option value="20">20筆</option><option value="50" selected>50筆</option><option value="100">100筆</option></select><button class="btn btn-secondary btn-sm" id="prevBtn" onclick="goPage(-1)">←</button><span class="page-info" id="pageInfo">1/1</span><button class="btn btn-secondary btn-sm" id="nextBtn" onclick="goPage(1)">→</button></div>
 <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">學員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
 <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯學員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStudent()">💾 儲存</button></div></div></div>
+<div class="modal-bg" id="recordModal"><div class="modal-panel"><div class="modal-head"><h2 id="recordTitle">檢測紀錄</h2><button class="modal-close" onclick="closeModal('recordModal')">✕</button></div><div class="modal-body" id="recordBody"><div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div></div><div class="modal-footer" id="recordFooter"></div></div></div>
+<div class="modal-bg" id="recordDetailModal"><div class="modal-panel"><div class="modal-head"><h2 id="recordDetailTitle">紀錄詳情</h2><button class="modal-close" onclick="closeModal('recordDetailModal')">✕</button></div><div class="modal-body" id="recordDetailBody"></div><div class="modal-footer"></div></div></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 <script>
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbwQeAQYgMVvCTWdDDst3QhuoFTBeTmnwSYMwzrTgVaPkyG-5wQSo0nWIHLk8k6Kx4DaoA/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbxBhtPBEcV_gBautvKcxAK_kk2GdDUrV8lGbP5x_UrDknIOxV9YPnJz7Ky3o5EElwhFMg/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
@@ -123,7 +174,8 @@ function initPermissions(){
     if(!modulePerms.view){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';return false;}
     return true;
 }
-function getFieldDisplay(f,v,mt){const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));if(mt==='email'){const a=s.indexOf('@');return a>2?escHtml(s.substring(0,2)+'***'+s.substring(a)):'***';}return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
+function formatPhone(v){if(!v)return'';var s=String(v).trim();if(s.startsWith('+886'))s='0'+s.substring(4);if(s.startsWith('886')&&s.length>=11)s='0'+s.substring(3);return s;}
+function getFieldDisplay(f,v,mt){if(mt==='phone')v=formatPhone(v);const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));if(mt==='email'){const a=s.indexOf('@');return a>2?escHtml(s.substring(0,2)+'***'+s.substring(a)):'***';}return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
 function isFieldVisible(f){const p=fieldPerms[f];return p===undefined||p===true||p==='masked';}
 function isFieldFull(f){const p=fieldPerms[f];return p===undefined||p===true;}
 function isMasked(f){return fieldPerms[f]==='masked';}
@@ -185,7 +237,11 @@ function renderStudents(){
         if(isFieldVisible('line_uid')&&s.line_uid)exp+=aff('LINE UID','<span style="font-size:10px;word-break:break-all;">'+getFieldDisplay('line_uid',s.line_uid)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
         if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStudent(\''+sid+'\')">✏️ 編輯</button>';
-        return '<div class="a-card" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(s.age?'<span>'+s.age+'歲</span>':'')+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div></div>'+(tags?'<div class="a-tags">'+tags+'</div>':'')+'<div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
+        let recBtns='<div class="record-btns">'+
+            '<button class="record-btn moti" onclick="event.stopPropagation();openMotiHistory(\''+sid+'\',\''+escAttr(s.name)+'\')"><span class="r-icon">📊</span><span class="r-info"><div class="r-label">MOTI 檢測</div><div class="r-hint">體態分析紀錄</div></span><span class="r-arrow">→</span></button>'+
+            '<button class="record-btn inbody" onclick="event.stopPropagation();openInbodyHistory(\''+sid+'\',\''+escAttr(s.name)+'\')"><span class="r-icon">🏋️</span><span class="r-info"><div class="r-label">InBody</div><div class="r-hint">身體組成紀錄</div></span><span class="r-arrow">→</span></button>'+
+            '</div>';
+        return '<div class="a-card" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(s.age?'<span>'+s.age+'歲</span>':'')+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div></div>'+(tags?'<div class="a-tags">'+tags+'</div>':'')+'<div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div>'+recBtns+'<div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
     }).join('');
 }
 function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'</span><span class="a-field-value">'+v+'</span></div>';}
@@ -231,7 +287,7 @@ function editStudent(id){
     h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name,true);
     h+=fg('暱稱','text','edit_nickname',s.line_display_name,ro(s.line_display_name));
     h+=fsel('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
-    if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',s.phone,ro(s.phone));
+    if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',formatPhone(s.phone),ro(s.phone));
     if(isFieldFull('email'))h+=fg('信箱','email','edit_email',s.email,ro(s.email));
     if(isFieldFull('birth_date'))h+=fg('生日','date','edit_birth',s.birth_date,ro(s.birth_date));
     if(isFieldFull('medical_history'))h+=fta('疾病史','edit_medical',s.medical_history,ro(s.medical_history));
@@ -247,7 +303,7 @@ async function saveStudent(){
     const nn=val('edit_nickname');if(nn!==escAttr(editingStudent.line_display_name||''))u.line_display_name=nn;
     const gv=val('edit_gender');if(gv!==genderNorm(editingStudent.gender))u.gender=gv;
     const lv=val('edit_level');if(lv!==(editingStudent.member_level||'normal'))u.member_level=lv;
-    const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==(editingStudent.phone||''))u.phone=pv;}
+    const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(editingStudent.phone||''))u.phone=pv;}
     const ee=document.getElementById('edit_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(editingStudent.email||''))u.email=ev;}
     const be=document.getElementById('edit_birth');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(editingStudent.birth_date||''))u.birth_date=bv||null;}
     const me=document.getElementById('edit_medical');if(me&&!me.readOnly){const mv=me.value.trim();if(mv!==(editingStudent.medical_history||''))u.medical_history=mv;}
@@ -269,6 +325,180 @@ function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYe
 let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
 document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStudents();});
+
+// ================================================================
+//  MOTI / InBody 檢測紀錄
+// ================================================================
+async function openMotiHistory(memberId, memberName) {
+    document.getElementById('recordTitle').textContent = '📊 ' + memberName + ' MOTI 紀錄';
+    document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
+    openModal('recordModal');
+    try {
+        const {data, error} = await sb.from('moti_assessments').select('*').eq('member_id', memberId).order('assessment_date', {ascending: false});
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">📊</div><p>尚無 MOTI 檢測紀錄</p></div>';
+            return;
+        }
+        document.getElementById('recordBody').innerHTML = '<div class="record-timeline">' + data.map(function(r, i) {
+            var date = r.assessment_date || '-';
+            var risks = [r.risk_1, r.risk_2, r.risk_3].filter(Boolean);
+            var summary = risks.length > 0 ? '風險：' + risks.join('、') : '';
+            if (r.total_courses) summary += (summary ? ' · ' : '') + '建議 ' + r.total_courses + ' 堂';
+            var imgs = '';
+            if (r.moti_images) {
+                var urls = r.moti_images.split(',').map(function(u){return u.trim();}).filter(Boolean).slice(0, 4);
+                if (urls.length > 0) imgs = '<div class="record-item-images">' + urls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="event.stopPropagation();openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+            }
+            return '<div class="record-item" onclick="viewMotiDetail('+r.mysql_id+')"><div class="record-item-head"><span class="record-item-date">' + date + '</span><span class="record-item-badge">第 ' + (data.length - i) + ' 次</span></div>' + (summary ? '<div class="record-item-summary">' + escHtml(summary) + '</div>' : '') + imgs + '</div>';
+        }).join('') + '</div>';
+        window._motiCache = {};
+        data.forEach(function(r) { window._motiCache[r.mysql_id] = r; });
+    } catch(e) {
+        document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:#e05252;">載入失敗：' + escHtml(e.message) + '</div>';
+    }
+}
+
+function viewMotiDetail(mysqlId) {
+    var r = window._motiCache && window._motiCache[mysqlId];
+    if (!r) return;
+    document.getElementById('recordDetailTitle').textContent = '📊 MOTI 檢測 ' + (r.assessment_date || '');
+    var h = '<div class="record-detail">';
+    // 風險排名
+    var risks = [r.risk_1, r.risk_2, r.risk_3].filter(Boolean);
+    if (risks.length > 0) {
+        h += '<div class="rd-section"><div class="rd-section-title">⚠️ 風險排名</div><div class="rd-risk">';
+        risks.forEach(function(rk, i) { h += '<span class="rd-risk-tag">' + (i+1) + '. ' + escHtml(rk) + '</span>'; });
+        h += '</div></div>';
+    }
+    // 建議
+    if (r.total_courses || r.short_term_goal) {
+        h += '<div class="rd-section"><div class="rd-section-title">💡 分析師建議</div><div class="rd-grid">';
+        if (r.short_term_goal) h += '<div class="rd-field full"><div class="rd-field-label">短期目標</div><div class="rd-field-value">' + escHtml(r.short_term_goal) + '</div></div>';
+        if (r.total_courses) h += '<div class="rd-field"><div class="rd-field-label">建議總堂數</div><div class="rd-field-value">' + r.total_courses + ' 堂</div></div>';
+        if (r.weight_training_courses) h += '<div class="rd-field"><div class="rd-field-label">重訓</div><div class="rd-field-value">' + r.weight_training_courses + ' 堂</div></div>';
+        if (r.machine_training_courses) h += '<div class="rd-field"><div class="rd-field-label">器械</div><div class="rd-field-value">' + r.machine_training_courses + ' 堂</div></div>';
+        if (r.stretch_courses) h += '<div class="rd-field"><div class="rd-field-label">伸展</div><div class="rd-field-value">' + r.stretch_courses + ' 堂</div></div>';
+        h += '</div></div>';
+    }
+    // 功能訓練 / 筋膜放鬆 / 注意事項
+    var extras = [];
+    if (r.functional_training) extras.push({l:'建議功能訓練',v:r.functional_training});
+    if (r.fascia_release) extras.push({l:'建議筋膜放鬆',v:r.fascia_release});
+    if (r.precautions) extras.push({l:'注意事項',v:r.precautions});
+    if (r.service_notes) extras.push({l:'客服協助',v:r.service_notes});
+    if (r.notes) extras.push({l:'備註',v:r.notes});
+    if (extras.length > 0) {
+        h += '<div class="rd-section"><div class="rd-section-title">📝 詳細說明</div><div class="rd-grid">';
+        extras.forEach(function(ex) { h += '<div class="rd-field full"><div class="rd-field-label">' + ex.l + '</div><div class="rd-field-value">' + escHtml(ex.v) + '</div></div>'; });
+        h += '</div></div>';
+    }
+    // MOTI 圖片
+    if (r.moti_images) {
+        var urls = r.moti_images.split(',').map(function(u){return u.trim();}).filter(Boolean);
+        if (urls.length > 0) {
+            h += '<div class="rd-section"><div class="rd-section-title">📸 MOTI 體態照片</div>';
+            h += '<div class="rd-gallery">' + urls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+            h += '</div>';
+        }
+    }
+    // InBody 圖片
+    if (r.inbody_images) {
+        var iUrls = r.inbody_images.split(',').map(function(u){return u.trim();}).filter(Boolean);
+        if (iUrls.length > 0) {
+            h += '<div class="rd-section"><div class="rd-section-title">📋 InBody 報告</div>';
+            h += '<div class="rd-gallery">' + iUrls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+            h += '</div>';
+        }
+    }
+    // 資料夾連結
+    if (r.moti_folder) {
+        h += '<div class="rd-section"><div style="text-align:center;"><a href="' + escAttr(r.moti_folder) + '" target="_blank" style="display:inline-block;padding:10px 20px;background:#A78BCA;color:white;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">📁 開啟完整相簿</a></div></div>';
+    }
+    h += '</div>';
+    document.getElementById('recordDetailBody').innerHTML = h;
+    openModal('recordDetailModal');
+}
+
+async function openInbodyHistory(memberId, memberName) {
+    document.getElementById('recordTitle').textContent = '🏋️ ' + memberName + ' InBody 紀錄';
+    document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
+    openModal('recordModal');
+    try {
+        const {data, error} = await sb.from('inbody_records').select('*').eq('member_id', memberId).order('test_date', {ascending: false});
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">🏋️</div><p>尚無 InBody 紀錄</p></div>';
+            return;
+        }
+        document.getElementById('recordBody').innerHTML = '<div class="record-timeline">' + data.map(function(r, i) {
+            var date = r.test_date || '-';
+            var parts = [];
+            if (r.body_weight) parts.push('體重 ' + r.body_weight + 'kg');
+            if (r.body_fat_percent) parts.push('體脂 ' + r.body_fat_percent + '%');
+            if (r.skeletal_muscle) parts.push('肌肉 ' + r.skeletal_muscle + 'kg');
+            if (r.bmi) parts.push('BMI ' + r.bmi);
+            var summary = parts.join(' · ');
+            // 跟上一次比較
+            var diff = '';
+            if (i < data.length - 1) {
+                var prev = data[i + 1];
+                var diffs = [];
+                if (r.body_weight && prev.body_weight) { var d = (r.body_weight - prev.body_weight).toFixed(1); if (d != 0) diffs.push('體重 ' + (d > 0 ? '+' : '') + d); }
+                if (r.body_fat_percent && prev.body_fat_percent) { var d = (r.body_fat_percent - prev.body_fat_percent).toFixed(1); if (d != 0) diffs.push('體脂 ' + (d > 0 ? '+' : '') + d + '%'); }
+                if (r.skeletal_muscle && prev.skeletal_muscle) { var d = (r.skeletal_muscle - prev.skeletal_muscle).toFixed(1); if (d != 0) diffs.push('肌肉 ' + (d > 0 ? '+' : '') + d); }
+                if (diffs.length > 0) diff = '<div style="font-size:11px;color:#0F6E56;margin-top:4px;">📈 vs 上次：' + diffs.join('、') + '</div>';
+            }
+            return '<div class="record-item inbody-item" onclick="viewInbodyDetail('+r.mysql_id+')"><div class="record-item-head"><span class="record-item-date">' + date + '</span><span class="record-item-badge">第 ' + (data.length - i) + ' 次</span></div><div class="record-item-summary">' + escHtml(summary) + '</div>' + diff + '</div>';
+        }).join('') + '</div>';
+        window._inbodyCache = {};
+        data.forEach(function(r) { window._inbodyCache[r.mysql_id] = r; });
+    } catch(e) {
+        document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:#e05252;">載入失敗：' + escHtml(e.message) + '</div>';
+    }
+}
+
+function viewInbodyDetail(mysqlId) {
+    var r = window._inbodyCache && window._inbodyCache[mysqlId];
+    if (!r) return;
+    document.getElementById('recordDetailTitle').textContent = '🏋️ InBody ' + (r.test_date || '');
+    var h = '<div class="record-detail">';
+    // 主要數據卡
+    h += '<div class="rd-section"><div class="rd-section-title">📊 主要數據</div><div class="inbody-cards">';
+    if (r.body_weight != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.body_weight + '</div><div class="ib-card-label">體重</div><div class="ib-card-unit">kg</div></div>';
+    if (r.skeletal_muscle != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.skeletal_muscle + '</div><div class="ib-card-label">骨骼肌重</div><div class="ib-card-unit">kg</div></div>';
+    if (r.body_fat_mass != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.body_fat_mass + '</div><div class="ib-card-label">體脂肪重</div><div class="ib-card-unit">kg</div></div>';
+    if (r.bmi != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.bmi + '</div><div class="ib-card-label">BMI</div><div class="ib-card-unit">kg/m²</div></div>';
+    if (r.body_fat_percent != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.body_fat_percent + '</div><div class="ib-card-label">體脂率</div><div class="ib-card-unit">%</div></div>';
+    if (r.basal_metabolic_rate != null) h += '<div class="ib-card"><div class="ib-card-value">' + r.basal_metabolic_rate + '</div><div class="ib-card-label">基礎代謝</div><div class="ib-card-unit">kcal</div></div>';
+    h += '</div></div>';
+    // 身體組成
+    var composition = [];
+    if (r.total_body_water != null) composition.push({l:'身體水分',v:r.total_body_water+' L'});
+    if (r.protein != null) composition.push({l:'蛋白質',v:r.protein+' kg'});
+    if (r.minerals != null) composition.push({l:'礦物質',v:r.minerals+' kg'});
+    if (r.visceral_fat != null) composition.push({l:'內臟脂肪',v:'Level '+r.visceral_fat});
+    if (composition.length > 0) {
+        h += '<div class="rd-section"><div class="rd-section-title">🧬 身體組成</div><div class="rd-grid">';
+        composition.forEach(function(c) { h += '<div class="rd-field"><div class="rd-field-label">' + c.l + '</div><div class="rd-field-value">' + c.v + '</div></div>'; });
+        h += '</div></div>';
+    }
+    // 圖片
+    if (r.image_url) {
+        h += '<div class="rd-section"><div class="rd-section-title">📋 報告圖片</div>';
+        h += '<div class="rd-gallery"><img src="' + escAttr(r.image_url) + '" onclick="openLightbox(\'' + escAttr(r.image_url) + '\')" loading="lazy"></div>';
+        h += '</div>';
+    }
+    if (r.notes) {
+        h += '<div class="rd-section"><div class="rd-section-title">📝 備註</div><div style="font-size:13px;color:var(--text-secondary);">' + escHtml(r.notes) + '</div></div>';
+    }
+    h += '</div>';
+    document.getElementById('recordDetailBody').innerHTML = h;
+    openModal('recordDetailModal');
+}
+
+function openLightbox(url) { document.getElementById('lightboxImg').src = url; document.getElementById('lightbox').classList.add('show'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); document.getElementById('lightboxImg').src = ''; }
 </script>
 </body>
 </html>
