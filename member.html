@@ -425,9 +425,23 @@ async function openInbodyHistory(memberId, memberName) {
     document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
     openModal('recordModal');
     try {
-        const {data, error} = await sb.from('inbody_records').select('*').eq('member_id', memberId).order('test_date', {ascending: false});
-        if (error) throw error;
-        if (!data || data.length === 0) {
+        // 同時查 InBody 數據 + MOTI 的 InBody 圖片
+        const [inbodyRes, motiRes] = await Promise.all([
+            sb.from('inbody_records').select('*').eq('member_id', memberId).order('test_date', {ascending: false}),
+            sb.from('moti_assessments').select('assessment_date,inbody_images').eq('member_id', memberId).order('assessment_date', {ascending: false})
+        ]);
+        const data = inbodyRes.data || [];
+        const motiData = motiRes.data || [];
+        
+        // 建立日期→圖片對照表
+        var imgByDate = {};
+        motiData.forEach(function(m) {
+            if (m.inbody_images && m.assessment_date) {
+                imgByDate[m.assessment_date] = m.inbody_images;
+            }
+        });
+        
+        if (data.length === 0) {
             document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">🏋️</div><p>尚無 InBody 紀錄</p></div>';
             return;
         }
@@ -449,9 +463,17 @@ async function openInbodyHistory(memberId, memberName) {
                 if (r.skeletal_muscle && prev.skeletal_muscle) { var d = (r.skeletal_muscle - prev.skeletal_muscle).toFixed(1); if (d != 0) diffs.push('肌肉 ' + (d > 0 ? '+' : '') + d); }
                 if (diffs.length > 0) diff = '<div style="font-size:11px;color:#0F6E56;margin-top:4px;">📈 vs 上次：' + diffs.join('、') + '</div>';
             }
-            return '<div class="record-item inbody-item" onclick="viewInbodyDetail('+r.mysql_id+')"><div class="record-item-head"><span class="record-item-date">' + date + '</span><span class="record-item-badge">第 ' + (data.length - i) + ' 次</span></div><div class="record-item-summary">' + escHtml(summary) + '</div>' + diff + '</div>';
+            // InBody 圖片（從 MOTI 表帶入）
+            var imgs = '';
+            var inbodyImgStr = r.image_url || imgByDate[date] || '';
+            if (inbodyImgStr) {
+                var urls = inbodyImgStr.split(',').map(function(u){return u.trim();}).filter(Boolean).slice(0, 3);
+                if (urls.length > 0) imgs = '<div class="record-item-images">' + urls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="event.stopPropagation();openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+            }
+            return '<div class="record-item inbody-item" onclick="viewInbodyDetail('+r.mysql_id+')"><div class="record-item-head"><span class="record-item-date">' + date + '</span><span class="record-item-badge">第 ' + (data.length - i) + ' 次</span></div><div class="record-item-summary">' + escHtml(summary) + '</div>' + diff + imgs + '</div>';
         }).join('') + '</div>';
         window._inbodyCache = {};
+        window._inbodyImgByDate = imgByDate;
         data.forEach(function(r) { window._inbodyCache[r.mysql_id] = r; });
     } catch(e) {
         document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:#e05252;">載入失敗：' + escHtml(e.message) + '</div>';
@@ -483,11 +505,15 @@ function viewInbodyDetail(mysqlId) {
         composition.forEach(function(c) { h += '<div class="rd-field"><div class="rd-field-label">' + c.l + '</div><div class="rd-field-value">' + c.v + '</div></div>'; });
         h += '</div></div>';
     }
-    // 圖片
-    if (r.image_url) {
-        h += '<div class="rd-section"><div class="rd-section-title">📋 報告圖片</div>';
-        h += '<div class="rd-gallery"><img src="' + escAttr(r.image_url) + '" onclick="openLightbox(\'' + escAttr(r.image_url) + '\')" loading="lazy"></div>';
-        h += '</div>';
+    // 圖片（優先用 inbody_records 自己的，沒有就從 MOTI 帶入）
+    var imgStr = r.image_url || (window._inbodyImgByDate && window._inbodyImgByDate[r.test_date]) || '';
+    if (imgStr) {
+        var imgUrls = imgStr.split(',').map(function(u){return u.trim();}).filter(Boolean);
+        if (imgUrls.length > 0) {
+            h += '<div class="rd-section"><div class="rd-section-title">📋 InBody 報告圖片</div>';
+            h += '<div class="rd-gallery">' + imgUrls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+            h += '</div>';
+        }
     }
     if (r.notes) {
         h += '<div class="rd-section"><div class="rd-section-title">📝 備註</div><div style="font-size:13px;color:var(--text-secondary);">' + escHtml(r.notes) + '</div></div>';
