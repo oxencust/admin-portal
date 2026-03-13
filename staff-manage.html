@@ -78,9 +78,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--green);}
 .form-textarea{min-height:70px;resize:vertical;}
 .form-hint{font-size:11px;color:var(--text-muted);margin-top:-8px;margin-bottom:12px;}
-.detail-section{margin-bottom:16px;}.detail-section-title{font-size:14px;font-weight:700;color:var(--green-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
+.detail-section{margin-bottom:16px;}.detail-section-title{font-size:12px;font-weight:700;color:var(--green-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.detail-field{font-size:13px;}.detail-field.full{grid-column:1/-1;}
-.detail-field-label{font-size:12px;color:var(--text-muted);margin-bottom:1px;}.detail-field-value{font-size:15px;font-weight:500;}
+.detail-field-label{font-size:10px;color:var(--text-muted);margin-bottom:1px;}.detail-field-value{font-weight:500;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
 @media(min-width:769px){.modal-bg{align-items:center;}.modal-panel{border-radius:20px;max-height:85vh;}.modal-footer{position:sticky;bottom:0;}}
@@ -250,8 +250,8 @@ function editStaff(id){
     h+=fg('緊急聯絡人關係','text','e_er',s.emergency_relation,ro(s.emergency_relation));
     h+=fg('到職日','date','e_hire',s.hire_date,ro(s.hire_date));
     h+=fg('離職日','date','e_leave',s.leave_date,ro(s.leave_date));
-    if(isFull('line_id'))h+=fg('衡點LINE','text','e_lid',s.line_id,true);
-    if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',s.line_id_edu,true);
+    if(isFull('line_id'))h+=fg('衡點LINE','text','e_lid',s.line_id,false);
+    if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',s.line_id_edu,false);
     h+=fta('備註','e_avail',s.availability,ro(s.availability));
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
@@ -268,6 +268,7 @@ async function saveStaff(){
     const hd=val('e_hire');if(hd!==(s.hire_date||''))u.hire_date=hd||null;
     const ld=val('e_leave');if(ld!==(s.leave_date||''))u.leave_date=ld||null;
     chk('availability','e_avail',s.availability);
+    chk('line_id','e_lid',s.line_id);chk('line_id_edu','e_ledu',s.line_id_edu);
     if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
     try{showToast('⏳ 儲存中...');const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:u})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
     try{u.updated_at=new Date().toISOString();const{error}=await sb.from('staff').update(u).eq('id',s.id);if(error)throw error;showToast('✅ 已更新');closeModal('editModal');editingStaff=null;await loadStaff();}catch(e){showToast('⚠️ Sheet/MySQL已更新但Supabase失敗');}
@@ -284,7 +285,7 @@ function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.
 function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
 let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
-document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show');});});
+document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStaff();});
 </script>
 </body>
