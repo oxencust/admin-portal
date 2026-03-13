@@ -97,6 +97,13 @@
         .icon-btn { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s; color: #636e72; border: none; }
         .icon-btn:hover { background: rgba(255,255,255,0.8); transform: scale(1.05); }
 
+        /* Header Shortcuts */
+        .header-shortcuts { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05); }
+        .header-shortcuts-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .header-shortcuts-label { font-size: 11px; font-weight: 600; color: #999; letter-spacing: 0.5px; }
+        .header-shortcuts .utility-row { margin-bottom: 0; }
+        .header-shortcuts .utility-btn { padding: 10px 8px; font-size: 12px; border-radius: 10px; }
+
         /* Main */
         .main { padding: 0 16px 100px; max-width: 600px; margin: 0 auto; position: relative; z-index: 1; }
 
@@ -128,7 +135,11 @@
         @keyframes wiggle { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
         .module-grid.edit-mode .module-card::after { content: '⠿'; position: absolute; top: 6px; left: 6px; font-size: 14px; color: rgba(0,0,0,0.2); pointer-events: none; }
         .module-grid.edit-mode .module-card .hide-btn { display: flex; }
+        .module-grid.edit-mode .module-card .dev-toggle-btn { display: flex; }
         .hide-btn { display: none; position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: #e05252; color: white; border: 2px solid white; font-size: 12px; font-weight: 700; cursor: pointer; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2); line-height: 1; }
+        .dev-toggle-btn { display: none; position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; background: #f0ad4e; color: white; border: 2px solid white; font-size: 10px; font-weight: 700; cursor: pointer; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2); line-height: 1; }
+        .module-card.user-developing { opacity: 0.55; }
+        .module-card.user-developing .module-dev-tag { display: block; }
         .hidden-section { margin-top: 16px; display: none; }
         .hidden-section.show { display: block; }
         .hidden-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
@@ -244,7 +255,7 @@
 <body>
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-logo">
-            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健康">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
         </div>
         <div class="loading-sub">Hendia</div>
         <div class="loading-spinner"></div>
@@ -283,6 +294,13 @@
                     <div class="icon-btn glass" onclick="handleLogout()" title="登出">⏏️</div>
                 </div>
             </div>
+            <div class="header-shortcuts">
+                <div class="header-shortcuts-row">
+                    <div class="header-shortcuts-label">快捷工具</div>
+                    <button class="section-edit-btn" onclick="openShortcutPicker()" style="font-size:11px;padding:2px 8px;">自訂</button>
+                </div>
+                <div class="utility-row" id="utilityRow"></div>
+            </div>
         </div>
 
         <div class="main">
@@ -295,12 +313,6 @@
                 <div class="hidden-title">已隱藏的模組（點擊加回）</div>
                 <div class="hidden-grid" id="hiddenGrid"></div>
             </div>
-
-            <div class="section-header">
-                <div class="section-title">快捷工具</div>
-                <button class="section-edit-btn" onclick="openShortcutPicker()">自訂</button>
-            </div>
-            <div class="utility-row" id="utilityRow"></div>
 
             <div class="footer">衡點健康 © 2025-2026<br><span style="font-size:10px;color:#ccc;">v3.0.0</span></div>
         </div>
@@ -766,23 +778,29 @@
         const grid = document.getElementById('moduleGrid');
         grid.innerHTML = '';
         const hidden = loadHiddenModules();
+        const devMods = loadDevModules();
         const ordered = getOrderedModules().filter(m => !hidden.includes(m.id));
+        const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
 
         ordered.forEach(mod => {
+            const isDev = mod.developing || devMods.includes(mod.id);
             const card = document.createElement('a');
-            card.className = 'module-card glass-strong' + (mod.developing ? ' developing' : '');
+            card.className = 'module-card glass-strong' + (isDev ? ' developing' : '');
             card.dataset.color = mod.color;
             card.dataset.id = mod.id;
             card.href = 'javascript:void(0)';
             card.onclick = () => {
                 if (isEditMode) return;
-                if (mod.developing) { showDevModal(); return; }
+                if (isDev) { showDevModal(); return; }
                 navigateToModule(mod);
             };
 
-            const badgeHtml = mod.developing ? '<div class="module-dev-tag">開發中</div>' : '';
+            const badgeHtml = isDev ? '<div class="module-dev-tag">開發中</div>' : '';
             const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
-            card.innerHTML = `${hideBtn}${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
+            const devBtn = isSuperAdmin && !mod.developing
+                ? '<div class="dev-toggle-btn" onclick="event.stopPropagation();toggleDevModule(\''+mod.id+'\')" title="'+(devMods.includes(mod.id)?'取消開發中':'標記開發中')+'">'+(devMods.includes(mod.id)?'✓':'🔨')+'</div>'
+                : '';
+            card.innerHTML = `${hideBtn}${devBtn}${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
             grid.appendChild(card);
         });
 
@@ -817,6 +835,8 @@
 
     function loadHiddenModules() { try { const s=localStorage.getItem(getStorageKey('hidden_modules')); return s?JSON.parse(s):[]; } catch{return[];} }
     function saveHiddenModules(ids) { localStorage.setItem(getStorageKey('hidden_modules'), JSON.stringify(ids)); }
+    function loadDevModules() { try { const s=localStorage.getItem(getStorageKey('dev_modules')); return s?JSON.parse(s):[]; } catch{return[];} }
+    function saveDevModules(ids) { localStorage.setItem(getStorageKey('dev_modules'), JSON.stringify(ids)); }
 
     function toggleEditMode() {
         isEditMode = !isEditMode;
@@ -827,7 +847,7 @@
             btn.textContent = '✅ 完成'; btn.classList.add('active');
             grid.classList.add('edit-mode'); initDragAndDrop();
             renderHiddenModules();
-            showToast('🔀 拖動排序 / ✕ 隱藏模組');
+            showToast(currentUser.role==='super_admin' ? '🔀 排序 / ✕ 隱藏 / 🔨 開發中' : '🔀 拖動排序 / ✕ 隱藏模組');
         } else {
             btn.textContent = '編輯'; btn.classList.remove('active');
             grid.classList.remove('edit-mode'); cleanupDrag();
@@ -853,6 +873,22 @@
         renderModules();
         renderHiddenModules();
         showToast('已加回');
+    }
+
+    function toggleDevModule(modId) {
+        const devMods = loadDevModules();
+        const idx = devMods.indexOf(modId);
+        if (idx > -1) {
+            devMods.splice(idx, 1);
+            saveDevModules(devMods);
+            showToast('已取消開發中標記');
+        } else {
+            devMods.push(modId);
+            saveDevModules(devMods);
+            showToast('已標記為開發中');
+        }
+        renderModules();
+        renderHiddenModules();
     }
 
     function renderHiddenModules() {
