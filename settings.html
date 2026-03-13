@@ -144,7 +144,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbwFzTLDPcY1dTBKlLOHV2Ug7uM098v8wHIq0N1Vf2FSs7kRJoQBlxMRLeXjEG135emTZw/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbwFzTLDPcY1dTBKlLOHV2Ug7uM098v8wHIq0N1Vf2FSs7kRJoQBlxMRLeXjEG135emTZw/exe';
 let currentUser=null,allPeople=[],selectedStaff=null,hasChanges=false;
 const ALL_MODULES=[{id:'member',icon:'👤',name:'學員管理'},{id:'coach',icon:'👨‍🏫',name:'教練管理'},{id:'staff-manage',icon:'👥',name:'營運人員'},{id:'substitute',icon:'📋',name:'代課管理'},{id:'schedule',icon:'🗓️',name:'行政排班'},{id:'punch',icon:'⏰',name:'上下班打卡'},{id:'report',icon:'📊',name:'報表統計'},{id:'settings',icon:'🔐',name:'權限設定'},{id:'moti-booking',icon:'📝',name:'預填Moti'},{id:'leave-manage',icon:'🏥',name:'學員請假'},{id:'personal-schedule',icon:'📅',name:'個人排班'},{id:'trial-schedule',icon:'🗓️',name:'體驗排程'},{id:'trial-feedback',icon:'💬',name:'體驗回報'},{id:'class-record',icon:'📋',name:'課表紀錄'},{id:'moti-analyze',icon:'🔬',name:'Moti檢測'}];
 const ACTIONS=['view','fill','edit','create','delete','export'];
