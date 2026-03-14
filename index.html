@@ -430,7 +430,8 @@
 
         { id:'personal-schedule', icon:'📅', name:'個人排班', desc:'查看我的排班',
           url:'https://oxencust.github.io/staff-schedule/personal', color:'yellow',
-          roles:['super_admin','admin','staff'] },
+          roles:['super_admin','admin','staff'],
+         customParams: { name: '{realName}' } },
 
         { id:'trial-schedule', icon:'🗓️', name:'體驗排程', desc:'體驗課可預約時段',
           url:'https://experience3.zeabur.app/', color:'yellow',
@@ -703,6 +704,7 @@
             currentUser = {
                 id: userId,
                 name: userName,
+                realName: staff ? (staff.name || userName) : (coach ? (coach.name || userName) : userName),
                 lineUid: lineUid,
                 role: role,
                 staff_type: staffType,
@@ -1030,7 +1032,7 @@
         if (mod.customParams) {
             const replaceName = useCoachIdentity ? coachData.name : currentUser.name;
             for (const [key, val] of Object.entries(mod.customParams)) {
-                baseParams[key] = val.replace('{name}', replaceName).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
+                baseParams[key] = val.replace('{name}', replaceName).replace('{realName}', currentUser.realName || currentUser.name).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
             }
         }
 
