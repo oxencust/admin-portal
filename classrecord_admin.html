@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>衡點健康 - 課表紀錄查詢</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        :root {
+            --white: #ffffff;
+            --gray: #808080;
+            --gray-light: #f5f5f5;
+            --gray-dark: #333333;
+            --green: #7ac19a;
+            --green-light: #e2ede6;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --pink-light: #faece8;
+            --pink-dark: #c67566;
+            --yellow: #ffe08b;
+            --yellow-light: #fcf4e3;
+            --yellow-dark: #ba9e60;
+            --blue: #9fcccc;
+            --blue-light: #daedec;
+            --blue-dark: #66888e;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow-x: hidden; }
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, var(--green-light) 0%, var(--white) 50%, var(--blue-light) 100%);
+            min-height: 100vh;
+            color: var(--gray-dark);
+        }
+        
+        /* 載入畫面 */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        
+        .loading-logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--spacing-lg);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .loading-logo span { font-size: 24px; font-weight: 700; color: var(--white); }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .loading-text { color: var(--gray); font-size: 14px; }
+        
+        /* 頂部導航 */
+        .header {
+            background: var(--white);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .header-logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .header-logo span { font-size: 16px; font-weight: 700; color: var(--white); }
+        
+        .header-info { flex: 1; }
+        .header-title { font-size: 16px; font-weight: 700; color: var(--gray-dark); }
+        .header-subtitle { font-size: 12px; color: var(--gray); margin-top: 2px; }
+        
+        .user-badge {
+            background: var(--green-light);
+            color: var(--green-dark);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* 主容器 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-md);
+        }
+        
+        /* 搜尋區塊 */
+        .search-section {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* 搜尋類型切換 */
+        .search-type-tabs {
+            display: flex;
+            background: var(--gray-light);
+            border-radius: var(--radius-full);
+            padding: 4px;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .search-type-tab {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .search-type-tab.active {
+            background: var(--white);
+            color: var(--green-dark);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        /* 搜尋輸入框 */
+        .search-input-wrapper {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 48px 14px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(122, 193, 154, 0.2);
+        }
+        
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--green);
+            color: var(--white);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s ease;
+        }
+        
+        .search-btn:hover { background: var(--green-dark); }
+        
+        /* 搜尋結果下拉 */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-md);
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .search-results.show { display: block; }
+        
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: background 0.2s ease;
+        }
+        
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: var(--green-light); }
+        
+        .search-result-item .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: var(--blue-light);
+        }
+        
+        .search-result-item .info { flex: 1; }
+        .search-result-item .name { font-weight: 500; color: var(--gray-dark); }
+        .search-result-item .sub { font-size: 12px; color: var(--gray); }
+        
+        .search-no-result {
+            padding: 16px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        /* 教練列表 */
+        .coach-list-wrapper {
+            display: none;
+        }
+        
+        .coach-list-label {
+            font-size: 13px;
+            color: var(--gray);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .coach-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+        
+        .coach-chip {
+            padding: 10px 16px;
+            background: var(--gray-light);
+            border: 2px solid transparent;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .coach-chip:hover {
+            background: var(--pink-light);
+            border-color: var(--pink);
+        }
+        
+        .coach-chip.active {
+            background: var(--pink);
+            color: var(--white);
+            border-color: var(--pink-dark);
+        }
+        
+        /* 當前目標卡片 */
+        .target-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-md);
+            display: none;
+        }
+        
+        .target-card.show { display: block; }
+        
+        .target-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .target-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .target-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .target-avatar.member { background: var(--blue-light); }
+        .target-avatar.coach { background: var(--pink-light); }
+        
+        .target-name { font-size: 20px; font-weight: 700; color: var(--gray-dark); }
+        .target-sub { font-size: 13px; color: var(--gray); margin-top: 4px; }
+        
+        .target-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--gray-light);
+            color: var(--gray);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .target-close:hover { background: var(--gray); color: var(--white); }
+        
+        .target-stats {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            background: var(--gray-light);
+            border-radius: var(--radius-md);
+        }
+        
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: var(--spacing-sm);
+        }
+        
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--green-dark); }
+        .stat-label { font-size: 11px; color: var(--gray); margin-top: 2px; }
+        
+        /* 學員篩選 (教練模式) */
+        .member-search-wrapper {
+            margin-top: var(--spacing-md);
+            display: none;
+        }
+        
+        .member-search-wrapper.show { display: block; }
+        
+        .member-search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .member-search-input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+        
+        /* 分組區塊 */
+        .group-section {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        
+        .group-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .group-header:hover { background: var(--gray-light); }
+        
+        .group-header.strength { border-left: 4px solid var(--pink); }
+        .group-header.pilates { border-left: 4px solid var(--blue); }
+        .group-header.stretching { border-left: 4px solid var(--yellow); }
+        .group-header.member { border-left: 4px solid var(--green); }
+        
+        .group-title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .group-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .group-icon.strength { background: var(--pink-light); }
+        .group-icon.pilates { background: var(--blue-light); }
+        .group-icon.stretching { background: var(--yellow-light); }
+        .group-icon.member { background: var(--green-light); }
+        
+        .group-name { font-size: 16px; font-weight: 600; color: var(--gray-dark); }
+        
+        .group-count {
+            background: var(--gray-light);
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray);
+        }
+        
+        .group-toggle {
+            font-size: 14px;
+            color: var(--gray);
+            transition: transform 0.3s ease;
+        }
+        
+        .group-header.collapsed .group-toggle {
+            transform: rotate(-90deg);
+        }
+        
+        /* 時間線 */
+        .timeline-wrapper {
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .timeline-wrapper.collapsed {
+            max-height: 0;
+            padding: 0 var(--spacing-lg);
+        }
+        
+        .timeline-scroll {
+            display: flex;
+            gap: var(--spacing-sm);
+            overflow-x: auto;
+            padding: var(--spacing-sm) 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        
+        .timeline-scroll::-webkit-scrollbar { display: none; }
+        
+        .timeline-date {
+            flex-shrink: 0;
+            width: 70px;
+            padding: var(--spacing-sm);
+            background: var(--gray-light);
+            border-radius: var(--radius-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .timeline-date:hover {
+            background: var(--green-light);
+            border-color: var(--green);
+        }
+        
+        .timeline-date.strength:hover { background: var(--pink-light); border-color: var(--pink); }
+        .timeline-date.pilates:hover { background: var(--blue-light); border-color: var(--blue); }
+        .timeline-date.stretching:hover { background: var(--yellow-light); border-color: var(--yellow); }
+        
+        .timeline-date .month { font-size: 11px; color: var(--gray); }
+        .timeline-date .day { font-size: 20px; font-weight: 700; color: var(--gray-dark); line-height: 1.2; }
+        .timeline-date .weekday { font-size: 11px; color: var(--gray); }
+        .timeline-date .time { font-size: 10px; color: var(--gray); margin-top: 4px; }
+        
+        /* 空狀態 */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+        
+        .empty-state-icon { font-size: 64px; margin-bottom: var(--spacing-md); }
+        .empty-state-text { font-size: 15px; color: var(--gray); line-height: 1.6; }
+        
+        /* 詳情彈窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: var(--spacing-md);
+        }
+        
+        .modal-overlay.show { opacity: 1; visibility: visible; }
+        
+        .modal-container {
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-overlay.show .modal-container {
+            transform: translateY(0) scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--white);
+        }
+        
+        .modal-header.strength { background: linear-gradient(135deg, var(--pink), var(--pink-dark)); }
+        .modal-header.pilates { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+        .modal-header.stretching { background: linear-gradient(135deg, var(--yellow), var(--yellow-dark)); }
+        
+        .modal-header h3 { font-size: 16px; font-weight: 600; }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-lg);
+        }
+        
+        .modal-footer {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-top: 1px solid var(--gray-light);
+            display: flex;
+            gap: var(--spacing-sm);
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-secondary { background: var(--gray-light); color: var(--gray-dark); }
+        .btn-outline { background: var(--white); color: var(--green-dark); border: 2px solid var(--green); }
+        
+        .detail-section { margin-bottom: var(--spacing-lg); }
+        .detail-section:last-child { margin-bottom: 0; }
+        
+        .detail-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--green-dark);
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 2px solid var(--green-light);
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-sm);
+        }
+        
+        .detail-item {
+            background: var(--gray-light);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+        }
+        
+        .detail-item label {
+            font-size: 11px;
+            color: var(--gray);
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .detail-item span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-dark);
+        }
+        
+        .detail-item.full { grid-column: span 2; }
+        
+        .detail-photos {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        
+        .detail-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .detail-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .detail-notes {
+            background: var(--blue-light);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--blue);
+            font-size: 14px;
+            color: var(--gray-dark);
+            line-height: 1.5;
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--gray-dark);
+            color: var(--white);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: var(--green-dark); }
+        .toast.error { background: var(--pink-dark); }
+        
+        /* 圖片放大 */
+        .image-lightbox {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .image-lightbox.show { display: flex; }
+        
+        .image-lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: var(--radius-md);
+        }
+        
+        .image-lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* 響應式 */
+        @media (max-width: 480px) {
+            .container { padding: var(--spacing-sm); }
+            .search-section { padding: var(--spacing-md); }
+            .target-card { padding: var(--spacing-md); }
+            .target-stats { flex-wrap: wrap; }
+            .stat-item { min-width: 70px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .detail-item.full { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 載入畫面 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo"><span>衡點</span></div>
+        <div class="loading-text">正在載入系統...</div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <!-- 圖片放大 -->
+    <div class="image-lightbox" id="imageLightbox" onclick="closeLightbox()">
+        <button class="image-lightbox-close" onclick="closeLightbox()">✕</button>
+        <img id="lightboxImage" src="" alt="放大圖片">
+    </div>
+    
+    <!-- 頂部導航 -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo"><span>衡點</span></div>
+            <div class="header-info">
+                <div class="header-title">課表紀錄查詢</div>
+                <div class="header-subtitle" id="currentDate"></div>
+            </div>
+            <div class="user-badge" id="userBadge">載入中...</div>
+        </div>
+    </header>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 搜尋區塊 -->
+        <div class="search-section">
+            <div class="search-type-tabs">
+                <button type="button" class="search-type-tab active" data-type="member" onclick="switchSearchType('member')">
+                    👤 搜尋學員
+                </button>
+                <button type="button" class="search-type-tab" data-type="coach" onclick="switchSearchType('coach')">
+                    🏋️ 依教練查詢
+                </button>
+            </div>
+            
+            <!-- 學員搜尋 -->
+            <div class="search-input-wrapper" id="memberSearchWrapper">
+                <input type="text" class="search-input" id="searchInput" placeholder="輸入學員姓名或電話...">
+                <button type="button" class="search-btn" onclick="triggerSearch()">🔍</button>
+                <div class="search-results" id="searchResults"></div>
+            </div>
+            
+            <!-- 教練列表 -->
+            <div class="coach-list-wrapper" id="coachListWrapper">
+                <div class="coach-list-label">選擇教練：</div>
+                <div class="coach-chips" id="coachChips">
+                    <div style="color: var(--gray); font-size: 14px;">載入中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 目標卡片 -->
+        <div class="target-card" id="targetCard">
+            <div class="target-header">
+                <div class="target-info">
+                    <div class="target-avatar" id="targetAvatar">👤</div>
+                    <div>
+                        <div class="target-name" id="targetName">-</div>
+                        <div class="target-sub" id="targetSub">-</div>
+                    </div>
+                </div>
+                <button type="button" class="target-close" onclick="clearTarget()">✕</button>
+            </div>
+            <div class="target-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">總堂數</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statStrength">0</div>
+                    <div class="stat-label">💪 重訓</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statPilates">0</div>
+                    <div class="stat-label">🧘 皮拉提斯</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statStretching">0</div>
+                    <div class="stat-label">🤸 伸展</div>
+                </div>
+            </div>
+            
+            <!-- 學員篩選 (教練模式) -->
+            <div class="member-search-wrapper" id="memberSearchFilter">
+                <input type="text" class="member-search-input" id="memberFilterInput" placeholder="🔍 輸入學員姓名快速篩選...">
+            </div>
+        </div>
+        
+        <!-- 內容區 -->
+        <div id="contentArea">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-text">
+                    請搜尋<strong>學員</strong>或選擇<strong>教練</strong><br>
+                    查看課表紀錄
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 詳情彈窗 -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-container">
+            <div class="modal-header" id="modalHeader">
+                <h3 id="modalTitle">📋 課表紀錄詳情</h3>
+                <button type="button" class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">關閉</button>
+                <button type="button" class="btn btn-outline" onclick="goToEdit()">✏️ 編輯</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 設定
+        // ============================================
+        const CONFIG = {
+            LIFF_ID: '2007947083-YgZ9QQRn',
+            WEBHOOK_URL: 'https://hook.us2.make.com/9ydnn20drmcegfl5cvm9e3tqqb37azir',
+            DEBUG_MODE: false
+        };
+        
+        const CLASS_TYPE_CONFIG = {
+            'strength_training': { name: '💪 重訓', icon: '💪', class: 'strength' },
+            'pilates': { name: '🧘 皮拉提斯', icon: '🧘', class: 'pilates' },
+            'stretching': { name: '🤸 伸展', icon: '🤸', class: 'stretching' }
+        };
+        
+        const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+        
+        // ============================================
+        // 全域變數
+        // ============================================
+        let currentUser = null;
+        let searchType = 'member';
+        let currentTarget = null;
+        let allRecords = [];
+        let coachList = [];
+        let searchTimeout = null;
+        let memberFilterTimeout = null;
+        
+        // ============================================
+        // 初始化
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            setCurrentDate();
+            setupListeners();
+            
+            if (CONFIG.DEBUG_MODE) {
+                await initDebugMode();
+            } else {
+                await initLiff();
+            }
+            
+            await loadCoachList();
+            
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 500);
+        });
+        
+        function setCurrentDate() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        function setupListeners() {
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                clearTimeout(searchTimeout);
+                searchResults.innerHTML = '';
+                searchResults.classList.remove('show');
+                
+                if (query.length < 1) return;
+                
+                searchTimeout = setTimeout(() => performSearch(query), 300);
+            });
+            
+            searchInput.addEventListener('blur', () => {
+                setTimeout(() => searchResults.classList.remove('show'), 200);
+            });
+            
+            searchInput.addEventListener('focus', () => {
+                if (searchResults.querySelector('.search-result-item')) {
+                    searchResults.classList.add('show');
+                }
+            });
+            
+            // 學員篩選 (教練模式)
+            document.getElementById('memberFilterInput').addEventListener('input', function() {
+                clearTimeout(memberFilterTimeout);
+                memberFilterTimeout = setTimeout(() => renderGroupedContent(), 200);
+            });
+        }
+        
+        async function initDebugMode() {
+            currentUser = { id: 1, name: '測試教練' };
+            document.getElementById('userBadge').textContent = currentUser.name;
+        }
+        
+        async function initLiff() {
+            try {
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+                const profile = await liff.getProfile();
+                await loadUserInfo(profile.userId);
+            } catch (error) {
+                console.error('LIFF 初始化失敗:', error);
+            }
+        }
+        
+        async function loadUserInfo(lineUserId) {
+            try {
+                const response = await fetch(CONFIG.WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getUserRole', lineUserId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('userBadge').textContent = currentUser.name;
+                }
+            } catch (error) {
+                console.error('載入用戶失敗:', error);
+            }
+        }
+        
+        async function loadCoachList() {
+            try {
+                if (CONFIG.DEBUG_MODE) {
+                    coachList = [
+                        { id: 1, name: '王小明' },
+                        { id: 2, name: '李小華' },
+                        { id: 3, name: '張大偉' },
+                        { id: 4, name: '陳美玲' }
+                    ];
+                } else {
+                    const response = await fetch(CONFIG.WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'getCoachList' })
+                    });
+                    const data = await response.json();
+                    if (data.success) coachList = data.coaches || [];
+                }
+                renderCoachChips();
+            } catch (error) {
+                console.error('載入教練列表失敗:', error);
+            }
+        }
+        
+        function renderCoachChips() {
+            const container = document.getElementById('coachChips');
+            if (coachList.length === 0) {
+                container.innerHTML = '<div style="color: var(--gray);">沒有教練資料</div>';
+                return;
+            }
+            container.innerHTML = coachList.map(c => `
+                <div class="coach-chip" data-id="${c.id}" onclick="selectCoach(${c.id})">
+                    🏋️ ${c.name}
+                </div>
+            `).join('');
+        }
+        
+        // ============================================
+        // 搜尋模式切換
+        // ============================================
+        function switchSearchType(type) {
+            searchType = type;
+            
+            document.querySelectorAll('.search-type-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.type === type);
+            });
+            
+            document.getElementById('memberSearchWrapper').style.display = type === 'member' ? 'block' : 'none';
+            document.getElementById('coachListWrapper').style.display = type === 'coach' ? 'block' : 'none';
+            
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').classList.remove('show');
+            
+            document.querySelectorAll('.coach-chip').forEach(c => c.classList.remove('active'));
+            
+            clearTarget();
+        }
+        
+        // ============================================
+        // 搜尋學員
+        // ============================================
+        function triggerSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) performSearch(query);
+        }
+        
+        async function performSearch(query) {
+            const searchResults = document.getElementById('searchResults');
+            
+            try {
+                let members = [];
+                
+                if (CONFIG.DEBUG_MODE) {
+                    const mock = [
+                        { id: 'TWHDS20230000053', name: '江舒右', phone: '0912345678' },
+                        { id: 'TWHDS20230000088', name: '張美玲', phone: '0923456789' },
+                        { id: 'TWHDS20230000045', name: '王志豪', phone: '0934567890' }
+                    ];
+                    members = mock.filter(m => 
+                        m.name.includes(query) || m.phone.includes(query) || m.id.includes(query)
+                    );
+                } else {
+                    const response = await fetch(CONFIG.WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'searchMembers', query })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        members = (data.members || []).filter(m => m && m.id && m.name);
+                    }
+                }
+                
+                if (members.length === 0) {
+                    searchResults.innerHTML = '<div class="search-no-result">找不到符合的學員</div>';
+                } else {
+                    searchResults.innerHTML = members.map(m => `
+                        <div class="search-result-item" onclick='selectMember(${JSON.stringify(m).replace(/'/g, "&#39;")})'>
+                            <div class="icon">👤</div>
+                            <div class="info">
+                                <div class="name">${m.name}</div>
+                                <div class="sub">${m.phone || m.id}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                searchResults.classList.add('show');
+            } catch (error) {
+                console.error('搜尋失敗:', error);
+                searchResults.innerHTML = '<div class="search-no-result">搜尋失敗</div>';
+                searchResults.classList.add('show');
+            }
+        }
+        
+        // ============================================
+        // 選擇目標
+        // ============================================
+        function selectMember(member) {
+            currentTarget = { ...member, type: 'member' };
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').classList.remove('show');
+            showTargetCard();
+            loadRecords();
+        }
+        
+        function selectCoach(coachId) {
+            const coach = coachList.find(c => c.id === coachId);
+            if (!coach) return;
+            
+            currentTarget = { ...coach, type: 'coach' };
+            
+            document.querySelectorAll('.coach-chip').forEach(c => {
+                c.classList.toggle('active', parseInt(c.dataset.id) === coachId);
+            });
+            
+            showTargetCard();
+            loadRecords();
+        }
+        
+        function showTargetCard() {
+            const card = document.getElementById('targetCard');
+            const avatar = document.getElementById('targetAvatar');
+            const name = document.getElementById('targetName');
+            const sub = document.getElementById('targetSub');
+            const memberFilter = document.getElementById('memberSearchFilter');
+            
+            avatar.className = 'target-avatar ' + currentTarget.type;
+            avatar.textContent = currentTarget.type === 'member' ? '👤' : '🏋️';
+            name.textContent = currentTarget.name;
+            sub.textContent = currentTarget.type === 'member' ? 
+                (currentTarget.id || '') : '教練';
+            
+            memberFilter.classList.toggle('show', currentTarget.type === 'coach');
+            document.getElementById('memberFilterInput').value = '';
+            
+            card.classList.add('show');
+        }
+        
+        function clearTarget() {
+            currentTarget = null;
+            allRecords = [];
+            
+            document.getElementById('targetCard').classList.remove('show');
+            document.getElementById('memberFilterInput').value = '';
+            
+            document.querySelectorAll('.coach-chip').forEach(c => c.classList.remove('active'));
+            
+            document.getElementById('contentArea').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-text">
+                        請搜尋<strong>學員</strong>或選擇<strong>教練</strong><br>
+                        查看課表紀錄
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ============================================
+        // 載入紀錄
+        // ============================================
+        async function loadRecords() {
+            if (!currentTarget) return;
+            
+            document.getElementById('contentArea').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <div class="empty-state-text">載入中...</div>
+                </div>
+            `;
+            
+            try {
+                if (CONFIG.DEBUG_MODE) {
+                    await new Promise(r => setTimeout(r, 500));
+                    allRecords = getMockRecords();
+                } else {
+                    const response = await fetch(CONFIG.WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'getClassRecords',
+                            targetType: currentTarget.type,
+                            targetId: currentTarget.id
+                        })
+                    });
+                    const data = await response.json();
+                    allRecords = data.success ? (data.records || []) : [];
+                }
+                
+                updateStats();
+                renderGroupedContent();
+            } catch (error) {
+                console.error('載入失敗:', error);
+                showToast('載入紀錄失敗', 'error');
+            }
+        }
+        
+        function getMockRecords() {
+            return [
+                { id: 1, class_date: '2026-03-14', class_time: '10:00', member_id: 'M001', member_name: '江舒右', coach_id: 1, coach_name: '王小明', class_type: 'strength_training', training_purpose: '下肢肌力訓練', mental_state_rating: 4, incident_types: '', photos: 'https://via.placeholder.com/200' },
+                { id: 2, class_date: '2026-03-13', class_time: '14:30', member_id: 'M001', member_name: '江舒右', coach_id: 1, coach_name: '王小明', class_type: 'pilates', training_purpose: '核心穩定', mental_state_rating: 5, incident_types: '', photos: '' },
+                { id: 3, class_date: '2026-03-12', class_time: '09:00', member_id: 'M001', member_name: '江舒右', coach_id: 1, coach_name: '王小明', class_type: 'strength_training', training_purpose: '上肢訓練', mental_state_rating: 4, incident_types: '', photos: '' },
+                { id: 4, class_date: '2026-03-10', class_time: '11:00', member_id: 'M001', member_name: '江舒右', coach_id: 1, coach_name: '王小明', class_type: 'stretching', training_purpose: '肩頸放鬆', mental_state_rating: 3, incident_types: '學員暈眩', photos: '' },
+                { id: 5, class_date: '2026-03-08', class_time: '15:00', member_id: 'M002', member_name: '張美玲', coach_id: 1, coach_name: '王小明', class_type: 'pilates', training_purpose: '核心強化', mental_state_rating: 5, incident_types: '', photos: '' },
+                { id: 6, class_date: '2026-03-07', class_time: '10:00', member_id: 'M002', member_name: '張美玲', coach_id: 1, coach_name: '王小明', class_type: 'strength_training', training_purpose: '全身訓練', mental_state_rating: 4, incident_types: '', photos: '' },
+                { id: 7, class_date: '2026-03-05', class_time: '14:00', member_id: 'M003', member_name: '王志豪', coach_id: 1, coach_name: '王小明', class_type: 'strength_training', training_purpose: '腿部訓練', mental_state_rating: 4, incident_types: '', photos: '' }
+            ];
+        }
+        
+        function updateStats() {
+            const records = getFilteredRecords();
+            document.getElementById('statTotal').textContent = records.length;
+            document.getElementById('statStrength').textContent = records.filter(r => r.class_type === 'strength_training').length;
+            document.getElementById('statPilates').textContent = records.filter(r => r.class_type === 'pilates').length;
+            document.getElementById('statStretching').textContent = records.filter(r => r.class_type === 'stretching').length;
+        }
+        
+        function getFilteredRecords() {
+            let records = [...allRecords];
+            
+            // 教練模式下篩選學員
+            if (currentTarget && currentTarget.type === 'coach') {
+                const filter = document.getElementById('memberFilterInput').value.trim();
+                if (filter) {
+                    records = records.filter(r => r.member_name && r.member_name.includes(filter));
+                }
+            }
+            
+            return records;
+        }
+        
+        // ============================================
+        // 渲染分組內容
+        // ============================================
+        function renderGroupedContent() {
+            const records = getFilteredRecords();
+            
+            if (records.length === 0) {
+                document.getElementById('contentArea').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">沒有找到課表紀錄</div>
+                    </div>
+                `;
+                updateStats();
+                return;
+            }
+            
+            updateStats();
+            
+            let html = '';
+            
+            if (currentTarget.type === 'member') {
+                // 學員模式：按課種分組
+                html = renderByClassType(records);
+            } else {
+                // 教練模式：按學員分組
+                html = renderByMember(records);
+            }
+            
+            document.getElementById('contentArea').innerHTML = html;
+        }
+        
+        function renderByClassType(records) {
+            const groups = {};
+            
+            records.forEach(r => {
+                if (!groups[r.class_type]) groups[r.class_type] = [];
+                groups[r.class_type].push(r);
+            });
+            
+            // 排序：重訓 > 皮拉提斯 > 伸展
+            const order = ['strength_training', 'pilates', 'stretching'];
+            const sortedTypes = Object.keys(groups).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+            
+            return sortedTypes.map(type => {
+                const config = CLASS_TYPE_CONFIG[type] || { name: type, icon: '📋', class: '' };
+                const typeRecords = groups[type].sort((a, b) => b.class_date.localeCompare(a.class_date));
+                
+                return `
+                    <div class="group-section">
+                        <div class="group-header ${config.class}" onclick="toggleGroup(this)">
+                            <div class="group-title">
+                                <div class="group-icon ${config.class}">${config.icon}</div>
+                                <div class="group-name">${config.name}</div>
+                            </div>
+                            <div class="group-count">${typeRecords.length} 堂</div>
+                            <div class="group-toggle">▼</div>
+                        </div>
+                        <div class="timeline-wrapper">
+                            <div class="timeline-scroll">
+                                ${typeRecords.map(r => renderTimelineDate(r, config.class)).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderByMember(records) {
+            const groups = {};
+            
+            records.forEach(r => {
+                const key = r.member_id || r.member_name;
+                if (!groups[key]) {
+                    groups[key] = {
+                        name: r.member_name,
+                        id: r.member_id,
+                        records: []
+                    };
+                }
+                groups[key].records.push(r);
+            });
+            
+            // 按紀錄數量排序
+            const sortedMembers = Object.values(groups).sort((a, b) => b.records.length - a.records.length);
+            
+            return sortedMembers.map(member => {
+                const memberRecords = member.records.sort((a, b) => b.class_date.localeCompare(a.class_date));
+                
+                return `
+                    <div class="group-section">
+                        <div class="group-header member" onclick="toggleGroup(this)">
+                            <div class="group-title">
+                                <div class="group-icon member">👤</div>
+                                <div class="group-name">${member.name}</div>
+                            </div>
+                            <div class="group-count">${memberRecords.length} 堂</div>
+                            <div class="group-toggle">▼</div>
+                        </div>
+                        <div class="timeline-wrapper">
+                            <div class="timeline-scroll">
+                                ${memberRecords.map(r => {
+                                    const config = CLASS_TYPE_CONFIG[r.class_type] || { class: '' };
+                                    return renderTimelineDate(r, config.class);
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderTimelineDate(record, typeClass) {
+            const date = new Date(record.class_date);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekday = WEEKDAYS[date.getDay()];
+            
+            return `
+                <div class="timeline-date ${typeClass}" onclick="viewRecord(${record.id})">
+                    <div class="month">${month}月</div>
+                    <div class="day">${day}</div>
+                    <div class="weekday">週${weekday}</div>
+                    <div class="time">${record.class_time}</div>
+                </div>
+            `;
+        }
+        
+        function toggleGroup(header) {
+            header.classList.toggle('collapsed');
+            header.nextElementSibling.classList.toggle('collapsed');
+        }
+        
+        // ============================================
+        // 查看詳情
+        // ============================================
+        function viewRecord(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) return;
+            
+            const config = CLASS_TYPE_CONFIG[record.class_type] || { name: record.class_type, class: '' };
+            
+            const header = document.getElementById('modalHeader');
+            header.className = 'modal-header ' + config.class;
+            document.getElementById('modalTitle').textContent = `${config.name} 課表紀錄`;
+            
+            let photosHtml = '';
+            if (record.photos) {
+                const photos = record.photos.split(',').filter(p => p.trim());
+                if (photos.length > 0) {
+                    photosHtml = `
+                        <div class="detail-section">
+                            <div class="detail-title">📷 課表照片</div>
+                            <div class="detail-photos">
+                                ${photos.map(url => `
+                                    <div class="detail-photo" onclick="openLightbox('${url.trim()}')">
+                                        <img src="${url.trim()}" alt="課表照片">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-title">📋 基本資訊</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>日期</label>
+                            <span>${record.class_date}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>時間</label>
+                            <span>${record.class_time}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>學員</label>
+                            <span>${record.member_name}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>教練</label>
+                            <span>${record.coach_name}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>課種</label>
+                            <span>${config.name}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>課間狀態</label>
+                            <span>${record.mental_state_rating ? record.mental_state_rating + '/5' : '-'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${record.training_purpose ? `
+                    <div class="detail-section">
+                        <div class="detail-title">🎯 訓練目的</div>
+                        <div class="detail-notes">${record.training_purpose}</div>
+                    </div>
+                ` : ''}
+                
+                ${photosHtml}
+                
+                ${record.incident_types && record.incident_types !== '無' && record.incident_types !== '' ? `
+                    <div class="detail-section">
+                        <div class="detail-title" style="color: var(--pink-dark);">⚠️ 課間狀況</div>
+                        <div class="detail-notes" style="background: var(--pink-light); border-color: var(--pink);">
+                            ${record.incident_types}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('detailModal').classList.add('show');
+        }
+        
+        function goToEdit() {
+            showToast('編輯功能開發中', 'info');
+        }
+        
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+        
+        // ============================================
+        // 工具函數
+        // ============================================
+        function openLightbox(src) {
+            document.getElementById('lightboxImage').src = src;
+            document.getElementById('imageLightbox').classList.add('show');
+        }
+        
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.remove('show');
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeLightbox();
+            }
+        });
+        
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
