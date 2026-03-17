@@ -148,6 +148,18 @@
         .hidden-chip:hover { border-color: var(--green); background: rgba(255,255,255,0.8); }
         .hidden-chip .plus { color: var(--green); font-weight: 700; }
 
+        /* Specialty Picker */
+        .spec-picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .spec-picker-overlay.show { display: flex; }
+        .spec-picker-box { background: white; border-radius: 20px; padding: 24px; max-width: 340px; width: 100%; text-align: center; animation: fadeInUp 0.3s ease; }
+        .spec-picker-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .spec-picker-sub { font-size: 13px; color: #999; margin-bottom: 16px; }
+        .spec-picker-btns { display: flex; flex-direction: column; gap: 8px; }
+        .spec-picker-btn { padding: 14px; border: 2px solid #e5e5e5; border-radius: 12px; font-size: 15px; font-weight: 600; background: white; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .spec-picker-btn:hover { border-color: var(--green); background: var(--green-light); }
+        .spec-picker-btn:active { transform: scale(0.97); }
+        .spec-picker-cancel { margin-top: 8px; padding: 10px; border: none; background: none; color: #999; font-size: 13px; cursor: pointer; font-family: inherit; }
+
         .module-card:nth-child(1) { animation: fadeInUp 0.35s ease 0.12s both; }
         .module-card:nth-child(2) { animation: fadeInUp 0.35s ease 0.17s both; }
         .module-card:nth-child(3) { animation: fadeInUp 0.35s ease 0.22s both; }
@@ -255,9 +267,9 @@
 <body>
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-logo">
-            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健身">
+            <img src="https://ik.imagekit.io/hanhealth/assets/logo.png?updatedAt=1772155101138" alt="衡點健康">
         </div>
-        <div class="loading-sub">Hendia</div>
+        <div class="loading-sub">Ｈendia</div>
         <div class="loading-spinner"></div>
         <div class="loading-text">系統載入中...</div>
     </div>
@@ -365,6 +377,14 @@
     </div>
 
     <div class="toast" id="toast"></div>
+    <div class="spec-picker-overlay" id="specPickerOverlay" onclick="if(event.target===this)closeSpecPicker()">
+        <div class="spec-picker-box">
+            <div class="spec-picker-title">選擇體驗課類型</div>
+            <div class="spec-picker-sub">您有多個專長，請選擇要開放的體驗類型</div>
+            <div class="spec-picker-btns" id="specPickerBtns"></div>
+            <button class="spec-picker-cancel" onclick="closeSpecPicker()">取消</button>
+        </div>
+    </div>
 
     <script>
     // ====================================================================
@@ -431,12 +451,12 @@
         { id:'personal-schedule', icon:'📅', name:'個人排班', desc:'查看我的排班',
           url:'https://oxencust.github.io/staff-schedule/personal', color:'yellow',
           roles:['super_admin','admin','staff'],
-         customParams: { name: '{realName}' } },
+          customParams: { name: '{realName}' } },
 
         { id:'trial-schedule', icon:'🗓️', name:'體驗排程', desc:'體驗課可預約時段',
           url:'https://experience3.zeabur.app/', color:'yellow',
           roles:['super_admin','admin','coach'],
-          customParams: { teacher: '{name}', type: '' } },
+          customParams: { teacher: '{name}', type: '{type}' } },
 
         { id:'trial-feedback', icon:'💬', name:'體驗課回報', desc:'體驗課後回報填寫',
           url:'https://feedback-form.zeabur.app', color:'green',
@@ -1006,10 +1026,32 @@
     // 外部模組：需要自己做 LIFF 登入，用新分頁開啟（不載入 iframe）
     const EXTERNAL_MODULES = ['substitute', 'substitute-coach', 'trial-schedule', 'trial-feedback', 'class-record', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
 
+    const SPEC_TYPE_NAMES = { pilates:'皮拉提斯', weight:'重量訓練', stretch:'伸展課程', ai:'AI分析' };
+
     function navigateToModule(mod) {
         if (isEditMode) return;
 
         // 判斷是否用教練身分進入此模組
+        const coachData = currentUser.coach_data;
+        const useCoachIdentity = coachData && COACH_MODULES.includes(mod.id);
+
+        // 如果是體驗排程 + 教練有多個專長 → 先讓教練選
+        if (mod.id === 'trial-schedule' && useCoachIdentity && coachData.specialties && coachData.specialties.length > 1) {
+            showSpecialtyPicker(coachData.specialties, function(selectedType) {
+                doNavigate(mod, selectedType);
+            });
+            return;
+        }
+
+        // 自動解析 type（單一專長或非教練）
+        let autoType = '';
+        if (useCoachIdentity && coachData.specialties && coachData.specialties.length === 1) {
+            autoType = SPEC_TYPE_NAMES[coachData.specialties[0]] || '';
+        }
+        doNavigate(mod, autoType);
+    }
+
+    function doNavigate(mod, resolvedType) {
         const coachData = currentUser.coach_data;
         const useCoachIdentity = coachData && COACH_MODULES.includes(mod.id);
 
@@ -1032,7 +1074,12 @@
         if (mod.customParams) {
             const replaceName = useCoachIdentity ? coachData.name : currentUser.name;
             for (const [key, val] of Object.entries(mod.customParams)) {
-                baseParams[key] = val.replace('{name}', replaceName).replace('{realName}', currentUser.realName || currentUser.name).replace('{uid}', currentUser.lineUid).replace('{role}', currentUser.role);
+                baseParams[key] = val
+                    .replace('{name}', replaceName)
+                    .replace('{realName}', currentUser.realName || currentUser.name)
+                    .replace('{uid}', currentUser.lineUid)
+                    .replace('{role}', currentUser.role)
+                    .replace('{type}', resolvedType || '');
             }
         }
 
@@ -1183,6 +1230,29 @@
                 <button onclick="handleLogout()" style="margin-top: 20px; padding: 12px 24px; border: none; border-radius: 12px; background: var(--green); color: white; font-size: 14px; font-weight: 600; cursor: pointer;">登出</button>
             </div>
         `;
+    }
+
+    // Specialty Picker
+    let _specPickerCallback = null;
+    function showSpecialtyPicker(specialties, callback) {
+        _specPickerCallback = callback;
+        const ICONS = { pilates:'🧘', weight:'💪', stretch:'🤸', ai:'🤖' };
+        const container = document.getElementById('specPickerBtns');
+        container.innerHTML = specialties.map(s => {
+            const name = SPEC_TYPE_NAMES[s] || s;
+            const icon = ICONS[s] || '📋';
+            return '<button class="spec-picker-btn" onclick="pickSpecialty(\''+name+'\')">' + icon + ' ' + name + '</button>';
+        }).join('');
+        document.getElementById('specPickerOverlay').classList.add('show');
+    }
+    function pickSpecialty(typeName) {
+        closeSpecPicker();
+        if (_specPickerCallback) _specPickerCallback(typeName);
+        _specPickerCallback = null;
+    }
+    function closeSpecPicker() {
+        document.getElementById('specPickerOverlay').classList.remove('show');
+        _specPickerCallback = null;
     }
 
     function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
