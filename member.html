@@ -266,7 +266,7 @@ function viewDetail(id){
     if(s.related_member)h+=ddf('關係會員',escHtml(s.related_member));if(isFieldVisible('line_uid'))h+=ddf('LINE UID',getFieldDisplay('line_uid',s.line_uid),true);
     if(s.line_display_name)h+=ddf('LINE名稱',escHtml(s.line_display_name));
     h+='</div></div><div class="detail-section"><div class="detail-section-title">課程資訊</div><div class="detail-grid">';
-    h+=ddf('🧘 皮教練',escHtml(s.pilates_coach||'-'));h+=ddf('💪 重訓教練',escHtml(s.weight_coach||'-'));h+=ddf('🤸 伸展課程',escHtml(s.stretch_course||'-'));
+    h+=ddf('🧘 皮拉提斯教練',escHtml(s.pilates_coach||'-'));h+=ddf('💪 重訓教練',escHtml(s.weight_coach||'-'));h+=ddf('🤸 伸展課程',escHtml(s.stretch_course||'-'));
     if(s.booking_record_30d)h+=ddf('30日預約',escHtml(s.booking_record_30d),true);
     h+='</div></div>';
     if(isFieldVisible('medical_history')||isFieldVisible('fitness_goal')||s.ai_report){h+='<div class="detail-section"><div class="detail-section-title">健康資訊</div><div class="detail-grid">';if(isFieldVisible('medical_history'))h+=ddf('疾病史',getFieldDisplay('medical_history',s.medical_history),true);if(isFieldVisible('fitness_goal'))h+=ddf('健身目標',getFieldDisplay('fitness_goal',s.fitness_goal),true);if(s.ai_report)h+=ddf('AI報告',escHtml(s.ai_report),true);h+='</div></div>';}
