@@ -185,7 +185,7 @@ async function loadStudents(){
         let q=sb.from('students').select('*',{count:'exact'});
         if(searchTerm)q=q.or('name.ilike.%'+searchTerm+'%,id.ilike.%'+searchTerm+'%,phone.ilike.%'+searchTerm+'%,line_display_name.ilike.%'+searchTerm+'%');
         const from=(currentPage-1)*pageSize;
-        const{data,error,count}=await q.order('id',{ascending:true}).range(from,from+pageSize-1);
+        const{data,error,count}=await q.order('id',{ascending:false}).range(from,from+pageSize-1);
         if(error)throw error;
         students=data||[];totalCount=count||0;
         document.getElementById('topSub').textContent='共 '+totalCount+' 位學員';
