@@ -441,8 +441,20 @@ async function openInbodyHistory(memberId, memberName) {
             }
         });
         
-        if (data.length === 0) {
+        if (data.length === 0 && motiData.filter(m => m.inbody_images).length === 0) {
             document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">🏋️</div><p>尚無 InBody 紀錄</p></div>';
+            return;
+        }
+        // 如果 inbody_records 沒資料但 MOTI 有 InBody 照片，用 MOTI 資料生成列表
+        if (data.length === 0) {
+            var motiWithImg = motiData.filter(function(m) { return m.inbody_images; });
+            document.getElementById('recordBody').innerHTML = '<div class="record-timeline">' + motiWithImg.map(function(m, i) {
+                var date = m.assessment_date || '-';
+                var imgs = '';
+                var urls = m.inbody_images.split(',').map(function(u){return u.trim();}).filter(Boolean);
+                if (urls.length > 0) imgs = '<div class="record-item-images">' + urls.map(function(u){return '<img src="'+escAttr(u)+'" onclick="event.stopPropagation();openLightbox(\''+escAttr(u)+'\')" loading="lazy">';}).join('') + '</div>';
+                return '<div class="record-item inbody-item"><div class="record-item-head"><span class="record-item-date">' + date + '</span><span class="record-item-badge">第 ' + (motiWithImg.length - i) + ' 次</span></div><div class="record-item-summary">InBody 報告照片</div>' + imgs + '</div>';
+            }).join('') + '</div>';
             return;
         }
         document.getElementById('recordBody').innerHTML = '<div class="record-timeline">' + data.map(function(r, i) {
