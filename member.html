@@ -298,7 +298,57 @@ function editStudent(id){
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
 async function saveStudent(){
-    if(!editingStudent)return;
+    // ===== 新增模式 =====
+    if(!editingStudent){
+        const name=val('edit_name');
+        const gender=val('edit_gender');
+        const phone=val('edit_phone');
+        if(!name){showToast('請填寫姓名');return;}
+        if(!gender){showToast('請選擇性別');return;}
+        if(!phone){showToast('請填寫電話');return;}
+        const fields={
+            name:name,
+            nickname:val('edit_nickname'),
+            gender:gender,
+            phone:phone,
+            email:val('edit_email'),
+            birth_date:val('edit_birth')||null,
+            medical_history:val('edit_medical'),
+            member_level:val('edit_level')||'normal'
+        };
+        try{
+            showToast('⏳ 新增中...');
+            const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'createStudent',fields:fields})});
+            const j=await r.json();
+            if(!j.success){showToast('❌ 新增失敗：'+(j.error||''));return;}
+            const newId=j.id;
+            try{
+                const sbData={
+                    id:newId,
+                    name:fields.name,
+                    nickname:fields.nickname,
+                    line_display_name:'',
+                    phone:fields.phone,
+                    email:fields.email,
+                    gender:fields.gender,
+                    birth_date:fields.birth_date,
+                    medical_history:fields.medical_history,
+                    member_level:fields.member_level,
+                    created_at:new Date().toISOString(),
+                    updated_at:new Date().toISOString()
+                };
+                const{error}=await sb.from('students').insert(sbData);
+                if(error)throw error;
+            }catch(se){
+                console.error('Supabase insert error:',se);
+            }
+            showToast('✅ 已新增：'+newId);
+            closeModal('editModal');
+            await loadStudents();
+        }catch(e){showToast('❌ 新增失敗：'+e.message);}
+        return;
+    }
+    // ===== 編輯模式（以下不動）=====
     const u={};
     const nn=val('edit_nickname');if(nn!==escAttr(editingStudent.line_display_name||''))u.line_display_name=nn;
     const gv=val('edit_gender');if(gv!==genderNorm(editingStudent.gender))u.gender=gv;
