@@ -195,12 +195,12 @@ async function loadStudents(){
 }
 async function loadStats(){
     try{
-        const{data}=await sb.from('students').select('member_level,pilates_coach,weight_coach',{count:'exact'}).limit(5000);
+        const{data,count}=await sb.from('students').select('member_level,pilates_coach,weight_coach',{count:'exact'}).limit(5000);
         if(!data)return;
         const lvl={};const coaches=new Set();
         data.forEach(s=>{lvl[s.member_level||'normal']=(lvl[s.member_level||'normal']||0)+1;if(s.pilates_coach)coaches.add(s.pilates_coach);if(s.weight_coach)coaches.add(s.weight_coach);});
         document.getElementById('quickStats').innerHTML=
-            '<div class="qs"><div class="qs-num">'+data.length+'</div><div class="qs-label">總學員</div></div>'+
+            '<div class="qs"><div class="qs-num">'+(count||data.length)+'</div><div class="qs-label">總學員</div></div>'+
             '<div class="qs"><div class="qs-num">'+(lvl.gold||0)+'</div><div class="qs-label">金卡</div></div>'+
             '<div class="qs"><div class="qs-num">'+(lvl.vip||0)+'</div><div class="qs-label">VIP</div></div>'+
             '<div class="qs"><div class="qs-num">'+coaches.size+'</div><div class="qs-label">教練數</div></div>';
@@ -248,9 +248,10 @@ function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'<
 function aff(l,v){return '<div class="a-field full"><span class="a-field-label">'+l+'</span><span class="a-field-value" style="white-space:normal;">'+v+'</span></div>';}
 function toggleCard(id){const c=document.getElementById('card-'+id);if(c)c.classList.toggle('expanded');}
 
-function renderPagination(){const tp=Math.ceil(totalCount/pageSize)||1;document.getElementById('pagination').style.display=totalCount>0?'flex':'none';document.getElementById('pageInfo').textContent=currentPage+' / '+tp;document.getElementById('prevBtn').disabled=currentPage<=1;document.getElementById('nextBtn').disabled=currentPage>=tp;}
+function renderPagination(){const tp=Math.ceil(totalCount/pageSize)||1;document.getElementById('pagination').style.display=totalCount>0?'flex':'none';let sel='<select class="page-select" onchange="jumpPage(this.value)">';for(let i=1;i<=tp;i++)sel+='<option value="'+i+'"'+(i===currentPage?' selected':'')+'>第 '+i+' 頁</option>';sel+='</select>';document.getElementById('pageInfo').innerHTML=sel+' / '+tp;document.getElementById('prevBtn').disabled=currentPage<=1;document.getElementById('nextBtn').disabled=currentPage>=tp;}
 function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();currentPage=1;loadStudents();},300);}
 function goPage(d){const tp=Math.ceil(totalCount/pageSize)||1;const np=currentPage+d;if(np<1||np>tp)return;currentPage=np;loadStudents();window.scrollTo(0,0);}
+function jumpPage(p){const pg=parseInt(p);const tp=Math.ceil(totalCount/pageSize)||1;if(pg<1||pg>tp)return;currentPage=pg;loadStudents();window.scrollTo(0,0);}
 function changePageSize(){pageSize=parseInt(document.getElementById('pageSizeSelect').value)||50;currentPage=1;loadStudents();}
 
 function viewDetail(id){
