@@ -101,7 +101,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbxBhtPBEcV_gBautvKcxAK_kk2GdDUrV8lGbP5x_UrDknIOxV9YPnJz7Ky3o5EElwhFMg/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbykUjAWiLQm7YTcSYHtzrCBjdJpoMO5tSOvo97ZqbwbWUxiGMbXHFDasq_qrufwfWDvvQ/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoach=null,currentFilter='all',statusFilter='active';
 const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
