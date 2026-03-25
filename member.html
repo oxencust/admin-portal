@@ -195,7 +195,7 @@ async function loadStudents(){
 }
 async function loadStats(){
     try{
-        const{data}=await sb.from('students').select('member_level,pilates_coach,weight_coach');
+        const{data}=await sb.from('students').select('member_level,pilates_coach,weight_coach',{count:'exact'}).limit(5000);
         if(!data)return;
         const lvl={};const coaches=new Set();
         data.forEach(s=>{lvl[s.member_level||'normal']=(lvl[s.member_level||'normal']||0)+1;if(s.pilates_coach)coaches.add(s.pilates_coach);if(s.weight_coach)coaches.add(s.weight_coach);});
