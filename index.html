@@ -469,6 +469,10 @@
         { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
           url:'https://analyze-form.zeabur.app', color:'purple',
           roles:['super_admin','admin','analyst'] },
+
+        { id:'consultation', icon:'📋', name:'諮詢單管理', desc:'顧客體驗諮詢資料管理',
+          url:'consultation.html', color:'pink',
+          roles:['super_admin','admin','staff'] },
     ];
 
     const ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
