@@ -499,6 +499,7 @@ function renderView(r) {
 // ── Render: edit ──────────────────────────────────
 function renderEdit(r) {
     setDH(r);
+    const sk = r.statusKey || 'new'; 
     const goals = splitL(r.goals);
     const dis   = splitL(r.diseases);
     const tp    = parseTP(r.time_preferences||'');
