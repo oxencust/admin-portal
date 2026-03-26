@@ -268,7 +268,7 @@
 //  ⚙️ 部署 Apps Script 後把 Web App URL 貼在這裡
 //  執行身分：我 ／ 存取權：所有人
 // ═══════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbykUjAWiLQm7YTcSYHtzrCBjdJpoMO5tSOvo97ZqbwbWUxiGMbXHFDasq_qrufwfWDvvQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby_xZAQIgkTaBhMTGarI_Sg3enMkVzR9o8i54_DRSPoMZcPhVkP-DtGD_-ZkaPXQTD_Lw/exec';
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
@@ -440,7 +440,6 @@ function renderView(r) {
         <div class="fg">
             ${fv('提交時間', r.submittedAt)}
             ${fv('LINE 暱稱', r.displayName)}
-            ${fv('LINE ID', r.lineId, true)}
             ${fv('填寫諮詢單人', r.applicant_type)}
         </div>
         <div class="fi mt8">
@@ -523,7 +522,6 @@ function renderEdit(r) {
         <div class="sec-hd">📅 提交資訊</div>
         <div class="fg">
             <div class="fi"><div class="fl">提交時間（唯讀）</div><div class="fv mt">${r.submittedAt||'—'}</div></div>
-            <div class="fi"><div class="fl">LINE ID（唯讀）</div><div class="fv mt" style="font-size:11px">${r.lineId||'—'}</div></div>
             <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
         </div>
 
@@ -539,7 +537,7 @@ function renderEdit(r) {
                 </select>
             </div>
             <div class="fi"><div class="fl">生日</div><input class="ei" type="date" id="e_bday" value="${fmtDateInput(r.birthday)}" oninput="dirty()"></div>
-            <div class="fi"><div class="fl">電話</div><input class="ei" id="e_phone" value="${esc(r.phone)}" inputmode="tel" oninput="dirty()"></div>
+            <div class="fi"><div class="fl">電話</div><div class="fv">${r.phone||'—'}</div></div>
             <div class="fi fw"><div class="fl">電子信箱</div><input class="ei" id="e_email" value="${esc(r.email)}" type="email" oninput="dirty()"></div>
             <div class="fi fw"><div class="fl">職業</div><input class="ei" id="e_occ" value="${esc(r.occupation)}" oninput="dirty()"></div>
         </div>
@@ -673,7 +671,6 @@ function collect() {
         name:             g('e_name'),
         gender:           g('e_gender'),
         birthday:         g('e_bday'),
-        phone:            g('e_phone'),
         email:            g('e_email'),
         occupation:       g('e_occ'),
         // 健身需求
