@@ -88,7 +88,7 @@
         .dov{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:200;display:none;align-items:flex-end;justify-content:center}
         .dov.show{display:flex;animation:ovin .2s ease}
         @keyframes ovin{from{opacity:0}to{opacity:1}}
-        .drw{width:100%;max-width:600px;max-height:93vh;background:white;border-radius:20px 20px 0 0;display:flex;flex-direction:column;animation:slup .3s cubic-bezier(.4,0,.2,1)}
+        .drw{width:100%;max-width:480px;max-height:93vh;background:white;border-radius:20px 20px 0 0;display:flex;flex-direction:column;animation:slup .3s cubic-bezier(.4,0,.2,1)}
         @keyframes slup{from{transform:translateY(100%)}to{transform:translateY(0)}}
         .dhandle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:10px auto 0;flex-shrink:0}
 
@@ -113,6 +113,7 @@
         .fg .fw{grid-column:1/-1}
         .fi{display:flex;flex-direction:column;gap:4px}
         .fl{font-size:10px;font-weight:700;color:#999;letter-spacing:.5px}
+        .req-mark{font-size:9px;font-weight:600;color:#e05252;letter-spacing:0;margin-left:3px}
 
         /* View */
         .fv{font-size:13px;font-weight:500;color:var(--text);padding:8px 10px;background:#f8faf9;border-radius:8px;min-height:34px;word-break:break-all;line-height:1.6}
@@ -267,7 +268,7 @@
 //  ⚙️ 部署 Apps Script 後把 Web App URL 貼在這裡
 //  執行身分：我 ／ 存取權：所有人
 // ═══════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwcvbQ2K7wiARUPHgMZUU1oad53YVAPox6gMJYhQQ823uvYC_R8kFiKJsW3Q_uY3Q2v/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbykUjAWiLQm7YTcSYHtzrCBjdJpoMO5tSOvo97ZqbwbWUxiGMbXHFDasq_qrufwfWDvvQ/exec';
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
@@ -426,6 +427,14 @@ function renderView(r) {
     const sk = r.statusKey||'new';
     document.getElementById('DSC').innerHTML = `
 
+        <!-- 狀態（最前面）-->
+        <div class="strow" style="margin-bottom:16px">
+            ${['new','booked','closed'].map(s => `
+            <button class="stbtn ${sk===s?'a-'+s:''}" disabled style="opacity:${sk===s?1:.35}">
+                ${SD[s]} ${SZH[s]}
+            </button>`).join('')}
+        </div>
+
         <!-- 提交資訊 + 結案 -->
         <div class="sec-hd">📅 提交資訊</div>
         <div class="fg">
@@ -443,7 +452,7 @@ function renderView(r) {
         <div class="sec-hd">📞 聯絡資料</div>
         <div class="fg">
             ${fv('姓名', r.name)} ${fv('性別', r.gender)}
-            ${fv('生日', r.birthday)} ${fv('年齡', r.birthday?calcAge(r.birthday)+'歲':'')}
+            ${fv('生日', fmtBirthday(r.birthday))} ${fv('年齡', r.birthday?calcAge(r.birthday)+'歲':'')}
             ${fv('電話', r.phone)} ${fv('Email', r.email, true)}
             ${fv('職業', r.occupation, true)}
         </div>
@@ -482,6 +491,7 @@ function renderView(r) {
             ${fv('是否AI檢測', r.is_ai)}
             ${fv('是否購買課程', r.is_purchased)}
             ${fv('優惠儲值', r.promo, true)}
+            ${fv('inbody儲值', r.inbody, true)}
         </div>
 
         <div style="height:6px"></div>`;
@@ -497,19 +507,24 @@ function renderEdit(r) {
 
     document.getElementById('DSC').innerHTML = `
 
+        <!-- 狀態（最前面）+ 結案 -->
+        <div class="strow" id="SR" style="margin-bottom:8px">
+            ${['new','booked','closed'].map(s => `
+            <button class="stbtn ${sk===s?'a-'+s:''}" data-s="${s}" onclick="selStatus('${s}',this)">
+                ${SD[s]} ${SZH[s]}
+            </button>`).join('')}
+        </div>
+        <label class="closed-toggle ${r.closed?'on':''}" id="closedToggle" onclick="toggleClosed(this)" style="margin-bottom:16px">
+            <input type="checkbox" id="e_closed" ${r.closed?'checked':''} onchange="dirty()">
+            <span id="closedLabel">${r.closed?'✅ 已結案（點擊取消）':'— 未結案（點擊標記結案）'}</span>
+        </label>
+
         <!-- 提交資訊 -->
         <div class="sec-hd">📅 提交資訊</div>
         <div class="fg">
             <div class="fi"><div class="fl">提交時間（唯讀）</div><div class="fv mt">${r.submittedAt||'—'}</div></div>
             <div class="fi"><div class="fl">LINE ID（唯讀）</div><div class="fv mt" style="font-size:11px">${r.lineId||'—'}</div></div>
             <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
-        </div>
-        <div class="fi mt8">
-            <div class="fl">結案</div>
-            <label class="closed-toggle ${r.closed?'on':''}" id="closedToggle" onclick="toggleClosed(this)">
-                <input type="checkbox" id="e_closed" ${r.closed?'checked':''} onchange="dirty()">
-                <span id="closedLabel">${r.closed?'✅ 已結案（點擊取消）':'— 未結案（點擊標記結案）'}</span>
-            </label>
         </div>
 
         <!-- 聯絡資料 -->
@@ -523,30 +538,10 @@ function renderEdit(r) {
                     <option ${r.gender==='女'?'selected':''}>女</option>
                 </select>
             </div>
-            <div class="fi"><div class="fl">生日</div><input class="ei" type="date" id="e_bday" value="${r.birthday||''}" oninput="dirty()"></div>
+            <div class="fi"><div class="fl">生日</div><input class="ei" type="date" id="e_bday" value="${fmtDateInput(r.birthday)}" oninput="dirty()"></div>
             <div class="fi"><div class="fl">電話</div><input class="ei" id="e_phone" value="${esc(r.phone)}" inputmode="tel" oninput="dirty()"></div>
             <div class="fi fw"><div class="fl">電子信箱</div><input class="ei" id="e_email" value="${esc(r.email)}" type="email" oninput="dirty()"></div>
             <div class="fi fw"><div class="fl">職業</div><input class="ei" id="e_occ" value="${esc(r.occupation)}" oninput="dirty()"></div>
-        </div>
-
-        <!-- 健身需求 -->
-        <div class="sec-hd">🏋️ 健身需求</div>
-        <div class="fi" style="margin-bottom:8px">
-            <div class="fl" style="margin-bottom:6px">健身目標（複選）</div>
-            <div class="cg">${GOALS.map(g=>{const ck=goals.some(x=>x===g||x.startsWith(g));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${g}" ${ck?'checked':''} onchange="dirty()"><span>${g}</span></label>`;}).join('')}</div>
-        </div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">想體驗的課程</div><input class="ei" id="e_courses" value="${esc(r.courses)}" oninput="dirty()"></div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">過往運動經驗</div><textarea class="eta" id="e_exp" oninput="dirty()">${esc(r.exercise_exp)}</textarea></div>
-        <div class="fi" style="margin-bottom:8px">
-            <div class="fl" style="margin-bottom:6px">疾病史（複選）</div>
-            <div class="cg">${DISEASES.map(d=>{const ck=dis.some(x=>x===d||x.startsWith(d));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${d}" ${ck?'checked':''} onchange="dirty()"><span>${d}</span></label>`;}).join('')}</div>
-        </div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">備註</div><textarea class="eta" id="e_rem" oninput="dirty()">${esc(r.remarks)}</textarea></div>
-        <div class="fi" style="margin-bottom:4px"><div class="fl" style="margin-bottom:6px">方便預約時段</div>
-            ${TSLOTS.map(slot=>{
-                const ex=tp.find(p=>p.slot===slot);const ck=!!ex;const noTime=slot==='彈性不固定';
-                return`<div class="tsr"><label><input type="checkbox" data-slot="${slot}" ${ck?'checked':''} onchange="dirty()"><span>${slot}</span></label>${!noTime?`<input class="ei" data-slott="${slot}" value="${ex?ex.time:''}" placeholder="例：9-17" oninput="dirty()">`:''}</div>`;
-            }).join('')}
         </div>
 
         <!-- 行政處理 -->
@@ -575,19 +570,39 @@ function renderEdit(r) {
             </div>
             <input type="hidden" id="e_will" value="${esc(will)}">
         </div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">行政追蹤</div><textarea class="eta" id="e_track" oninput="dirty()">${esc(r.admin_track)}</textarea></div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">行政追蹤 <span class="req-mark">*結案必填</span></div><textarea class="eta" id="e_track" oninput="dirty()">${esc(r.admin_track)}</textarea></div>
+
+        <!-- 健身需求 -->
+        <div class="sec-hd">🏋️ 健身需求</div>
+        <div class="fi" style="margin-bottom:8px">
+            <div class="fl" style="margin-bottom:6px">健身目標（複選）</div>
+            <div class="cg">${GOALS.map(g=>{const ck=goals.some(x=>x===g||x.startsWith(g));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${g}" ${ck?'checked':''} onchange="dirty()"><span>${g}</span></label>`;}).join('')}</div>
+        </div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">想體驗的課程</div><input class="ei" id="e_courses" value="${esc(r.courses)}" oninput="dirty()"></div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">過往運動經驗</div><textarea class="eta" id="e_exp" oninput="dirty()">${esc(r.exercise_exp)}</textarea></div>
+        <div class="fi" style="margin-bottom:8px">
+            <div class="fl" style="margin-bottom:6px">疾病史（複選）</div>
+            <div class="cg">${DISEASES.map(d=>{const ck=dis.some(x=>x===d||x.startsWith(d));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${d}" ${ck?'checked':''} onchange="dirty()"><span>${d}</span></label>`;}).join('')}</div>
+        </div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">備註</div><textarea class="eta" id="e_rem" oninput="dirty()">${esc(r.remarks)}</textarea></div>
+        <div class="fi" style="margin-bottom:4px"><div class="fl" style="margin-bottom:6px">方便預約時段</div>
+            ${TSLOTS.map(slot=>{
+                const ex=tp.find(p=>p.slot===slot);const ck=!!ex;const noTime=slot==='彈性不固定';
+                return`<div class="tsr"><label><input type="checkbox" data-slot="${slot}" ${ck?'checked':''} onchange="dirty()"><span>${slot}</span></label>${!noTime?`<input class="ei" data-slott="${slot}" value="${ex?ex.time:''}" placeholder="例：9-17" oninput="dirty()">`:''}</div>`;
+            }).join('')}
+        </div>
 
         <!-- 結果記錄 -->
         <div class="sec-hd">🏆 結果記錄</div>
         <div class="fg" style="margin-bottom:8px">
-            <div class="fi"><div class="fl">是否AI檢測</div>
+            <div class="fi"><div class="fl">是否AI檢測 <span class="req-mark">*結案必填</span></div>
                 <select class="esel" id="e_ai" onchange="dirty()">
                     <option value="">—</option>
                     <option ${r.is_ai==='是'?'selected':''}>是</option>
                     <option ${r.is_ai==='否'?'selected':''}>否</option>
                 </select>
             </div>
-            <div class="fi"><div class="fl">是否購買課程</div>
+            <div class="fi"><div class="fl">是否購買課程 <span class="req-mark">*結案必填</span></div>
                 <select class="esel" id="e_pur" onchange="dirty()">
                     <option value="">—</option>
                     <option ${r.is_purchased==='是'?'selected':''}>是</option>
@@ -595,10 +610,17 @@ function renderEdit(r) {
                     <option ${r.is_purchased==='考慮中'?'selected':''}>考慮中</option>
                 </select>
             </div>
-            <div class="fi fw"><div class="fl">優惠儲值</div>
+            <div class="fi fw"><div class="fl">優惠儲值 <span class="req-mark">*結案必填</span></div>
                 <select class="esel" id="e_promo" onchange="dirty()">
                     <option value="">— 請選擇</option>
                     ${PROMOS.map(p=>`<option ${r.promo===p?'selected':''}>${p}</option>`).join('')}
+                </select>
+            </div>
+            <div class="fi fw"><div class="fl">inbody儲值 <span class="req-mark">*結案必填</span></div>
+                <select class="esel" id="e_inbody" onchange="dirty()">
+                    <option value="">— 請選擇</option>
+                    <option ${r.inbody==='是'?'selected':''}>是</option>
+                    <option ${r.inbody==='X'?'selected':''}>X</option>
                 </select>
             </div>
         </div>
@@ -671,6 +693,7 @@ function collect() {
         is_ai:            g('e_ai'),
         is_purchased:     g('e_pur'),
         promo:            g('e_promo'),
+        inbody:           g('e_inbody'),
         // meta
         updatedBy:        MY_NAME || MY_UID || '管理員'
     };
@@ -679,8 +702,23 @@ function collect() {
 // ── Save ──────────────────────────────────────────
 async function saveRecord() {
     const btn = document.getElementById('SVB');
-    btn.disabled = true; btn.textContent = '儲存中…';
     const ch = collect();
+
+    // ── 結案前必填驗證 ──
+    if (ch.closed) {
+        const missing = [];
+        if (!ch.admin_track)  missing.push('行政追蹤');
+        if (!ch.is_ai)        missing.push('是否AI檢測');
+        if (!ch.is_purchased) missing.push('是否購買課程');
+        if (!ch.promo)        missing.push('優惠儲值');
+        if (!ch.inbody)       missing.push('inbody儲值');
+        if (missing.length) {
+            toast('⚠️ 結案前請填寫：' + missing.join('、'));
+            return;
+        }
+    }
+
+    btn.disabled = true; btn.textContent = '儲存中…';
     if (ch.birthday) ch.age = calcAge(ch.birthday);
 
     // 更新 statusKey（本地預覽用）
@@ -713,6 +751,45 @@ async function saveRecord() {
 
 // ── Utils ─────────────────────────────────────────
 function splitL(str) { return (str||'').split('、').map(s=>s.trim()).filter(Boolean); }
+
+// 把各種生日格式統一轉成 yyyy-MM-dd（給 <input type="date"> 用）
+function fmtDateInput(val) {
+    if (!val) return '';
+    const s = val.toString().trim();
+    // 已是 yyyy-MM-dd 或 yyyy/MM/dd
+    const m1 = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (m1) return `${m1[1]}-${m1[2].padStart(2,'0')}-${m1[3].padStart(2,'0')}`;
+    // JS Date toString / ISO string
+    try {
+        const d = new Date(s);
+        if (!isNaN(d)) {
+            const y = d.getFullYear();
+            const mo = String(d.getMonth()+1).padStart(2,'0');
+            const dy = String(d.getDate()).padStart(2,'0');
+            return `${y}-${mo}-${dy}`;
+        }
+    } catch(_) {}
+    return '';
+}
+
+// 把生日格式化成易讀字串顯示用
+function fmtBirthday(val) {
+    if (!val) return '';
+    const s = val.toString().trim();
+    // 已是 yyyy/MM/dd 或 yyyy-MM-dd 就直接回傳
+    if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(s)) return s.replace(/-/g,'/');
+    // JS Date toString 格式
+    try {
+        const d = new Date(s);
+        if (!isNaN(d)) {
+            const y = d.getFullYear();
+            const mo = String(d.getMonth()+1).padStart(2,'0');
+            const dy = String(d.getDate()).padStart(2,'0');
+            return `${y}/${mo}/${dy}`;
+        }
+    } catch(_) {}
+    return s;
+}
 function parseTP(str) {
     return str.split('\n').map(l=>{
         const m=l.replace(/^-\s*/,'').match(/^(.+?)(?::\s*(.+))?$/);
@@ -720,11 +797,14 @@ function parseTP(str) {
     }).filter(Boolean);
 }
 function calcAge(bday) {
-    if(!bday) return '';
-    const bd=new Date(bday),now=new Date();
-    let a=now.getFullYear()-bd.getFullYear();
-    if(now.getMonth()-bd.getMonth()<0||(now.getMonth()-bd.getMonth()===0&&now.getDate()<bd.getDate()))a--;
-    return isNaN(a)?'':a;
+    if (!bday) return '';
+    const norm = fmtDateInput(bday.toString());
+    if (!norm) return '';
+    const bd = new Date(norm), now = new Date();
+    let a = now.getFullYear() - bd.getFullYear();
+    if (now.getMonth() - bd.getMonth() < 0 ||
+       (now.getMonth() - bd.getMonth() === 0 && now.getDate() < bd.getDate())) a--;
+    return isNaN(a) ? '' : a;
 }
 function shortDt(str) {
     if(!str) return '—';
