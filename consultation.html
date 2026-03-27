@@ -528,33 +528,8 @@ function renderEdit(r) {
             </label>
         </div>
 
-        <!-- 提交資訊 -->
-        <div class="sec-hd">📅 提交資訊</div>
-        <div class="fg">
-            <div class="fi"><div class="fl">提交時間（唯讀）</div><div class="fv mt">${r.submittedAt||'—'}</div></div>
-            <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
-        </div>
-
-        <!-- 基本資料 -->
-        <div class="sec-hd">👤 基本資料</div>
-        <div class="fg">
-            <div class="fi"><div class="fl">姓名</div><input class="ei" id="e_name" value="${esc(r.name)}" oninput="dirty()"></div>
-            <div class="fi"><div class="fl">性別</div>
-                <select class="esel" id="e_gender" onchange="dirty()">
-                    <option value="">請選擇</option>
-                    <option ${r.gender==='男'?'selected':''}>男</option>
-                    <option ${r.gender==='女'?'selected':''}>女</option>
-                </select>
-            </div>
-            <div class="fi"><div class="fl">生日</div><input class="ei" type="date" id="e_bday" value="${fmtDateInput(r.birthday)}" oninput="dirty()"></div>
-            <div class="fi"><div class="fl">電話</div><div class="fv">${r.phone||'—'}</div></div>
-            <div class="fi fw"><div class="fl">電子信箱</div><input class="ei" id="e_email" value="${esc(r.email)}" type="email" oninput="dirty()"></div>
-            <div class="fi fw"><div class="fl">職業</div><input class="ei" id="e_occ" value="${esc(r.occupation)}" oninput="dirty()"></div>
-        </div>
-
-        <!-- 行政處理 -->
-        <div class="sec-hd">📌 行政處理</div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">預約體驗狀態（日期或備注）</div><input class="ei" id="e_bkst" value="${esc(r.booking_status)}" placeholder="例：2026/03/18(三) 13:00" oninput="dirty()"></div>
+        <!-- 必填欄位（行政）-->
+        <div class="sec-hd">⭐ 行政必填</div>
         <div class="fg" style="margin-bottom:8px">
             <div class="fi"><div class="fl">負責教練</div>
                 <select class="esel" id="e_coach" onchange="dirty()">
@@ -579,29 +554,7 @@ function renderEdit(r) {
             <input type="hidden" id="e_will" value="${esc(will)}">
         </div>
         <div class="fi" style="margin-bottom:8px"><div class="fl">行政追蹤 <span class="req-mark">*結案必填</span></div><textarea class="eta" id="e_track" oninput="dirty()">${esc(r.admin_track)}</textarea></div>
-
-        <!-- 健身需求 -->
-        <div class="sec-hd">🏋️ 健身需求</div>
-        <div class="fi" style="margin-bottom:8px">
-            <div class="fl" style="margin-bottom:6px">健身目標（複選）</div>
-            <div class="cg">${GOALS.map(g=>{const ck=goals.some(x=>x===g||x.startsWith(g));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${g}" ${ck?'checked':''} onchange="dirty()"><span>${g}</span></label>`;}).join('')}</div>
-        </div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">想體驗的課程</div><input class="ei" id="e_courses" value="${esc(r.courses)}" oninput="dirty()"></div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">過往運動經驗</div><textarea class="eta" id="e_exp" oninput="dirty()">${esc(r.exercise_exp)}</textarea></div>
-        <div class="fi" style="margin-bottom:8px">
-            <div class="fl" style="margin-bottom:6px">疾病史（複選）</div>
-            <div class="cg">${DISEASES.map(d=>{const ck=dis.some(x=>x===d||x.startsWith(d));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${d}" ${ck?'checked':''} onchange="dirty()"><span>${d}</span></label>`;}).join('')}</div>
-        </div>
-        <div class="fi" style="margin-bottom:8px"><div class="fl">備註</div><textarea class="eta" id="e_rem" oninput="dirty()">${esc(r.remarks)}</textarea></div>
-        <div class="fi" style="margin-bottom:4px"><div class="fl" style="margin-bottom:6px">方便預約時段</div>
-            ${TSLOTS.map(slot=>{
-                const ex=tp.find(p=>p.slot===slot);const ck=!!ex;const noTime=slot==='彈性不固定';
-                return`<div class="tsr"><label><input type="checkbox" data-slot="${slot}" ${ck?'checked':''} onchange="dirty()"><span>${slot}</span></label>${!noTime?`<input class="ei" data-slott="${slot}" value="${ex?ex.time:''}" placeholder="例：9-17" oninput="dirty()">`:''}</div>`;
-            }).join('')}
-        </div>
-
-        <!-- 結果記錄 -->
-        <div class="sec-hd">🏆 結果記錄</div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">預約體驗狀態</div><input class="ei" id="e_bkst" value="${esc(r.booking_status)}" placeholder="例：2026/03/18(三) 13:00" oninput="dirty()"></div>
         <div class="fg" style="margin-bottom:8px">
             <div class="fi"><div class="fl">是否AI檢測 <span class="req-mark">*結案必填</span></div>
                 <select class="esel" id="e_ai" onchange="dirty()">
@@ -631,6 +584,50 @@ function renderEdit(r) {
                     <option ${r.inbody==='X'?'selected':''}>X</option>
                 </select>
             </div>
+        </div>
+
+        <!-- 提交資訊 -->
+        <div class="sec-hd">📅 提交資訊</div>
+        <div class="fg">
+            <div class="fi"><div class="fl">提交時間（唯讀）</div><div class="fv mt">${r.submittedAt||'—'}</div></div>
+            <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
+        </div>
+
+        <!-- 基本資料 -->
+        <div class="sec-hd">👤 基本資料</div>
+        <div class="fg">
+            <div class="fi"><div class="fl">姓名</div><input class="ei" id="e_name" value="${esc(r.name)}" oninput="dirty()"></div>
+            <div class="fi"><div class="fl">性別</div>
+                <select class="esel" id="e_gender" onchange="dirty()">
+                    <option value="">請選擇</option>
+                    <option ${r.gender==='男'?'selected':''}>男</option>
+                    <option ${r.gender==='女'?'selected':''}>女</option>
+                </select>
+            </div>
+            <div class="fi"><div class="fl">生日</div><input class="ei" type="date" id="e_bday" value="${fmtDateInput(r.birthday)}" oninput="dirty()"></div>
+            <div class="fi"><div class="fl">電話</div><div class="fv">${r.phone||'—'}</div></div>
+            <div class="fi fw"><div class="fl">電子信箱</div><input class="ei" id="e_email" value="${esc(r.email)}" type="email" oninput="dirty()"></div>
+            <div class="fi fw"><div class="fl">職業</div><input class="ei" id="e_occ" value="${esc(r.occupation)}" oninput="dirty()"></div>
+        </div>
+
+        <!-- 健身需求 -->
+        <div class="sec-hd">🏋️ 健身需求</div>
+        <div class="fi" style="margin-bottom:8px">
+            <div class="fl" style="margin-bottom:6px">健身目標（複選）</div>
+            <div class="cg">${GOALS.map(g=>{const ck=goals.some(x=>x===g||x.startsWith(g));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${g}" ${ck?'checked':''} onchange="dirty()"><span>${g}</span></label>`;}).join('')}</div>
+        </div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">想體驗的課程</div><input class="ei" id="e_courses" value="${esc(r.courses)}" oninput="dirty()"></div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">過往運動經驗</div><textarea class="eta" id="e_exp" oninput="dirty()">${esc(r.exercise_exp)}</textarea></div>
+        <div class="fi" style="margin-bottom:8px">
+            <div class="fl" style="margin-bottom:6px">疾病史（複選）</div>
+            <div class="cg">${DISEASES.map(d=>{const ck=dis.some(x=>x===d||x.startsWith(d));return`<label class="citem${ck?' ck':''}" onclick="tck(this)"><input type="checkbox" value="${d}" ${ck?'checked':''} onchange="dirty()"><span>${d}</span></label>`;}).join('')}</div>
+        </div>
+        <div class="fi" style="margin-bottom:8px"><div class="fl">備註</div><textarea class="eta" id="e_rem" oninput="dirty()">${esc(r.remarks)}</textarea></div>
+        <div class="fi" style="margin-bottom:4px"><div class="fl" style="margin-bottom:6px">方便預約時段</div>
+            ${TSLOTS.map(slot=>{
+                const ex=tp.find(p=>p.slot===slot);const ck=!!ex;const noTime=slot==='彈性不固定';
+                return`<div class="tsr"><label><input type="checkbox" data-slot="${slot}" ${ck?'checked':''} onchange="dirty()"><span>${slot}</span></label>${!noTime?`<input class="ei" data-slott="${slot}" value="${ex?ex.time:''}" placeholder="例：9-17" oninput="dirty()">`:''}</div>`;
+            }).join('')}
         </div>
 
         <div style="height:8px"></div>`;
