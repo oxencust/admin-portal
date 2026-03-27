@@ -373,7 +373,11 @@ function renderCards(list) {
         const borderColor = {new:'#e05252', booked:'#7ac19a', closed:'#b2bec3'}[sk]||'#e05252';
         return `<div class="ccard glass-strong" style="animation-delay:${i*.04}s;border-left:4px solid ${borderColor}" onclick="openDrawer(${r._row})">
             <div class="ctop">
-                <div class="cav">${r.gender==='女'?'👩':'🧑'}</div>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;min-width:36px">
+                    <span style="font-size:14px;line-height:1">${SD[sk]}</span>
+                    <span style="font-size:9px;font-weight:600;color:${borderColor};white-space:nowrap;letter-spacing:.2px">${SZH[sk]}</span>
+                </div>
+                <div class="cav" style="flex-shrink:0">${r.gender==='女'?'👩':'🧑'}</div>
                 <div class="cmai">
                     <div class="cnrow">
                         <span class="cname">${r.name||'未填寫'}</span>
@@ -383,7 +387,6 @@ function renderCards(list) {
                     </div>
                     <div class="cmeta">${[r.phone,r.email].filter(Boolean).join(' · ')}</div>
                 </div>
-                <span class="stbadge ${SCS[sk]}">${SD[sk]} ${SZH[sk]}</span>
             </div>
             <div class="cpills">${pc}${pg}${pw}${r.coach?`<span class="pill" style="background:rgba(159,204,204,.2);color:#3a7878">🏋️ ${r.coach}</span>`:''}</div>
             <div class="cfoot"><span class="cdate">提交：${ts}</span>${pat}</div>
