@@ -261,6 +261,19 @@
   </div>
 </div>
 
+<!-- Confirm save -->
+<div class="cov" id="CSOV">
+  <div class="cbox">
+    <div style="font-size:36px;margin-bottom:10px">💾</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">確認儲存</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.5">請確認修改內容無誤後再送出。</div>
+    <div class="cboxbtns" style="margin-top:20px">
+      <button class="btn bc" onclick="document.getElementById('CSOV').classList.remove('show')">繼續編輯</button>
+      <button class="btn bs" onclick="confirmSave()">確認送出</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="TT"></div>
 
 <script>
@@ -373,9 +386,8 @@ function renderCards(list) {
         const borderColor = {new:'#e05252', booked:'#7ac19a', closed:'#b2bec3'}[sk]||'#e05252';
         return `<div class="ccard glass-strong" style="animation-delay:${i*.04}s;border-left:4px solid ${borderColor}" onclick="openDrawer(${r._row})">
             <div class="ctop">
-                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;width:38px">
-                    <span style="font-size:13px;line-height:1">${SD[sk]}</span>
-                    <span style="font-size:9px;font-weight:600;color:${borderColor};white-space:nowrap">${SZH[sk]}</span>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;width:52px">
+                    <span class="stbadge ${SCS[sk]}" style="writing-mode:vertical-rl;text-orientation:mixed;padding:8px 4px;border-radius:10px;font-size:11px;letter-spacing:1px">${SZH[sk]}</span>
                 </div>
                 <div style="display:flex;flex-direction:column;flex:1;min-width:0;gap:6px">
                     <div style="display:flex;align-items:flex-start;gap:10px">
@@ -434,14 +446,6 @@ function renderView(r) {
     setDH(r);
     const sk = r.statusKey||'new';
     document.getElementById('DSC').innerHTML = `
-
-        <!-- 狀態（最前面）-->
-        <div class="strow" style="margin-bottom:16px">
-            ${['new','booked','closed'].map(s => `
-            <button class="stbtn ${sk===s?'a-'+s:''}" disabled style="opacity:${sk===s?1:.35}">
-                ${SD[s]} ${SZH[s]}
-            </button>`).join('')}
-        </div>
 
         <!-- 提交資訊 + 結案 -->
         <div class="sec-hd">📅 提交資訊</div>
@@ -708,6 +712,13 @@ async function saveRecord() {
     const btn = document.getElementById('SVB');
     const ch = collect();
 
+    // ── 姓名不能為空 ──
+    if (!ch.name || !ch.name.trim()) {
+        toast('⚠️ 姓名不能為空');
+        document.getElementById('e_name')?.focus();
+        return;
+    }
+
     // ── 結案前必填驗證 ──
     if (ch.closed) {
         const missing = [];
@@ -722,6 +733,14 @@ async function saveRecord() {
         }
     }
 
+    // ── 顯示確認 Modal ──
+    document.getElementById('CSOV').classList.add('show');
+}
+
+async function confirmSave() {
+    document.getElementById('CSOV').classList.remove('show');
+    const btn = document.getElementById('SVB');
+    const ch = collect();
     btn.disabled = true; btn.textContent = '儲存中…';
     if (ch.birthday) ch.age = calcAge(ch.birthday);
 
