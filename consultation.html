@@ -370,12 +370,10 @@ function renderCards(list) {
         const pat = r.admin_track ? `<span class="ctrack">📌 ${r.admin_track.substring(0,25)}</span>` : '';
         const aiBadge = (r.is_ai==='是'||r.is_ai===true) ? `<span class="cbadge ai">AI檢測</span>` : '';
         const purchaseBadge = r.is_purchased ? `<span class="cbadge" style="background:rgba(122,193,154,.18);color:var(--green-dark)">${r.is_purchased}</span>` : '';
-        return `<div class="ccard glass-strong" style="animation-delay:${i*.04}s" onclick="openDrawer(${r._row})">
+        const borderColor = {new:'#e05252', booked:'#7ac19a', closed:'#b2bec3'}[sk]||'#e05252';
+        return `<div class="ccard glass-strong" style="animation-delay:${i*.04}s;border-left:4px solid ${borderColor}" onclick="openDrawer(${r._row})">
             <div class="ctop">
-                <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0">
-                    <div class="cav">${r.gender==='女'?'👩':'🧑'}</div>
-                    <span class="stbadge ${SCS[sk]}" style="font-size:10px;padding:2px 7px">${SD[sk]} ${SZH[sk]}</span>
-                </div>
+                <div class="cav">${r.gender==='女'?'👩':'🧑'}</div>
                 <div class="cmai">
                     <div class="cnrow">
                         <span class="cname">${r.name||'未填寫'}</span>
@@ -385,6 +383,7 @@ function renderCards(list) {
                     </div>
                     <div class="cmeta">${[r.phone,r.email].filter(Boolean).join(' · ')}</div>
                 </div>
+                <span class="stbadge ${SCS[sk]}">${SD[sk]} ${SZH[sk]}</span>
             </div>
             <div class="cpills">${pc}${pg}${pw}${r.coach?`<span class="pill" style="background:rgba(159,204,204,.2);color:#3a7878">🏋️ ${r.coach}</span>`:''}</div>
             <div class="cfoot"><span class="cdate">提交：${ts}</span>${pat}</div>
@@ -449,8 +448,8 @@ function renderView(r) {
             <div class="fv ${r.closed?'hi mt':''}">${r.closed?'✅ 已結案':'— 尚未結案'}</div>
         </div>
 
-        <!-- 聯絡資料 -->
-        <div class="sec-hd">📞 聯絡資料</div>
+        <!-- 基本資料 -->
+        <div class="sec-hd">👤 基本資料</div>
         <div class="fg">
             ${fv('姓名', r.name)} ${fv('性別', r.gender)}
             ${fv('生日', fmtBirthday(r.birthday))} ${fv('年齡', r.birthday?calcAge(r.birthday)+'歲':'')}
@@ -501,6 +500,7 @@ function renderView(r) {
 // ── Render: edit ──────────────────────────────────
 function renderEdit(r) {
     setDH(r);
+    const sk    = r.statusKey || 'new';
     const goals = splitL(r.goals);
     const dis   = splitL(r.diseases);
     const tp    = parseTP(r.time_preferences||'');
@@ -527,8 +527,8 @@ function renderEdit(r) {
             <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
         </div>
 
-        <!-- 聯絡資料 -->
-        <div class="sec-hd">📞 聯絡資料</div>
+        <!-- 基本資料 -->
+        <div class="sec-hd">👤 基本資料</div>
         <div class="fg">
             <div class="fi"><div class="fl">姓名</div><input class="ei" id="e_name" value="${esc(r.name)}" oninput="dirty()"></div>
             <div class="fi"><div class="fl">性別</div>
