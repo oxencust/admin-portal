@@ -178,6 +178,12 @@
         .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(45,52,54,.92);backdrop-filter:blur(10px);color:white;padding:12px 24px;border-radius:14px;font-size:13px;font-weight:500;z-index:10000;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 4px 20px rgba(0,0,0,.15);white-space:nowrap}
         .toast.show{transform:translateX(-50%) translateY(0)}
 
+        /* Pagination */
+        .pgbtn{min-width:32px;height:32px;padding:0 8px;border:1.5px solid var(--border, #e2ede6);border-radius:8px;background:rgba(255,255,255,.7);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--muted);transition:all .15s}
+        .pgbtn:hover:not(:disabled){background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
+        .pgbtn.active{background:var(--green-light);border-color:var(--green);color:var(--green-dark)}
+        .pgbtn:disabled{opacity:.35;cursor:not-allowed}
+
         @media(max-width:360px){
             .srow{grid-template-columns:repeat(2,1fr)}
             .fg{grid-template-columns:1fr}.fg .fw{grid-column:1}
@@ -225,6 +231,7 @@
 </div>
 
 <div class="clist" id="CL"></div>
+<div id="PG" style="max-width:600px;margin:0 auto;position:relative;z-index:1"></div>
 
 <!-- Drawer -->
 <div class="dov" id="DOV" onclick="if(event.target===this)tryClose()">
@@ -309,6 +316,7 @@ const PROMOS   = [
 ];
 
 let ALL=[], CF='all', REC=null, DRAFT=null, EDIT=false, DIRTY=false;
+let PAGE=1, PAGE_SIZE=20;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (MY_NAME) document.getElementById('HSub').textContent = '操作員：' + MY_NAME;
@@ -346,7 +354,7 @@ function stats() {
 
 // ── Filter ────────────────────────────────────────
 function setFilter(f, el) {
-    CF = f;
+    CF = f; PAGE = 1;
     document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
     el.classList.add('active'); applyFilter();
 }
@@ -363,6 +371,7 @@ function applyFilter() {
         (r.admin_track||'').toLowerCase().includes(q) ||
         (r.displayName||'').toLowerCase().includes(q)
     );
+    PAGE = 1;
     renderCards(list);
 }
 
@@ -371,9 +380,14 @@ function renderCards(list) {
     const el = document.getElementById('CL');
     if (!list.length) {
         el.innerHTML = '<div class="empty"><div style="font-size:48px;margin-bottom:12px">📭</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">沒有符合的紀錄</div><div style="font-size:13px;color:var(--muted)">調整篩選條件或搜尋關鍵字</div></div>';
+        renderPagination(0, []);
         return;
     }
-    el.innerHTML = list.map((r,i) => {
+    const total = list.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (PAGE > totalPages) PAGE = totalPages;
+    const paged = list.slice((PAGE-1)*PAGE_SIZE, PAGE*PAGE_SIZE);
+    el.innerHTML = paged.map((r,i) => {
         const sk = r.statusKey;
         const goals = splitL(r.goals).slice(0,2);
         const ts  = r.submittedAt ? shortDt(r.submittedAt) : '—';
@@ -408,9 +422,65 @@ function renderCards(list) {
             </div>
         </div>`;
     }).join('');
+    renderPagination(total, list);
 }
 
-// ── Drawer open/close ─────────────────────────────
+// ── Pagination ────────────────────────────────────
+function renderPagination(total, list) {
+    const el = document.getElementById('PG');
+    if (!el) return;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+    const start = (PAGE-1)*PAGE_SIZE + 1;
+    const end   = Math.min(PAGE*PAGE_SIZE, total);
+
+    // 產生頁碼按鈕（最多顯示 5 個）
+    let pages = [];
+    let s = Math.max(1, PAGE-2), e = Math.min(totalPages, s+4);
+    s = Math.max(1, e-4);
+    for (let i=s; i<=e; i++) pages.push(i);
+
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;padding:16px 0 8px">
+            <span style="font-size:12px;color:var(--muted);margin-right:4px">${start}–${end} / ${total} 筆</span>
+            <select class="pgbtn" onchange="changePageSize(this.value)" style="padding:0 6px;cursor:pointer">
+                <option value="20" ${PAGE_SIZE===20?'selected':''}>20筆</option>
+                <option value="50" ${PAGE_SIZE===50?'selected':''}>50筆</option>
+                <option value="100" ${PAGE_SIZE===100?'selected':''}>100筆</option>
+            </select>
+            <button class="pgbtn" onclick="goPage(1)" ${PAGE===1?'disabled':''}>«</button>
+            <button class="pgbtn" onclick="goPage(${PAGE-1})" ${PAGE===1?'disabled':''}>‹</button>
+            ${pages.map(p=>`<button class="pgbtn${p===PAGE?' active':''}" onclick="goPage(${p})">${p}</button>`).join('')}
+            <button class="pgbtn" onclick="goPage(${PAGE+1})" ${PAGE===totalPages?'disabled':''}>›</button>
+            <button class="pgbtn" onclick="goPage(${totalPages})" ${PAGE===totalPages?'disabled':''}>»</button>
+        </div>`;
+}
+
+function changePageSize(val) {
+    PAGE_SIZE = parseInt(val);
+    PAGE = 1;
+    applyFilter();
+}
+
+function goPage(p) {
+    const q = document.getElementById('Q').value.trim().toLowerCase();
+    let list = CF==='all' ? ALL : ALL.filter(r=>r.statusKey===CF);
+    if (q) list = list.filter(r =>
+        (r.name||'').toLowerCase().includes(q) ||
+        (r.phone||'').includes(q) ||
+        (r.email||'').toLowerCase().includes(q) ||
+        (r.coach||'').toLowerCase().includes(q) ||
+        (r.courses||'').toLowerCase().includes(q) ||
+        (r.goals||'').toLowerCase().includes(q) ||
+        (r.admin_track||'').toLowerCase().includes(q) ||
+        (r.displayName||'').toLowerCase().includes(q)
+    );
+    const totalPages = Math.ceil(list.length / PAGE_SIZE);
+    PAGE = Math.max(1, Math.min(p, totalPages));
+    renderCards(list);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 function openDrawer(row) {
     const r = ALL.find(x=>x._row===row);
     if (!r) return;
