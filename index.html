@@ -701,7 +701,14 @@
             let role, staffType, dbPerms, userName, userId;
 
             if (staff && staff.status === 'active') {
-                // ---- 有 staff 身分（可能同時有教練身分）----
+                // ---- 有 staff 身分 ----
+                role = staff.permission_level || staff.role || 'staff';
+                staffType = staff.staff_type || '';
+                dbPerms = staff.permissions || {};
+                userName = staff.nickname || staff.name || displayName;
+                userId = staff.id;
+            } else if (staff) {
+                // ---- staff 存在但狀態非 active，仍給予基本角色 ----
                 role = staff.permission_level || staff.role || 'staff';
                 staffType = staff.staff_type || '';
                 dbPerms = staff.permissions || {};
@@ -716,7 +723,7 @@
                 userId = coach.id;
             }
 
-            // 三層權限合併
+            // 操作權限仍保留三層合併（給各模組內部使用）
             const resolvedModules = role === 'super_admin'
                 ? 'all'
                 : resolvePermissions(role, staffType, dbPerms);
@@ -779,10 +786,10 @@
         setGreeting();
         document.getElementById('userName').textContent = currentUser.name;
 
-        // 顯示角色（如果身兼教練也顯示）
+        // 顯示身份（同時有 staff + coach 則顯示雙重身份）
         let roleText = getRoleDisplay(currentUser.role);
-        if (currentUser.coach_data && currentUser.source === 'staff') {
-            roleText += ' + 教練';
+        if (currentUser.coach_data && currentUser.staff_data) {
+            roleText = getRoleDisplay(currentUser.role) + ' + 教練';
         }
         document.getElementById('userRoleText').textContent = roleText;
 
@@ -1155,11 +1162,10 @@
 
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
-        if (currentUser.role === 'super_admin') return true;
-        if (currentUser.permissions === 'all') return true;
-
-        const modPerms = currentUser.permissions[mod.id];
-        return modPerms && modPerms.view === true;
+        // 系統設定只有超級管理員可見
+        if (mod.id === 'settings') return currentUser.role === 'super_admin';
+        // 其餘模組所有登入者都可見
+        return true;
     }
 
     // 檢查特定操作權限
