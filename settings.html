@@ -1,188 +1,183 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>權限設定</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--purple:#a78bca;--purple-light:#f3e8ff;--purple-dark:#7b5ea7;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;}
-.top-card{max-width:600px;margin:12px auto 0;padding:0 12px;}
-.top-inner{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-.top-main{display:flex;justify-content:space-between;align-items:flex-start;}
-.top-main h1{font-size:18px;font-weight:700;color:var(--green-dark);}
-.top-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.user-badge{display:flex;align-items:center;gap:6px;background:var(--green-light);padding:4px 10px 4px 6px;border-radius:20px;}
-.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
-.user-name{font-size:12px;font-weight:600;color:var(--green-dark);}
-.quick-stats{display:flex;gap:8px;margin-top:12px;}
-.qs{flex:1;background:#f8faf8;border-radius:10px;padding:8px 6px;text-align:center;}
-.qs-num{font-size:18px;font-weight:900;color:var(--green-dark);}
-.qs-label{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;}
-.container{max-width:600px;margin:0 auto;padding:12px;padding-bottom:100px;}
-.tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.tab-bar::-webkit-scrollbar{display:none;}
-.tab-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:inherit;}
-.tab-btn.active{background:var(--green);color:white;border-color:var(--green);}
-.staff-selector{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
-.selector-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;}
-.selected-info{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.sel-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.sel-tabs::-webkit-scrollbar{display:none;}
-.sel-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
-.sel-tab.active{background:var(--green);color:white;border-color:var(--green);}
-.sel-tab .cnt{background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;}
-.sel-tab.active .cnt{background:rgba(255,255,255,0.3);}
-.sel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
-.sel-cell{text-align:center;padding:10px 4px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;}
-.sel-cell:hover{border-color:var(--green);background:#f8faf8;}
-.sel-cell.selected{border-color:var(--green);background:var(--green-light);box-shadow:0 0 0 2px rgba(122,193,154,0.3);}
-.sel-cell .sel-avatar{width:38px;height:38px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
-.sel-cell .sel-avatar.staff{background:var(--blue-light);color:var(--blue-dark);}
-.sel-cell .sel-avatar.coach{background:var(--purple-light);color:var(--purple-dark);}
-.sel-cell .sel-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sel-cell .sel-role{font-size:8px;color:var(--text-muted);margin-top:1px;}
-.info-chip{padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;}
-.hint-box{background:var(--yellow);background:linear-gradient(135deg,#fff8e1,#fff3e0);border-radius:12px;padding:12px 14px;font-size:12px;color:#795548;margin-bottom:16px;line-height:1.6;}
-.section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
-.section-title{font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.section-desc{font-size:11px;color:var(--text-muted);margin-bottom:12px;}
-.reset-btn{background:var(--pink-light);color:var(--pink-dark);border:none;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto;font-family:inherit;}
-.perm-table{width:100%;border-collapse:collapse;font-size:12px;}
-.perm-table th{text-align:center;padding:8px 3px;color:var(--text-muted);font-weight:600;font-size:9px;letter-spacing:0.5px;border-bottom:2px solid var(--green-light);}
-.perm-table th:first-child{text-align:left;font-size:10px;}
-.perm-table td{padding:8px 3px;text-align:center;border-bottom:1px solid #f5f5f5;}
-.perm-table td:first-child{text-align:left;font-weight:500;font-size:12px;}
-.perm-table tr:last-child td{border-bottom:none;}
-.perm-table tr:hover{background:#f8faf8;}
-.perm-table input[type="checkbox"]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
-.mod-icon{margin-right:4px;}
-.field-module-title{font-size:13px;font-weight:700;color:var(--green-dark);margin:16px 0 8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
-.field-module-title:first-child{margin-top:0;}
-.field-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}
-.field-table th{text-align:center;padding:6px 4px;font-size:10px;font-weight:600;color:var(--text-muted);}
-.field-table th:first-child{text-align:left;}
-.field-table td{padding:6px 4px;text-align:center;border-bottom:1px solid #f8f8f8;}
-.field-table td:first-child{text-align:left;font-weight:500;}
-.field-table input[type="radio"]{accent-color:var(--green);cursor:pointer;}
-.status-show{color:var(--green-dark)!important;}.status-mask{color:var(--blue-dark)!important;}.status-hide{color:var(--pink-dark)!important;}
-.badge{padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;display:inline-block;}
-.badge-super{background:linear-gradient(135deg,#fff8e1,#ffe082);color:#e65100;}.badge-admin{background:var(--green-light);color:var(--green-dark);}
-.badge-staff{background:var(--blue-light);color:var(--blue-dark);}.badge-viewer{background:#f5f5f5;color:#999;}
-.badge-coach{background:var(--purple-light);color:var(--purple-dark);}
-.badge-active{background:var(--green-light);color:var(--green-dark);}.badge-inactive{background:#ffebee;color:#c62828;}
-.type-tag{background:#f5f5f5;color:var(--text-secondary);}
-.save-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 20px;display:none;gap:10px;justify-content:flex-end;z-index:100;}
-.save-bar.show{display:flex;}
-.btn{padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.btn:active{transform:scale(0.96);}
-.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:white;box-shadow:0 2px 8px rgba(122,193,154,0.3);}
-.btn-secondary{background:var(--blue-light);color:var(--blue-dark);}
-.sync-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;background:white;cursor:pointer;font-family:inherit;transition:all 0.2s;text-align:left;}
-.sync-btn:hover{border-color:var(--green);background:#f8faf8;}.sync-btn:active{transform:scale(0.98);}.sync-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.sync-icon{font-size:24px;}.sync-info{flex:1;}.sync-name{font-size:14px;font-weight:600;color:var(--text);}.sync-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}.sync-arrow{font-size:16px;color:var(--text-muted);}
-.sync-result-item{padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}.sync-result-item:last-child{border-bottom:none;}.sync-result-item .label{color:var(--text-muted);font-size:11px;}.sync-result-item .value{font-weight:600;}
-.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
-.vis-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #f5f5f5;transition:background 0.15s;}
-.vis-row:last-child{border-bottom:none;}
-.vis-row:hover{background:#f8faf8;}
-.vis-row label{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;font-size:13px;font-weight:500;}
-.vis-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--green);cursor:pointer;}
-.vis-icon{font-size:18px;width:28px;text-align:center;}
-.vis-name{flex:1;}
-.vis-desc{font-size:10px;color:var(--text-muted);}
-</style>
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>權限設定</title><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+</script>
+<style>:root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--purple:#a78bca;--purple-light:#f3e8ff;--purple-dark:#7b5ea7;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;}.top-card{max-width:600px;margin:12px auto 0;padding:0 12px;}.top-inner{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}.top-main{display:flex;justify-content:space-between;align-items:flex-start;}.top-main h1{font-size:18px;font-weight:700;color:var(--green-dark);}.top-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}.user-badge{display:flex;align-items:center;gap:6px;background:var(--green-light);padding:4px 10px 4px 6px;border-radius:20px;}.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}.user-name{font-size:12px;font-weight:600;color:var(--green-dark);}.quick-stats{display:flex;gap:8px;margin-top:12px;}.qs{flex:1;background:#f8faf8;border-radius:10px;padding:8px 6px;text-align:center;}.qs-num{font-size:18px;font-weight:900;color:var(--green-dark);}.qs-label{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;}.container{max-width:600px;margin:0 auto;padding:12px;padding-bottom:100px;}.tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}.tab-bar::-webkit-scrollbar{display:none;}.tab-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:inherit;}.tab-btn.active{background:var(--green);color:white;border-color:var(--green);}.staff-selector{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}.selector-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;}.selected-info{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}.sel-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}.sel-tabs::-webkit-scrollbar{display:none;}.sel-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;}.sel-tab.active{background:var(--green);color:white;border-color:var(--green);}.sel-tab .cnt{background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;}.sel-tab.active .cnt{background:rgba(255,255,255,0.3);}.sel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}.sel-cell{text-align:center;padding:10px 4px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;}.sel-cell:hover{border-color:var(--green);background:#f8faf8;}.sel-cell.selected{border-color:var(--green);background:var(--green-light);box-shadow:0 0 0 2px rgba(122,193,154,0.3);}.sel-cell .sel-avatar{width:38px;height:38px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}.sel-cell .sel-avatar.staff{background:var(--blue-light);color:var(--blue-dark);}.sel-cell .sel-avatar.coach{background:var(--purple-light);color:var(--purple-dark);}.sel-cell .sel-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.sel-cell .sel-role{font-size:8px;color:var(--text-muted);margin-top:1px;}.info-chip{padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;}.hint-box{background:var(--yellow);background:linear-gradient(135deg,#fff8e1,#fff3e0);border-radius:12px;padding:12px 14px;font-size:12px;color:#795548;margin-bottom:16px;line-height:1.6;}.section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}.section-title{font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px;}.section-desc{font-size:11px;color:var(--text-muted);margin-bottom:12px;}.reset-btn{background:var(--pink-light);color:var(--pink-dark);border:none;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto;font-family:inherit;}.perm-table{width:100%;border-collapse:collapse;font-size:12px;}.perm-table th{text-align:center;padding:8px 3px;color:var(--text-muted);font-weight:600;font-size:9px;letter-spacing:0.5px;border-bottom:2px solid var(--green-light);}.perm-table th:first-child{text-align:left;font-size:10px;}.perm-table td{padding:8px 3px;text-align:center;border-bottom:1px solid #f5f5f5;}.perm-table td:first-child{text-align:left;font-weight:500;font-size:12px;}.perm-table tr:last-child td{border-bottom:none;}.perm-table tr:hover{background:#f8faf8;}.perm-table input[type="checkbox"]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}.mod-icon{margin-right:4px;}.field-module-title{font-size:13px;font-weight:700;color:var(--green-dark);margin:16px 0 8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}.field-module-title:first-child{margin-top:0;}.field-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}.field-table th{text-align:center;padding:6px 4px;font-size:10px;font-weight:600;color:var(--text-muted);}.field-table th:first-child{text-align:left;}.field-table td{padding:6px 4px;text-align:center;border-bottom:1px solid #f8f8f8;}.field-table td:first-child{text-align:left;font-weight:500;}.field-table input[type="radio"]{accent-color:var(--green);cursor:pointer;}.status-show{color:var(--green-dark)!important;}.status-mask{color:var(--blue-dark)!important;}.status-hide{color:var(--pink-dark)!important;}.badge{padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;display:inline-block;}.badge-super{background:linear-gradient(135deg,#fff8e1,#ffe082);color:#e65100;}.badge-admin{background:var(--green-light);color:var(--green-dark);}.badge-staff{background:var(--blue-light);color:var(--blue-dark);}.badge-viewer{background:#f5f5f5;color:#999;}.badge-coach{background:var(--purple-light);color:var(--purple-dark);}.badge-active{background:var(--green-light);color:var(--green-dark);}.badge-inactive{background:#ffebee;color:#c62828;}.type-tag{background:#f5f5f5;color:var(--text-secondary);}.save-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 20px;display:none;gap:10px;justify-content:flex-end;z-index:100;}.save-bar.show{display:flex;}.btn{padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}.btn:active{transform:scale(0.96);}.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:white;box-shadow:0 2px 8px rgba(122,193,154,0.3);}.btn-secondary{background:var(--blue-light);color:var(--blue-dark);}.sync-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;background:white;cursor:pointer;font-family:inherit;transition:all 0.2s;text-align:left;}.sync-btn:hover{border-color:var(--green);background:#f8faf8;}.sync-btn:active{transform:scale(0.98);}.sync-btn:disabled{opacity:0.5;cursor:not-allowed;}.sync-icon{font-size:24px;}.sync-info{flex:1;}.sync-name{font-size:14px;font-weight:600;color:var(--text);}.sync-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}.sync-arrow{font-size:16px;color:var(--text-muted);}.sync-result-item{padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}.sync-result-item:last-child{border-bottom:none;}.sync-result-item .label{color:var(--text-muted);font-size:11px;}.sync-result-item .value{font-weight:600;}.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}.vis-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #f5f5f5;transition:background 0.15s;}.vis-row:last-child{border-bottom:none;}.vis-row:hover{background:#f8faf8;}.vis-row label{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;font-size:13px;font-weight:500;}.vis-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--green);cursor:pointer;}.vis-icon{font-size:18px;width:28px;text-align:center;}.vis-name{flex:1;}.vis-desc{font-size:10px;color:var(--text-muted);}</style>
 </head>
+ 
 <body>
-<div class="top-card"><div class="top-inner">
-    <div class="top-main"><div><h1>🔐 權限設定</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name" id="myName">-</span></div></div>
-    <div class="quick-stats" id="quickStats"></div>
-</div></div>
-<div class="container">
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>
-        <button class="tab-btn" onclick="switchTab('visibility')">📦 模組顯示</button>
-        <button class="tab-btn" onclick="switchTab('sync')">🔄 手動同步</button>
-    </div>
-    <div id="tab-permissions">
-        <div class="hint-box">💡 super_admin 擁有全部權限，不需要設定。<br>其他角色會先載入預設權限，你在這裡做的調整會覆蓋預設值。</div>
-        <div class="staff-selector">
-            <div class="selector-label">選擇人員</div>
-            <div class="sel-tabs" id="selTabs"></div>
-            <div class="sel-grid" id="selGrid"></div>
-            <div class="selected-info" id="selectedInfo"></div>
-        </div>
-        <div id="permContent" style="display:none;">
-            <div class="section">
-                <div class="section-title">📦 模組權限 <button class="reset-btn" onclick="resetModulePerms()">重置為預設</button></div>
-                <div class="section-desc">控制此人員可以存取哪些模組，以及在模組內的操作權限</div>
-                <div style="overflow-x:auto;"><table class="perm-table" id="modulePermTable">
-                    <thead><tr><th>模組</th><th>查看</th><th>填寫</th><th>修改</th><th>新增</th><th>刪除</th><th>匯出</th></tr></thead>
-                    <tbody id="modulePermBody"></tbody>
-                </table></div>
-            </div>
-            <div class="section">
-                <div class="section-title">🔒 欄位權限 <button class="reset-btn" onclick="resetFieldPerms()">重置為預設</button></div>
-                <div class="section-desc">控制敏感欄位的顯示方式：顯示（完整）、遮罩（部分隱藏）、隱藏（不顯示）</div>
-                <div class="field-section" id="fieldPermSection"></div>
-            </div>
-        </div>
-        <div id="noSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
-    </div>
-    <div id="tab-visibility" style="display:none;">
-        <div class="hint-box">📦 設定每位人員在入口頁面可以看到哪些模組。<br>預設所有人看到所有模組，你可以在這裡針對個別人員隱藏特定模組。</div>
-
-        <!-- 人員選擇（共用既有 selector）-->
-        <div class="staff-selector">
-            <div class="selector-label">選擇人員</div>
-            <div class="sel-tabs" id="visSelTabs"></div>
-            <div class="sel-grid" id="visSelGrid"></div>
-            <div class="selected-info" id="visSelectedInfo"></div>
-        </div>
-
-        <div id="visContent" style="display:none;">
-            <!-- 預設按鈕 -->
-            <div class="section">
-                <div class="section-title">⚡ 快速套用預設</div>
-                <div class="section-desc">點擊下方按鈕可快速勾選模組，套用後仍可手動微調</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <button class="btn btn-primary" onclick="applyVisPreset('all')" style="font-size:12px;padding:8px 14px;">✅ 全選</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('coach')" style="font-size:12px;padding:8px 14px;">👨‍🏫 教練預設</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('staff')" style="font-size:12px;padding:8px 14px;">👥 營運預設</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('admin')" style="font-size:12px;padding:8px 14px;">👑 管理預設</button>
-                    <button class="btn" onclick="applyVisPreset('none')" style="font-size:12px;padding:8px 14px;background:#ffebee;color:#c62828;">✕ 全不選</button>
-                </div>
-            </div>
-
-            <!-- 模組勾選清單 -->
-            <div class="section">
-                <div class="section-title">📦 模組顯示設定 <span id="visCount" style="font-size:11px;font-weight:500;color:var(--text-muted);"></span></div>
-                <div class="section-desc">打勾 = 該人員在入口頁面看得到此模組</div>
-                <div id="visModuleList"></div>
-            </div>
-        </div>
-        <div id="visNoSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
-    </div>
-    <div id="tab-sync" style="display:none;">
-        <div class="hint-box">💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>正常情況下每天凌晨 3:00 會自動同步。</div>
-        <div class="section">
-            <div class="section-title">🔄 選擇同步目標</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-                <button class="sync-btn" onclick="runManualSync('all')"><span class="sync-icon">🌐</span><div class="sync-info"><div class="sync-name">全部同步</div><div class="sync-desc">學員 + 教練 + 營運人員</div></div><span class="sync-arrow">→</span></button>
-                <button class="sync-btn" onclick="runManualSync('students')"><span class="sync-icon">👤</span><div class="sync-info"><div class="sync-name">學員同步</div><div class="sync-desc">MySQL → Supabase</div></div><span class="sync-arrow">→</span></button>
-                <button class="sync-btn" onclick="runManualSync('coaches')"><span class="sync-icon">👨‍🏫</span><div class="sync-info"><div class="sync-name">教練同步</div><div class="sync-desc">Sheet → MySQL → Supabase</div></div><span class="sync-arrow">→</span></button>
-                <button class="sync-btn" onclick="runManualSync('staff')"><span class="sync-icon">👥</span><div class="sync-info"><div class="sync-name">營運人員同步</div><div class="sync-desc">Sheet → MySQL → Supabase</div></div><span class="sync-arrow">→</span></button>
-            </div>
-        </div>
-        <div class="section" id="syncResult" style="display:none;"><div class="section-title">📊 同步結果</div><div id="syncResultBody"></div></div>
-    </div>
+ 
+<div class="top-card">
+<div class="top-inner">    
+<div class="top-main">
+<div><h1>🔐 權限設定</h1>
+<div class="top-sub" id="topSub">載入中...
 </div>
-<div class="save-bar" id="saveBar"><button class="btn btn-secondary" onclick="cancelChanges()">取消</button><button class="btn btn-primary" onclick="savePermissionsV2()">💾 儲存權限</button></div>
-<div class="toast" id="toast"></div>
+</div>
+<div class="user-badge">
+<div class="user-avatar" id="userAvatar">?
+</div>
+<span class="user-name" id="myName">-</span>
+</div>
+</div>    
+<div class="quick-stats" id="quickStats">
+</div>
+</div>
+</div>
+<div class="container">    
+<div class="tab-bar">        
+<button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>        
+<button class="tab-btn" onclick="switchTab('visibility')">📦 模組顯示</button>        
+<button class="tab-btn" onclick="switchTab('sync')">🔄 手動同步</button>    
+</div>    
+<div id="tab-permissions">        
+<div class="hint-box">💡 super_admin 擁有全部權限，不需要設定。<br>其他角色會先載入預設權限，你在這裡做的調整會覆蓋預設值。
+</div>        
+<div class="staff-selector">            
+<div class="selector-label">選擇人員
+</div>            
+<div class="sel-tabs" id="selTabs">
+</div>            
+<div class="sel-grid" id="selGrid">
+</div>            
+<div class="selected-info" id="selectedInfo">
+</div>        
+</div>        
+<div id="permContent" style="display:none;">            
+<div class="section">                
+<div class="section-title">📦 模組權限 
+<button class="reset-btn" onclick="resetModulePerms()">重置為預設</button>
+</div>                
+<div class="section-desc">控制此人員可以存取哪些模組，以及在模組內的操作權限
+</div>                
+<div style="overflow-x:auto;">
+<table class="perm-table" id="modulePermTable">                    
+<thead>
+<tr><th>模組</th><th>查看</th><th>填寫</th><th>修改</th><th>新增</th><th>刪除</th><th>匯出</th></tr>
+</thead>                    
+<tbody id="modulePermBody">
+</tbody>                
+</table>
+</div>            
+</div>            
+<div class="section">                
+<div class="section-title">🔒 欄位權限 
+<button class="reset-btn" onclick="resetFieldPerms()">重置為預設</button>
+</div>                
+<div class="section-desc">控制敏感欄位的顯示方式：顯示（完整）、遮罩（部分隱藏）、隱藏（不顯示）
+</div>                
+<div class="field-section" id="fieldPermSection">
+</div>            
+</div>        
+</div>        
+<div id="noSelection">
+<div class="empty-state">
+<div class="empty-icon">👆
+</div><p>請先選擇一位人員</p>
+</div>
+</div>    
+</div>    
+<div id="tab-visibility" style="display:none;">        
+<div class="hint-box">📦 設定每位人員在入口頁面可以看到哪些模組。<br>預設所有人看到所有模組，你可以在這裡針對個別人員隱藏特定模組。
+</div>        <!-- 人員選擇（共用既有 selector）-->        
+<div class="staff-selector">            
+<div class="selector-label">選擇人員
+</div>            
+<div class="sel-tabs" id="visSelTabs">
+</div>            
+<div class="sel-grid" id="visSelGrid">
+</div>            
+<div class="selected-info" id="visSelectedInfo">
+</div>        
+</div>        
+<div id="visContent" style="display:none;">            <!-- 預設按鈕 -->            
+<div class="section">                
+<div class="section-title">⚡ 快速套用預設
+</div>                
+<div class="section-desc">點擊下方按鈕可快速勾選模組，套用後仍可手動微調
+</div>                
+<div style="display:flex;gap:8px;flex-wrap:wrap;">                    
+<button class="btn btn-primary" onclick="applyVisPreset('all')" style="font-size:12px;padding:8px 14px;">✅ 全選</button>                    
+<button class="btn btn-secondary" onclick="applyVisPreset('coach')" style="font-size:12px;padding:8px 14px;">👨‍🏫 教練預設</button>                    
+<button class="btn btn-secondary" onclick="applyVisPreset('staff')" style="font-size:12px;padding:8px 14px;">👥 營運預設</button>                    
+<button class="btn btn-secondary" onclick="applyVisPreset('admin')" style="font-size:12px;padding:8px 14px;">👑 管理預設</button>                    
+<button class="btn" onclick="applyVisPreset('none')" style="font-size:12px;padding:8px 14px;background:#ffebee;color:#c62828;">✕ 全不選</button>                
+</div>            
+</div>            <!-- 模組勾選清單 -->            
+<div class="section">                
+<div class="section-title">📦 模組顯示設定 
+<span id="visCount" style="font-size:11px;font-weight:500;color:var(--text-muted);"></span>
+</div>                
+<div class="section-desc">打勾 = 該人員在入口頁面看得到此模組
+</div>                
+<div id="visModuleList">
+</div>            
+</div>        
+</div>        
+<div id="visNoSelection">
+<div class="empty-state">
+<div class="empty-icon">👆
+</div><p>請先選擇一位人員</p>
+</div>
+</div>    
+</div>    
+<div id="tab-sync" style="display:none;">        
+<div class="hint-box">💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>正常情況下每天凌晨 3:00 會自動同步。
+</div>        
+<div class="section">            
+<div class="section-title">🔄 選擇同步目標
+</div>            
+<div style="display:flex;flex-direction:column;gap:10px;">                
+<button class="sync-btn" onclick="runManualSync('all')">
+<span class="sync-icon">🌐</span>
+<div class="sync-info">
+<div class="sync-name">全部同步
+</div>
+<div class="sync-desc">學員 + 教練 + 營運人員
+</div>
+</div>
+<span class="sync-arrow">→</span></button>                
+<button class="sync-btn" onclick="runManualSync('students')">
+<span class="sync-icon">👤</span>
+<div class="sync-info">
+<div class="sync-name">學員同步
+</div>
+<div class="sync-desc">MySQL → Supabase
+</div>
+</div>
+<span class="sync-arrow">→</span></button>                
+<button class="sync-btn" onclick="runManualSync('coaches')">
+<span class="sync-icon">👨‍🏫</span>
+<div class="sync-info">
+<div class="sync-name">教練同步
+</div>
+<div class="sync-desc">Sheet → MySQL → Supabase
+</div>
+</div>
+<span class="sync-arrow">→</span></button>                
+<button class="sync-btn" onclick="runManualSync('staff')">
+<span class="sync-icon">👥</span>
+<div class="sync-info">
+<div class="sync-name">營運人員同步
+</div>
+<div class="sync-desc">Sheet → MySQL → Supabase
+</div>
+</div>
+<span class="sync-arrow">→</span></button>            
+</div>        
+</div>        
+<div class="section" id="syncResult" style="display:none;">
+<div class="section-title">📊 同步結果
+</div>
+<div id="syncResultBody">
+</div>
+</div>    
+</div>
+</div>
+<div class="save-bar" id="saveBar">
+<button class="btn btn-secondary" onclick="cancelChanges()">取消</button>
+<button class="btn btn-primary" onclick="savePermissionsV2()">💾 儲存權限</button>
+</div>
+<div class="toast" id="toast">
+</div>
 <script>
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
@@ -198,397 +193,141 @@ const TAG_EXTRAS={'行政':{schedule:{view:true},punch:{view:true,fill:true,edit
 const FIELD_DEFAULTS={admin:{},coach:{},staff:{member:{phone:'masked',email:false,medical_history:false,line_uid:false},coach:{phone:'masked',email:false,line_uid:false,line_id_edu:false},'staff-manage':{phone:'masked',email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false}},viewer:{member:{phone:false,email:false,medical_history:false,line_uid:false,birth_date:false,fitness_goal:false},coach:{phone:false,email:false,line_uid:false,line_id_edu:false,birthday:false},'staff-manage':{phone:false,email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false,line_id:false,line_id_edu:false}}};
 const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',coach:'教練',viewer:'檢視者'};
 const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',coach:'badge-coach',viewer:'badge-viewer'};
-
-function initPermissions(){
-    try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}
-    if(!currentUser||currentUser.role!=='super_admin'){document.querySelector('.container').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>僅限超級管理員存取</p></div>';return false;}
-    document.getElementById('myName').textContent=currentUser.name;
-    document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
-    return true;
-}
-
-async function loadAllPeople(){
-    try{
-        const[staffRes,coachRes]=await Promise.all([sb.from('staff').select('*').order('name'),sb.from('coaches').select('*').order('name')]);
-        const staffData=(staffRes.data||[]).map(s=>Object.assign(s,{_table:'staff',_label:(s.nickname||s.name),_role:s.permission_level||'staff',_type:s.staff_type||''}));
-        const coachData=(coachRes.data||[]).map(c=>Object.assign(c,{_table:'coaches',_label:c.name+(c.real_name&&c.real_name!==c.name?' ('+c.real_name+')':''),_role:c.permission_level||'coach',_type:(c.specialties||[]).join(',')}));
-        allPeople=[...staffData.filter(s=>s._role!=='super_admin'),...coachData.filter(c=>c._role!=='super_admin')];
-        // Stats
-        const staffCount=staffData.filter(s=>s._role!=='super_admin').length;
-        const coachCount=coachData.filter(c=>c._role!=='super_admin').length;
-        document.getElementById('topSub').textContent='共 '+(staffCount+coachCount)+' 位可設定人員';
-        document.getElementById('quickStats').innerHTML=
-            '<div class="qs"><div class="qs-num">'+staffCount+'</div><div class="qs-label">👥 營運</div></div>'+
-            '<div class="qs"><div class="qs-num">'+coachCount+'</div><div class="qs-label">👨‍🏫 教練</div></div>'+
-            '<div class="qs"><div class="qs-num">'+staffData.filter(s=>s._role==='admin').length+'</div><div class="qs-label">管理員</div></div>'+
-            '<div class="qs"><div class="qs-num">'+staffData.filter(s=>s._role==='viewer').length+'</div><div class="qs-label">檢視者</div></div>';
-        // Build tabs
-        const specSet=new Set();coachData.forEach(c=>(c.specialties||[]).forEach(s=>specSet.add(s)));
-        let tabsH='<span class="sel-tab active" onclick="filterSel(\'all\',this)">全部<span class="cnt">'+allPeople.length+'</span></span>';
-        tabsH+='<span class="sel-tab" onclick="filterSel(\'staff\',this)">👥 營運<span class="cnt">'+staffCount+'</span></span>';
-        specSet.forEach(s=>{const icon={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'';const nm={pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI'}[s]||s;const cnt=coachData.filter(c=>(c.specialties||[]).includes(s)).length;tabsH+='<span class="sel-tab" onclick="filterSel(\'spec:'+s+'\',this)">'+icon+' '+nm+'<span class="cnt">'+cnt+'</span></span>';});
-        document.getElementById('selTabs').innerHTML=tabsH;
-        renderSelGrid('all');
-    }catch(e){showToast('❌ 載入失敗：'+e.message);}
-}
-var selFilter='all';
-function filterSel(f,el){selFilter=f;document.querySelectorAll('.sel-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderSelGrid(f);}
-function renderSelGrid(f){
-    const filtered=allPeople.filter(p=>{
-        if(f==='all')return true;
-        if(f==='staff')return p._table==='staff';
-        if(f.startsWith('spec:'))return p._table==='coaches'&&(p.specialties||[]).includes(f.substring(5));
-        return true;
-    });
-    const grid=document.getElementById('selGrid');
-    grid.innerHTML=filtered.map(p=>{
-        const init=(p._label||'?')[0];
-        const cls=p._table==='staff'?'staff':'coach';
-        const roleLabel=p._table==='staff'?({admin:'管理員',staff:'營運',viewer:'檢視'}[p._role]||p._role):(p.specialties||[]).map(s=>({pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'')).join('');
-        const sel=selectedStaff&&selectedStaff.id===p.id?' selected':'';
-        return '<div class="sel-cell'+sel+'" onclick="selectPerson(\''+escHtml(p.id)+'\')"><div class="sel-avatar '+cls+'">'+escHtml(init)+'</div><div class="sel-name">'+escHtml(p._label)+'</div><div class="sel-role">'+roleLabel+'</div></div>';
-    }).join('');
-}
-function selectPerson(id){
-    document.querySelectorAll('.sel-cell').forEach(c=>c.classList.remove('selected'));
-    const cell=event.currentTarget;cell.classList.add('selected');
-    selectedStaff=allPeople.find(s=>s.id===id);
-    if(!selectedStaff)return;
-    const role=selectedStaff._role;const tags=(selectedStaff._type||'').split(',').map(t=>t.trim()).filter(Boolean);
-    let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-    if(selectedStaff._table==='staff')info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
-    else info+='<span class="badge '+(selectedStaff.is_active!==false?'badge-active':'badge-inactive')+'">'+(selectedStaff.is_active!==false?'啟用':'停用')+'</span>';
-    tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
-    document.getElementById('selectedInfo').innerHTML=info;
-    document.getElementById('noSelection').style.display='none';document.getElementById('permContent').style.display='block';
-    renderModulePerms();renderFieldPerms();hasChanges=false;document.getElementById('saveBar').classList.remove('show');
-}
-
-function switchTab(tab){
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.getElementById('tab-permissions').style.display = tab==='permissions' ? '' : 'none';
-    document.getElementById('tab-sync').style.display = tab==='sync' ? '' : 'none';
-    document.getElementById('tab-visibility').style.display = tab==='visibility' ? '' : 'none';
-}
-
-function onStaffSelected(){}
-
-function getEffectiveModulePerms(person){
-    const role=person._role||'staff';const merged={};const rd=ROLE_DEFAULTS[role]||{};
-    for(const[m,p]of Object.entries(rd)){merged[m]={...p};}
-    const tags=(person._type||'').split(',').map(t=>t.trim()).filter(Boolean);
-    tags.forEach(tag=>{const ex=TAG_EXTRAS[tag]||{};for(const[m,p]of Object.entries(ex)){if(!merged[m])merged[m]={};for(const[a,v]of Object.entries(p)){if(v===true)merged[m][a]=true;}}});
-    return merged;
-}
-function getEffectiveFieldPerms(person){const role=person._role||'staff';return FIELD_DEFAULTS[role]||{};}
-
-function renderModulePerms(){
-    const tbody=document.getElementById('modulePermBody');tbody.innerHTML='';
-    const defaults=getEffectiveModulePerms(selectedStaff);const overrides=((selectedStaff.permissions||{}).modules)||{};
-    ALL_MODULES.forEach(mod=>{const dp=defaults[mod.id]||{};const op=overrides[mod.id]||{};const tr=document.createElement('tr');
-        let html='<td><span class="mod-icon">'+mod.icon+'</span>'+mod.name+'</td>';
-        ACTIONS.forEach(action=>{const defaultVal=dp[action]===true;const overrideVal=op[action];const checked=(overrideVal!==undefined)?overrideVal:defaultVal;const isOverridden=overrideVal!==undefined;
-            html+='<td><input type="checkbox" data-mod="'+mod.id+'" data-action="'+action+'" '+(checked?'checked':'')+' onchange="onModulePermChange()" '+(isOverridden?'style="outline:2px solid var(--green);"':'')+'></td>';});
-        tr.innerHTML=html;tbody.appendChild(tr);});
-}
-function onModulePermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}
-
-function renderFieldPerms(){
-    const section=document.getElementById('fieldPermSection');section.innerHTML='';
-    const defaults=getEffectiveFieldPerms(selectedStaff);const overrides=((selectedStaff.permissions||{}).fields)||{};
-    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){
-        let html='<div class="field-module-title">'+modDef.icon+' '+modDef.name+'</div>';
-        html+='<table class="field-table"><thead><tr><th>欄位</th><th class="status-show">顯示</th><th class="status-mask">遮罩</th><th class="status-hide">隱藏</th></tr></thead><tbody>';
-        const dFields=defaults[modId]||{};const oFields=overrides[modId]||{};
-        modDef.fields.forEach(field=>{const defaultVal=dFields[field.id];const overrideVal=oFields[field.id];const currentVal=(overrideVal!==undefined)?overrideVal:(defaultVal!==undefined?defaultVal:true);
-            const name='field_'+modId+'_'+field.id;const isShow=currentVal===true||currentVal===undefined;const isMask=currentVal==='masked';const isHide=currentVal===false;
-            html+='<tr><td>'+field.name+'</td><td><input type="radio" name="'+name+'" value="true" '+(isShow?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="masked" '+(isMask?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="false" '+(isHide?'checked':'')+' onchange="onFieldPermChange()"></td></tr>';});
-        html+='</tbody></table>';section.innerHTML+=html;}
-}
-function onFieldPermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}
-
-function resetModulePerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;const perms=selectedStaff.permissions||{};delete perms.modules;selectedStaff.permissions=perms;renderModulePerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置模組權限');}
-function resetFieldPerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;const perms=selectedStaff.permissions||{};delete perms.fields;selectedStaff.permissions=perms;renderFieldPerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置欄位權限');}
-
-async function savePermissions(){
-    if(!selectedStaff)return;
-    const modules={};const defaults=getEffectiveModulePerms(selectedStaff);
-    document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb=>{const mod=cb.dataset.mod;const action=cb.dataset.action;const checked=cb.checked;const defaultVal=(defaults[mod]&&defaults[mod][action]===true)||false;if(checked!==defaultVal){if(!modules[mod])modules[mod]={};modules[mod][action]=checked;}});
-    const fields={};const fieldDefaults=getEffectiveFieldPerms(selectedStaff);
-    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){const dFields=fieldDefaults[modId]||{};modDef.fields.forEach(field=>{const name='field_'+modId+'_'+field.id;const radios=document.querySelectorAll('input[name="'+name+'"]');let val=true;radios.forEach(r=>{if(r.checked){if(r.value==='true')val=true;else if(r.value==='masked')val='masked';else val=false;}});const defaultVal=dFields[field.id]!==undefined?dFields[field.id]:true;if(val!==defaultVal){if(!fields[modId])fields[modId]={};fields[modId][field.id]=val;}});}
-    const perms={};if(Object.keys(modules).length>0)perms.modules=modules;if(Object.keys(fields).length>0)perms.fields=fields;
-    try{
-        const table=selectedStaff._table;
-        const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
-        if(error)throw error;
-        selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');
-    }catch(e){showToast('❌ 儲存失敗：'+e.message);}
-}
-function cancelChanges(){if(hasChanges&&!confirm('放棄未儲存的變更？'))return;hasChanges=false;document.getElementById('saveBar').classList.remove('show');if(selectedStaff)onStaffSelected();}
-
-async function runManualSync(target){
-    const targetNames={all:'全部',students:'學員',coaches:'教練',staff:'營運人員'};const btns=document.querySelectorAll('.sync-btn');btns.forEach(b=>b.disabled=true);
-    showToast('⏳ 正在同步'+targetNames[target]+'...');document.getElementById('syncResult').style.display='none';
-    try{const resp=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'manualSync',target:target})});const result=await resp.json();
-        if(!result.success){showToast('❌ 同步失敗：'+(result.error||''));btns.forEach(b=>b.disabled=false);return;}
-        let html='';const r=result.results||{};
-        if(r.students)html+='<div class="sync-result-item">👤 <span class="label">學員</span> <span class="value">更新 '+r.students.updated+' / 新增 '+r.students.inserted+' / 略過 '+r.students.skipped+'</span></div>';
-        if(r.coaches)html+='<div class="sync-result-item">👨‍🏫 <span class="label">教練</span> <span class="value">更新 '+(r.coaches.updated||0)+' / 新增 '+(r.coaches.inserted||0)+' / 略過 '+(r.coaches.skipped||0)+'</span></div>';
-        if(r.staff)html+='<div class="sync-result-item">👥 <span class="label">營運</span> <span class="value">'+r.staff+' 筆</span></div>';
-        if(!html)html='<div class="sync-result-item">✅ 同步完成</div>';
-        html+='<div class="sync-result-item" style="color:var(--text-muted);font-size:11px;">⏰ '+new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+'</div>';
-        document.getElementById('syncResultBody').innerHTML=html;document.getElementById('syncResult').style.display='';showToast('✅ 同步完成');
-    }catch(e){showToast('❌ 同步失敗：'+e.message);}
-    btns.forEach(b=>b.disabled=false);
-}
-
-function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
-let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
-document.addEventListener('DOMContentLoaded',async()=>{if(initPermissions())await loadAllPeople();});
-
-    // ====================================================================
-//  模組顯示管理
-// ====================================================================
-let visSelectedPerson = null;
+function initPermissions(){    try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}    if(!currentUser||currentUser.role!=='super_admin'){document.querySelector('.container').innerHTML='
+<div class="empty-state">
+<div class="empty-icon">🔒
+</div><p>僅限超級管理員存取</p>
+</div>';return false;}    document.getElementById('myName').textContent=currentUser.name;    document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];    return true;}async function loadAllPeople(){    try{        const[staffRes,coachRes]=await Promise.all([sb.from('staff').select('*').order('name'),sb.from('coaches').select('*').order('name')]);        const staffData=(staffRes.data||[]).map(s=>Object.assign(s,{_table:'staff',_label:(s.nickname||s.name),_role:s.permission_level||'staff',_type:s.staff_type||''}));        const coachData=(coachRes.data||[]).map(c=>Object.assign(c,{_table:'coaches',_label:c.name+(c.real_name&&c.real_name!==c.name?' ('+c.real_name+')':''),_role:c.permission_level||'coach',_type:(c.specialties||[]).join(',')}));        allPeople=[...staffData.filter(s=>s._role!=='super_admin'),...coachData.filter(c=>c._role!=='super_admin')];        // Stats        const staffCount=staffData.filter(s=>s._role!=='super_admin').length;        const coachCount=coachData.filter(c=>c._role!=='super_admin').length;        document.getElementById('topSub').textContent='共 '+(staffCount+coachCount)+' 位可設定人員';        document.getElementById('quickStats').innerHTML=            '
+<div class="qs">
+<div class="qs-num">'+staffCount+'
+</div>
+<div class="qs-label">👥 營運
+</div>
+</div>'+            '
+<div class="qs">
+<div class="qs-num">'+coachCount+'
+</div>
+<div class="qs-label">👨‍🏫 教練
+</div>
+</div>'+            '
+<div class="qs">
+<div class="qs-num">'+staffData.filter(s=>s._role==='admin').length+'
+</div>
+<div class="qs-label">管理員
+</div>
+</div>'+            '
+<div class="qs">
+<div class="qs-num">'+staffData.filter(s=>s._role==='viewer').length+'
+</div>
+<div class="qs-label">檢視者
+</div>
+</div>';        // Build tabs        const specSet=new Set();coachData.forEach(c=>(c.specialties||[]).forEach(s=>specSet.add(s)));        let tabsH='
+<span class="sel-tab active" onclick="filterSel(\'all\',this)">全部
+<span class="cnt">'+allPeople.length+'</span></span>';        tabsH+='
+<span class="sel-tab" onclick="filterSel(\'staff\',this)">👥 營運
+<span class="cnt">'+staffCount+'</span></span>';        specSet.forEach(s=>{const icon={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'';
+const nm={pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI'}[s]||s;
+const cnt=coachData.filter(c=>(c.specialties||[]).includes(s)).length;tabsH+='
+<span class="sel-tab" onclick="filterSel(\'spec:'+s+'\',this)">'+icon+' '+nm+'
+<span class="cnt">'+cnt+'</span></span>';});        document.getElementById('selTabs').innerHTML=tabsH;        renderSelGrid('all');        renderVisSelGrid();    }catch(e){showToast('❌ 載入失敗：'+e.message);}}var selFilter='all';
+function filterSel(f,el){selFilter=f;document.querySelectorAll('.sel-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderSelGrid(f);}function renderSelGrid(f){    const filtered=allPeople.filter(p=>{        if(f==='all')return true;        if(f==='staff')return p._table==='staff';        if(f.startsWith('spec:'))return p._table==='coaches'&&(p.specialties||[]).includes(f.substring(5));        return true;    });    const grid=document.getElementById('selGrid');    grid.innerHTML=filtered.map(p=>{        const init=(p._label||'?')[0];        const cls=p._table==='staff'?'staff':'coach';        const roleLabel=p._table==='staff'?({admin:'管理員',staff:'營運',viewer:'檢視'}[p._role]||p._role):(p.specialties||[]).map(s=>({pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'')).join('');        const sel=selectedStaff&&selectedStaff.id===p.id?' selected':'';        return '
+<div class="sel-cell'+sel+'" onclick="selectPerson(\''+escHtml(p.id)+'\')">
+<div class="sel-avatar '+cls+'">'+escHtml(init)+'
+</div>
+<div class="sel-name">'+escHtml(p._label)+'
+</div>
+<div class="sel-role">'+roleLabel+'
+</div>
+</div>';    }).join('');}function selectPerson(id){    document.querySelectorAll('.sel-cell').forEach(c=>c.classList.remove('selected'));    const cell=event.currentTarget;cell.classList.add('selected');    selectedStaff=allPeople.find(s=>s.id===id);    if(!selectedStaff)return;    const role=selectedStaff._role;
+const tags=(selectedStaff._type||'').split(',').map(t=>t.trim()).filter(Boolean);    let info='
+<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';    if(selectedStaff._table==='staff')info+='
+<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';    else info+='
+<span class="badge '+(selectedStaff.is_active!==false?'badge-active':'badge-inactive')+'">'+(selectedStaff.is_active!==false?'啟用':'停用')+'</span>';    tags.forEach(t=>{info+='
+<span class="badge type-tag">'+escHtml(t)+'</span>';});    document.getElementById('selectedInfo').innerHTML=info;    document.getElementById('noSelection').style.display='none';document.getElementById('permContent').style.display='block';    renderModulePerms();renderFieldPerms();hasChanges=false;document.getElementById('saveBar').classList.remove('show');}function switchTab(tab){    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));    event.currentTarget.classList.add('active');    document.getElementById('tab-permissions').style.display = tab==='permissions' ? '' : 'none';    document.getElementById('tab-sync').style.display = tab==='sync' ? '' : 'none';    document.getElementById('tab-visibility').style.display = tab==='visibility' ? '' : 'none';}function onStaffSelected(){}function getEffectiveModulePerms(person){    const role=person._role||'staff';
+const merged={};
+const rd=ROLE_DEFAULTS[role]||{};    for(const[m,p]of Object.entries(rd)){merged[m]={...p};}    const tags=(person._type||'').split(',').map(t=>t.trim()).filter(Boolean);    tags.forEach(tag=>{const ex=TAG_EXTRAS[tag]||{};for(const[m,p]of Object.entries(ex)){if(!merged[m])merged[m]={};for(const[a,v]of Object.entries(p)){if(v===true)merged[m][a]=true;}}});    return merged;}function getEffectiveFieldPerms(person){const role=person._role||'staff';return FIELD_DEFAULTS[role]||{};}function renderModulePerms(){    const tbody=document.getElementById('modulePermBody');tbody.innerHTML='';    const defaults=getEffectiveModulePerms(selectedStaff);
+const overrides=((selectedStaff.permissions||{}).modules)||{};    ALL_MODULES.forEach(mod=>{const dp=defaults[mod.id]||{};
+const op=overrides[mod.id]||{};
+const tr=document.createElement('tr');        let html='<td>
+<span class="mod-icon">'+mod.icon+'</span>'+mod.name+'</td>';        ACTIONS.forEach(action=>{const defaultVal=dp[action]===true;
+const overrideVal=op[action];
+const checked=(overrideVal!==undefined)?overrideVal:defaultVal;
+const isOverridden=overrideVal!==undefined;            html+='<td><input type="checkbox" data-mod="'+mod.id+'" data-action="'+action+'" '+(checked?'checked':'')+' onchange="onModulePermChange()" '+(isOverridden?'style="outline:2px solid var(--green);"':'')+'></td>';});        tr.innerHTML=html;tbody.appendChild(tr);});}function onModulePermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}function renderFieldPerms(){    const section=document.getElementById('fieldPermSection');section.innerHTML='';    const defaults=getEffectiveFieldPerms(selectedStaff);
+const overrides=((selectedStaff.permissions||{}).fields)||{};    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){        let html='
+<div class="field-module-title">'+modDef.icon+' '+modDef.name+'
+</div>';        html+='
+<table class="field-table">
+<thead>
+<tr><th>欄位</th><th class="status-show">顯示</th><th class="status-mask">遮罩</th><th class="status-hide">隱藏</th></tr>
+</thead>
+<tbody>';        const dFields=defaults[modId]||{};
+const oFields=overrides[modId]||{};        modDef.fields.forEach(field=>{const defaultVal=dFields[field.id];
+const overrideVal=oFields[field.id];
+const currentVal=(overrideVal!==undefined)?overrideVal:(defaultVal!==undefined?defaultVal:true);            const name='field_'+modId+'_'+field.id;
+const isShow=currentVal===true||currentVal===undefined;
+const isMask=currentVal==='masked';
+const isHide=currentVal===false;            html+='
+<tr><td>'+field.name+'</td><td><input type="radio" name="'+name+'" value="true" '+(isShow?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="masked" '+(isMask?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="false" '+(isHide?'checked':'')+' onchange="onFieldPermChange()"></td></tr>';});        html+='
+</tbody>
+</table>';section.innerHTML+=html;}}function onFieldPermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}function resetModulePerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;
+const perms=selectedStaff.permissions||{};delete perms.modules;selectedStaff.permissions=perms;renderModulePerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置模組權限');}function resetFieldPerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;
+const perms=selectedStaff.permissions||{};delete perms.fields;selectedStaff.permissions=perms;renderFieldPerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置欄位權限');}async function savePermissions(){    if(!selectedStaff)return;    const modules={};
+const defaults=getEffectiveModulePerms(selectedStaff);    document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb=>{const mod=cb.dataset.mod;
+const action=cb.dataset.action;
+const checked=cb.checked;
+const defaultVal=(defaults[mod]&&defaults[mod][action]===true)||false;if(checked!==defaultVal){if(!modules[mod])modules[mod]={};modules[mod][action]=checked;}});    const fields={};
+const fieldDefaults=getEffectiveFieldPerms(selectedStaff);    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){const dFields=fieldDefaults[modId]||{};modDef.fields.forEach(field=>{const name='field_'+modId+'_'+field.id;
+const radios=document.querySelectorAll('input[name="'+name+'"]');
+let val=true;radios.forEach(r=>{if(r.checked){if(r.value==='true')val=true;else if(r.value==='masked')val='masked';else val=false;}});
+const defaultVal=dFields[field.id]!==undefined?dFields[field.id]:true;if(val!==defaultVal){if(!fields[modId])fields[modId]={};fields[modId][field.id]=val;}});}    const perms={};if(Object.keys(modules).length>0)perms.modules=modules;if(Object.keys(fields).length>0)perms.fields=fields;    try{        const table=selectedStaff._table;        const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);        if(error)throw error;        selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');    }catch(e){showToast('❌ 儲存失敗：'+e.message);}}function cancelChanges(){if(hasChanges&&!confirm('放棄未儲存的變更？'))return;hasChanges=false;document.getElementById('saveBar').classList.remove('show');if(selectedStaff)onStaffSelected();}async function runManualSync(target){    const targetNames={all:'全部',students:'學員',coaches:'教練',staff:'營運人員'};
+const btns=document.querySelectorAll('.sync-btn');btns.forEach(b=>b.disabled=true);    showToast('⏳ 正在同步'+targetNames[target]+'...');document.getElementById('syncResult').style.display='none';    try{const resp=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'manualSync',target:target})});
+const result=await resp.json();        if(!result.success){showToast('❌ 同步失敗：'+(result.error||''));btns.forEach(b=>b.disabled=false);return;}        let html='';
+const r=result.results||{};        if(r.students)html+='
+<div class="sync-result-item">👤 
+<span class="label">學員</span> 
+<span class="value">更新 '+r.students.updated+' / 新增 '+r.students.inserted+' / 略過 '+r.students.skipped+'</span>
+</div>';        if(r.coaches)html+='
+<div class="sync-result-item">👨‍🏫 
+<span class="label">教練</span> 
+<span class="value">更新 '+(r.coaches.updated||0)+' / 新增 '+(r.coaches.inserted||0)+' / 略過 '+(r.coaches.skipped||0)+'</span>
+</div>';        if(r.staff)html+='
+<div class="sync-result-item">👥 
+<span class="label">營運</span> 
+<span class="value">'+r.staff+' 筆</span>
+</div>';        if(!html)html='
+<div class="sync-result-item">✅ 同步完成
+</div>';        html+='
+<div class="sync-result-item" style="color:var(--text-muted);font-size:11px;">⏰ '+new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+'
+</div>';        document.getElementById('syncResultBody').innerHTML=html;document.getElementById('syncResult').style.display='';showToast('✅ 同步完成');    }catch(e){showToast('❌ 同步失敗：'+e.message);}    btns.forEach(b=>b.disabled=false);}function escHtml(t){if(t==null)return'';
+const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}let toastTimer=null;
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}document.addEventListener('DOMContentLoaded',async()=>{if(initPermissions())await loadAllPeople();});    // ====================================================================//  模組顯示管理// ====================================================================let visSelectedPerson = null;
 let visHasChanges = false;
-
-// 模組清單（排除 settings，那個固定只有 super_admin 看到）
-const VIS_MODULES = ALL_MODULES.filter(m => m.id !== 'settings');
-
-// 各角色預設顯示的模組
-const VIS_PRESETS = {
-    all: VIS_MODULES.map(m => m.id),
-    coach: ['substitute-coach','trial-schedule','trial-feedback','class-record','moti-analyze','personal-schedule'],
-    staff: ['member','coach','substitute','punch','moti-booking','leave-manage','personal-schedule','consultation'],
-    admin: VIS_MODULES.map(m => m.id),  // 管理預設 = 全選
-    none: []
-};
-
-// 模組描述（給勾選清單顯示用）
-const VIS_DESCS = {
-    'member':'會員資料管理', 'coach':'教練名單管理', 'staff-manage':'營運人員管理',
-    'substitute':'代課管理（管理端）', 'substitute-coach':'代課協調（教練端）',
-    'schedule':'行政排班管理', 'punch':'上下班打卡', 'report':'報表統計',
-    'moti-booking':'預填 Moti 名單', 'leave-manage':'學員請假管理',
-    'personal-schedule':'個人排班查看', 'trial-schedule':'體驗課排程',
-    'trial-feedback':'體驗課回報', 'class-record':'課表紀錄查詢',
-    'moti-analyze':'Moti 檢測紀錄', 'consultation':'諮詢單管理'
-};
-
-function renderVisSelGrid() {
-    // 複用 allPeople 資料，建立獨立的選擇器
-    if (!allPeople.length) return;
-    const tabs = document.getElementById('visSelTabs');
-    const grid = document.getElementById('visSelGrid');
-    if (!tabs || !grid) return;
-
-    // 建立分類 Tabs
-    const staffCount = allPeople.filter(p => p._table === 'staff').length;
-    const coachCount = allPeople.filter(p => p._table === 'coaches').length;
-    tabs.innerHTML =
-        '<span class="sel-tab active" onclick="filterVisSel(\'all\',this)">全部<span class="cnt">' + allPeople.length + '</span></span>' +
-        '<span class="sel-tab" onclick="filterVisSel(\'staff\',this)">👥 營運<span class="cnt">' + staffCount + '</span></span>' +
-        '<span class="sel-tab" onclick="filterVisSel(\'coaches\',this)">👨‍🏫 教練<span class="cnt">' + coachCount + '</span></span>';
-
-    renderVisGridItems('all', grid);
-}
-
-var visFilter = 'all';
-function filterVisSel(f, el) {
-    visFilter = f;
-    el.parentElement.querySelectorAll('.sel-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    renderVisGridItems(f, document.getElementById('visSelGrid'));
-}
-
-function renderVisGridItems(f, grid) {
-    const filtered = allPeople.filter(p => {
-        if (f === 'all') return true;
-        return p._table === f;
-    });
-    grid.innerHTML = filtered.map(p => {
-        const init = (p._label || '?')[0];
-        const cls = p._table === 'staff' ? 'staff' : 'coach';
-        const sel = visSelectedPerson && visSelectedPerson.id === p.id ? ' selected' : '';
-        return '<div class="sel-cell' + sel + '" onclick="selectVisPerson(\'' + escHtml(p.id) + '\')">' +
-            '<div class="sel-avatar ' + cls + '">' + escHtml(init) + '</div>' +
-            '<div class="sel-name">' + escHtml(p._label) + '</div></div>';
-    }).join('');
-}
-
-function selectVisPerson(id) {
-    // 如果有未儲存的變更，先確認
-    if (visHasChanges && !confirm('有未儲存的變更，確定要切換人員？')) return;
-
-    visSelectedPerson = allPeople.find(p => p.id === id);
-    if (!visSelectedPerson) return;
-
-    // 更新選中狀態 UI
-    document.querySelectorAll('#visSelGrid .sel-cell').forEach(c => c.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-
-    // 顯示人員資訊
-    const role = visSelectedPerson._role;
-    let info = '<span class="badge ' + (roleBadge[role] || 'badge-staff') + '">' + (roleNames[role] || role) + '</span>';
-    document.getElementById('visSelectedInfo').innerHTML = info;
-
-    // 顯示設定區塊
-    document.getElementById('visNoSelection').style.display = 'none';
-    document.getElementById('visContent').style.display = 'block';
-
-    // 渲染模組勾選清單
-    renderVisModules();
-    visHasChanges = false;
-    document.getElementById('saveBar').classList.remove('show');
-}
-
-function renderVisModules() {
-    const list = document.getElementById('visModuleList');
-    // 取得此人目前的 hidden_modules
-    const perms = visSelectedPerson.permissions || {};
-    const hidden = perms.hidden_modules || [];
-
-    let html = '';
-    VIS_MODULES.forEach(mod => {
-        const checked = !hidden.includes(mod.id);
-        html += '<div class="vis-row">' +
-            '<label>' +
-            '<input type="checkbox" data-mod="' + mod.id + '" ' + (checked ? 'checked' : '') + ' onchange="onVisChange()">' +
-            '<span class="vis-icon">' + mod.icon + '</span>' +
-            '<span class="vis-name">' + mod.name + '</span>' +
-            '</label>' +
-            '<span class="vis-desc">' + (VIS_DESCS[mod.id] || '') + '</span>' +
-            '</div>';
-    });
-    list.innerHTML = html;
-    updateVisCount();
-}
-
-function updateVisCount() {
-    const total = VIS_MODULES.length;
-    const checked = document.querySelectorAll('#visModuleList input[type="checkbox"]:checked').length;
-    document.getElementById('visCount').textContent = '（' + checked + ' / ' + total + ' 個模組顯示中）';
-}
-
-function onVisChange() {
-    visHasChanges = true;
-    document.getElementById('saveBar').classList.add('show');
-    updateVisCount();
-}
-
-// 預設套用
-function applyVisPreset(preset) {
-    const allowedIds = VIS_PRESETS[preset] || [];
-    document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {
-        if (preset === 'all') {
-            cb.checked = true;
-        } else if (preset === 'none') {
-            cb.checked = false;
-        } else {
-            cb.checked = allowedIds.includes(cb.dataset.mod);
-        }
-    });
-    onVisChange();
-    const presetNames = { all: '全選', coach: '教練預設', staff: '營運預設', admin: '管理預設', none: '全不選' };
-    showToast('已套用「' + presetNames[preset] + '」');
-}
-
-// ====================================================================
-//  儲存（修改既有的 savePermissions 函式，加入 hidden_modules）
-// ====================================================================
-
-// 在既有 savePermissions() 的 try 區塊內，perms 物件組裝後、送出 update 前
-// 加入以下邏輯：
-
-/*
-  原本的 savePermissions() 只存 modules 和 fields。
-  需要在組裝 perms 物件時加入 hidden_modules。
-
-  以下是修改後的完整 savePermissions() 函式：
-*/
-
-// 覆蓋原本的 savePermissions
-const _origSavePermissions = typeof savePermissions === 'function' ? savePermissions : null;
-
-async function savePermissionsV2() {
-    // 判斷當前在哪個 Tab
-    const visTab = document.getElementById('tab-visibility');
-    const isVisTab = visTab && visTab.style.display !== 'none';
-
-    if (isVisTab && visSelectedPerson) {
-        // ===== 儲存模組顯示設定 =====
-        const hiddenModules = [];
-        document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {
-            if (!cb.checked) hiddenModules.push(cb.dataset.mod);
-        });
-
-        try {
-            const table = visSelectedPerson._table;
-            const existingPerms = visSelectedPerson.permissions || {};
-
-            // 更新 hidden_modules（空陣列表示全部顯示，就不用存）
-            if (hiddenModules.length > 0) {
-                existingPerms.hidden_modules = hiddenModules;
-            } else {
-                delete existingPerms.hidden_modules;
-            }
-
-            const { error } = await sb.from(table).update({
-                permissions: existingPerms,
-                updated_at: new Date().toISOString()
-            }).eq('id', visSelectedPerson.id);
-
-            if (error) throw error;
-            visSelectedPerson.permissions = existingPerms;
-            visHasChanges = false;
-            document.getElementById('saveBar').classList.remove('show');
-            showToast('✅ 模組顯示設定已儲存');
-        } catch (e) {
-            showToast('❌ 儲存失敗：' + e.message);
-        }
-    } else if (selectedStaff) {
-        // ===== 原有的權限儲存邏輯（保持不動）=====
-        const modules = {};
-        const defaults = getEffectiveModulePerms(selectedStaff);
-        document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb => {
-            const mod = cb.dataset.mod; const action = cb.dataset.action;
-            const checked = cb.checked;
-            const defaultVal = (defaults[mod] && defaults[mod][action] === true) || false;
-            if (checked !== defaultVal) { if (!modules[mod]) modules[mod] = {}; modules[mod][action] = checked; }
-        });
-        const fields = {};
-        const fieldDefaults = getEffectiveFieldPerms(selectedStaff);
-        for (const [modId, modDef] of Object.entries(FIELD_MODULES)) {
-            const dFields = fieldDefaults[modId] || {};
-            modDef.fields.forEach(field => {
-                const name = 'field_' + modId + '_' + field.id;
-                const radios = document.querySelectorAll('input[name="' + name + '"]');
-                let val = true;
-                radios.forEach(r => { if (r.checked) { if (r.value === 'true') val = true; else if (r.value === 'masked') val = 'masked'; else val = false; } });
-                const defaultVal = dFields[field.id] !== undefined ? dFields[field.id] : true;
-                if (val !== defaultVal) { if (!fields[modId]) fields[modId] = {}; fields[modId][field.id] = val; }
-            });
-        }
-        const perms = {};
-        if (Object.keys(modules).length > 0) perms.modules = modules;
-        if (Object.keys(fields).length > 0) perms.fields = fields;
-        // 保留既有的 hidden_modules（如果有的話）
-        const existingHidden = ((selectedStaff.permissions || {}).hidden_modules);
-        if (existingHidden && existingHidden.length > 0) perms.hidden_modules = existingHidden;
-
-        try {
-            const table = selectedStaff._table;
-            const { error } = await sb.from(table).update({ permissions: perms, updated_at: new Date().toISOString() }).eq('id', selectedStaff.id);
-            if (error) throw error;
-            selectedStaff.permissions = perms;
-            hasChanges = false;
-            document.getElementById('saveBar').classList.remove('show');
-            showToast('✅ 權限已儲存');
-        } catch (e) { showToast('❌ 儲存失敗：' + e.message); }
-    }
-}
+// 模組清單（排除 settings，那個固定只有 super_admin 看到）const VIS_MODULES = ALL_MODULES.filter(m => m.id !== 'settings');
+// 各角色預設顯示的模組const VIS_PRESETS = {    all: VIS_MODULES.map(m => m.id),    coach: ['substitute','trial-schedule','trial-feedback','class-record','moti-analyze','personal-schedule'],    staff: ['member','coach','substitute','punch','moti-booking','leave-manage','personal-schedule'],    admin: VIS_MODULES.map(m => m.id),  // 管理預設 = 全選    none: []};
+// 模組描述（給勾選清單顯示用）const VIS_DESCS = {    'member':'會員資料管理', 'coach':'教練名單管理', 'staff-manage':'營運人員管理',    'substitute':'代課管理（管理端）', 'substitute':'代課協調（教練端）',    'schedule':'行政排班管理', 'punch':'上下班打卡', 'report':'報表統計',    'moti-booking':'預填 Moti 名單', 'leave-manage':'學員請假管理',    'personal-schedule':'個人排班查看', 'trial-schedule':'體驗課排程',    'trial-feedback':'體驗課回報', 'class-record':'課表紀錄查詢',    'moti-analyze':'Moti 檢測紀錄', 'consultation':'諮詢單管理'};
+function renderVisSelGrid() {    // 複用 allPeople 資料，建立獨立的選擇器    if (!allPeople.length) return;    const tabs = document.getElementById('visSelTabs');    const grid = document.getElementById('visSelGrid');    if (!tabs || !grid) return;    // 建立分類 Tabs    const staffCount = allPeople.filter(p => p._table === 'staff').length;    const coachCount = allPeople.filter(p => p._table === 'coaches').length;    tabs.innerHTML =        '
+<span class="sel-tab active" onclick="filterVisSel(\'all\',this)">全部
+<span class="cnt">' + allPeople.length + '</span></span>' +        '
+<span class="sel-tab" onclick="filterVisSel(\'staff\',this)">👥 營運
+<span class="cnt">' + staffCount + '</span></span>' +        '
+<span class="sel-tab" onclick="filterVisSel(\'coaches\',this)">👨‍🏫 教練
+<span class="cnt">' + coachCount + '</span></span>';    renderVisGridItems('all', grid);}var visFilter = 'all';
+function filterVisSel(f, el) {    visFilter = f;    el.parentElement.querySelectorAll('.sel-tab').forEach(t => t.classList.remove('active'));    el.classList.add('active');    renderVisGridItems(f, document.getElementById('visSelGrid'));}function renderVisGridItems(f, grid) {    const filtered = allPeople.filter(p => {        if (f === 'all') return true;        return p._table === f;    });    grid.innerHTML = filtered.map(p => {        const init = (p._label || '?')[0];        const cls = p._table === 'staff' ? 'staff' : 'coach';        const sel = visSelectedPerson && visSelectedPerson.id === p.id ? ' selected' : '';        return '
+<div class="sel-cell' + sel + '" onclick="selectVisPerson(\'' + escHtml(p.id) + '\')">' +            '
+<div class="sel-avatar ' + cls + '">' + escHtml(init) + '
+</div>' +            '
+<div class="sel-name">' + escHtml(p._label) + '
+</div>
+</div>';    }).join('');}function selectVisPerson(id) {    // 如果有未儲存的變更，先確認    if (visHasChanges && !confirm('有未儲存的變更，確定要切換人員？')) return;    visSelectedPerson = allPeople.find(p => p.id === id);    if (!visSelectedPerson) return;    // 更新選中狀態 UI    document.querySelectorAll('#visSelGrid .sel-cell').forEach(c => c.classList.remove('selected'));    event.currentTarget.classList.add('selected');    // 顯示人員資訊    const role = visSelectedPerson._role;    let info = '
+<span class="badge ' + (roleBadge[role] || 'badge-staff') + '">' + (roleNames[role] || role) + '</span>';    document.getElementById('visSelectedInfo').innerHTML = info;    // 顯示設定區塊    document.getElementById('visNoSelection').style.display = 'none';    document.getElementById('visContent').style.display = 'block';    // 渲染模組勾選清單    renderVisModules();    visHasChanges = false;    document.getElementById('saveBar').classList.remove('show');}function renderVisModules() {    const list = document.getElementById('visModuleList');    // 取得此人目前的 hidden_modules    const perms = visSelectedPerson.permissions || {};    const hidden = perms.hidden_modules || [];    let html = '';    VIS_MODULES.forEach(mod => {        const checked = !hidden.includes(mod.id);        html += '
+<div class="vis-row">' +            '<label>' +            '<input type="checkbox" data-mod="' + mod.id + '" ' + (checked ? 'checked' : '') + ' onchange="onVisChange()">' +            '
+<span class="vis-icon">' + mod.icon + '</span>' +            '
+<span class="vis-name">' + mod.name + '</span>' +            '</label>' +            '
+<span class="vis-desc">' + (VIS_DESCS[mod.id] || '') + '</span>' +            '
+</div>';    });    list.innerHTML = html;    updateVisCount();}function updateVisCount() {    const total = VIS_MODULES.length;    const checked = document.querySelectorAll('#visModuleList input[type="checkbox"]:checked').length;    document.getElementById('visCount').textContent = '（' + checked + ' / ' + total + ' 個模組顯示中）';}function onVisChange() {    visHasChanges = true;    document.getElementById('saveBar').classList.add('show');    updateVisCount();}// 預設套用function applyVisPreset(preset) {    const allowedIds = VIS_PRESETS[preset] || [];    document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {        if (preset === 'all') {            cb.checked = true;        } else if (preset === 'none') {            cb.checked = false;        } else {            cb.checked = allowedIds.includes(cb.dataset.mod);        }    });    onVisChange();    const presetNames = { all: '全選', coach: '教練預設', staff: '營運預設', admin: '管理預設', none: '全不選' };    showToast('已套用「' + presetNames[preset] + '」');}// ====================================================================//  儲存（修改既有的 savePermissions 函式，加入 hidden_modules）// ====================================================================// 在既有 savePermissions() 的 try 區塊內，perms 物件組裝後、送出 update 前// 加入以下邏輯：/*  原本的 savePermissions() 只存 modules 和 fields。  需要在組裝 perms 物件時加入 hidden_modules。  以下是修改後的完整 savePermissions() 函式：*/// 覆蓋原本的 savePermissionsconst _origSavePermissions = typeof savePermissions === 'function' ? savePermissions : null;
+async function savePermissionsV2() {    // 判斷當前在哪個 Tab    const visTab = document.getElementById('tab-visibility');    const isVisTab = visTab && visTab.style.display !== 'none';    if (isVisTab && visSelectedPerson) {        // ===== 儲存模組顯示設定 =====        const hiddenModules = [];        document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {            if (!cb.checked) hiddenModules.push(cb.dataset.mod);        });        try {            const table = visSelectedPerson._table;            const existingPerms = visSelectedPerson.permissions || {};            // 更新 hidden_modules（空陣列表示全部顯示，就不用存）            if (hiddenModules.length > 0) {                existingPerms.hidden_modules = hiddenModules;            } else {                delete existingPerms.hidden_modules;            }            const { error } = await sb.from(table).update({                permissions: existingPerms,                updated_at: new Date().toISOString()            }).eq('id', visSelectedPerson.id);            if (error) throw error;            visSelectedPerson.permissions = existingPerms;            visHasChanges = false;            document.getElementById('saveBar').classList.remove('show');            showToast('✅ 模組顯示設定已儲存');        } catch (e) {            showToast('❌ 儲存失敗：' + e.message);        }    } else if (selectedStaff) {        // ===== 原有的權限儲存邏輯（保持不動）=====        const modules = {};        const defaults = getEffectiveModulePerms(selectedStaff);        document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb => {            const mod = cb.dataset.mod; const action = cb.dataset.action;            const checked = cb.checked;            const defaultVal = (defaults[mod] && defaults[mod][action] === true) || false;            if (checked !== defaultVal) { if (!modules[mod]) modules[mod] = {}; modules[mod][action] = checked; }        });        const fields = {};        const fieldDefaults = getEffectiveFieldPerms(selectedStaff);        for (const [modId, modDef] of Object.entries(FIELD_MODULES)) {            const dFields = fieldDefaults[modId] || {};            modDef.fields.forEach(field => {                const name = 'field_' + modId + '_' + field.id;                const radios = document.querySelectorAll('input[name="' + name + '"]');                let val = true;                radios.forEach(r => { if (r.checked) { if (r.value === 'true') val = true; else if (r.value === 'masked') val = 'masked'; else val = false; } });                const defaultVal = dFields[field.id] !== undefined ? dFields[field.id] : true;                if (val !== defaultVal) { if (!fields[modId]) fields[modId] = {}; fields[modId][field.id] = val; }            });        }        const perms = {};        if (Object.keys(modules).length > 0) perms.modules = modules;        if (Object.keys(fields).length > 0) perms.fields = fields;        // 保留既有的 hidden_modules（如果有的話）        const existingHidden = ((selectedStaff.permissions || {}).hidden_modules);        if (existingHidden && existingHidden.length > 0) perms.hidden_modules = existingHidden;        try {            const table = selectedStaff._table;            const { error } = await sb.from(table).update({ permissions: perms, updated_at: new Date().toISOString() }).eq('id', selectedStaff.id);            if (error) throw error;            selectedStaff.permissions = perms;            hasChanges = false;            document.getElementById('saveBar').classList.remove('show');            showToast('✅ 權限已儲存');        } catch (e) { showToast('❌ 儲存失敗：' + e.message); }    }}
 </script>
+ 
 </body>
+ 
 </html>
