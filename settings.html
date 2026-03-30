@@ -87,6 +87,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .sync-result-item{padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}.sync-result-item:last-child{border-bottom:none;}.sync-result-item .label{color:var(--text-muted);font-size:11px;}.sync-result-item .value{font-weight:600;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
+.vis-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #f5f5f5;transition:background 0.15s;}
+.vis-row:last-child{border-bottom:none;}
+.vis-row:hover{background:#f8faf8;}
+.vis-row label{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;font-size:13px;font-weight:500;}
+.vis-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--green);cursor:pointer;}
+.vis-icon{font-size:18px;width:28px;text-align:center;}
+.vis-name{flex:1;}
+.vis-desc{font-size:10px;color:var(--text-muted);}
 </style>
 </head>
 <body>
@@ -97,6 +105,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="container">
     <div class="tab-bar">
         <button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>
+        <button class="tab-btn" onclick="switchTab('visibility')">📦 模組顯示</button>
         <button class="tab-btn" onclick="switchTab('sync')">🔄 手動同步</button>
     </div>
     <div id="tab-permissions">
@@ -124,6 +133,40 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
         </div>
         <div id="noSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
     </div>
+    <div id="tab-visibility" style="display:none;">
+        <div class="hint-box">📦 設定每位人員在入口頁面可以看到哪些模組。<br>預設所有人看到所有模組，你可以在這裡針對個別人員隱藏特定模組。</div>
+
+        <!-- 人員選擇（共用既有 selector）-->
+        <div class="staff-selector">
+            <div class="selector-label">選擇人員</div>
+            <div class="sel-tabs" id="visSelTabs"></div>
+            <div class="sel-grid" id="visSelGrid"></div>
+            <div class="selected-info" id="visSelectedInfo"></div>
+        </div>
+
+        <div id="visContent" style="display:none;">
+            <!-- 預設按鈕 -->
+            <div class="section">
+                <div class="section-title">⚡ 快速套用預設</div>
+                <div class="section-desc">點擊下方按鈕可快速勾選模組，套用後仍可手動微調</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="applyVisPreset('all')" style="font-size:12px;padding:8px 14px;">✅ 全選</button>
+                    <button class="btn btn-secondary" onclick="applyVisPreset('coach')" style="font-size:12px;padding:8px 14px;">👨‍🏫 教練預設</button>
+                    <button class="btn btn-secondary" onclick="applyVisPreset('staff')" style="font-size:12px;padding:8px 14px;">👥 營運預設</button>
+                    <button class="btn btn-secondary" onclick="applyVisPreset('admin')" style="font-size:12px;padding:8px 14px;">👑 管理預設</button>
+                    <button class="btn" onclick="applyVisPreset('none')" style="font-size:12px;padding:8px 14px;background:#ffebee;color:#c62828;">✕ 全不選</button>
+                </div>
+            </div>
+
+            <!-- 模組勾選清單 -->
+            <div class="section">
+                <div class="section-title">📦 模組顯示設定 <span id="visCount" style="font-size:11px;font-weight:500;color:var(--text-muted);"></span></div>
+                <div class="section-desc">打勾 = 該人員在入口頁面看得到此模組</div>
+                <div id="visModuleList"></div>
+            </div>
+        </div>
+        <div id="visNoSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
+    </div>
     <div id="tab-sync" style="display:none;">
         <div class="hint-box">💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>正常情況下每天凌晨 3:00 會自動同步。</div>
         <div class="section">
@@ -138,7 +181,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
         <div class="section" id="syncResult" style="display:none;"><div class="section-title">📊 同步結果</div><div id="syncResultBody"></div></div>
     </div>
 </div>
-<div class="save-bar" id="saveBar"><button class="btn btn-secondary" onclick="cancelChanges()">取消</button><button class="btn btn-primary" onclick="savePermissions()">💾 儲存權限</button></div>
+<div class="save-bar" id="saveBar"><button class="btn btn-secondary" onclick="cancelChanges()">取消</button><button class="btn btn-primary" onclick="savePermissionsV2()">💾 儲存權限</button></div>
 <div class="toast" id="toast"></div>
 <script>
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
@@ -223,9 +266,11 @@ function selectPerson(id){
 }
 
 function switchTab(tab){
-    document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',b.textContent.includes(tab==='permissions'?'權限':'同步')));
-    document.getElementById('tab-permissions').style.display=tab==='permissions'?'':'none';
-    document.getElementById('tab-sync').style.display=tab==='sync'?'':'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById('tab-permissions').style.display = tab==='permissions' ? '' : 'none';
+    document.getElementById('tab-sync').style.display = tab==='sync' ? '' : 'none';
+    document.getElementById('tab-visibility').style.display = tab==='visibility' ? '' : 'none';
 }
 
 function onStaffSelected(){}
@@ -302,6 +347,248 @@ async function runManualSync(target){
 function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
 let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
 document.addEventListener('DOMContentLoaded',async()=>{if(initPermissions())await loadAllPeople();});
+
+    // ====================================================================
+//  模組顯示管理
+// ====================================================================
+let visSelectedPerson = null;
+let visHasChanges = false;
+
+// 模組清單（排除 settings，那個固定只有 super_admin 看到）
+const VIS_MODULES = ALL_MODULES.filter(m => m.id !== 'settings');
+
+// 各角色預設顯示的模組
+const VIS_PRESETS = {
+    all: VIS_MODULES.map(m => m.id),
+    coach: ['substitute-coach','trial-schedule','trial-feedback','class-record','moti-analyze','personal-schedule'],
+    staff: ['member','coach','substitute','punch','moti-booking','leave-manage','personal-schedule','consultation'],
+    admin: VIS_MODULES.map(m => m.id),  // 管理預設 = 全選
+    none: []
+};
+
+// 模組描述（給勾選清單顯示用）
+const VIS_DESCS = {
+    'member':'會員資料管理', 'coach':'教練名單管理', 'staff-manage':'營運人員管理',
+    'substitute':'代課管理（管理端）', 'substitute-coach':'代課協調（教練端）',
+    'schedule':'行政排班管理', 'punch':'上下班打卡', 'report':'報表統計',
+    'moti-booking':'預填 Moti 名單', 'leave-manage':'學員請假管理',
+    'personal-schedule':'個人排班查看', 'trial-schedule':'體驗課排程',
+    'trial-feedback':'體驗課回報', 'class-record':'課表紀錄查詢',
+    'moti-analyze':'Moti 檢測紀錄', 'consultation':'諮詢單管理'
+};
+
+function renderVisSelGrid() {
+    // 複用 allPeople 資料，建立獨立的選擇器
+    if (!allPeople.length) return;
+    const tabs = document.getElementById('visSelTabs');
+    const grid = document.getElementById('visSelGrid');
+    if (!tabs || !grid) return;
+
+    // 建立分類 Tabs
+    const staffCount = allPeople.filter(p => p._table === 'staff').length;
+    const coachCount = allPeople.filter(p => p._table === 'coaches').length;
+    tabs.innerHTML =
+        '<span class="sel-tab active" onclick="filterVisSel(\'all\',this)">全部<span class="cnt">' + allPeople.length + '</span></span>' +
+        '<span class="sel-tab" onclick="filterVisSel(\'staff\',this)">👥 營運<span class="cnt">' + staffCount + '</span></span>' +
+        '<span class="sel-tab" onclick="filterVisSel(\'coaches\',this)">👨‍🏫 教練<span class="cnt">' + coachCount + '</span></span>';
+
+    renderVisGridItems('all', grid);
+}
+
+var visFilter = 'all';
+function filterVisSel(f, el) {
+    visFilter = f;
+    el.parentElement.querySelectorAll('.sel-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderVisGridItems(f, document.getElementById('visSelGrid'));
+}
+
+function renderVisGridItems(f, grid) {
+    const filtered = allPeople.filter(p => {
+        if (f === 'all') return true;
+        return p._table === f;
+    });
+    grid.innerHTML = filtered.map(p => {
+        const init = (p._label || '?')[0];
+        const cls = p._table === 'staff' ? 'staff' : 'coach';
+        const sel = visSelectedPerson && visSelectedPerson.id === p.id ? ' selected' : '';
+        return '<div class="sel-cell' + sel + '" onclick="selectVisPerson(\'' + escHtml(p.id) + '\')">' +
+            '<div class="sel-avatar ' + cls + '">' + escHtml(init) + '</div>' +
+            '<div class="sel-name">' + escHtml(p._label) + '</div></div>';
+    }).join('');
+}
+
+function selectVisPerson(id) {
+    // 如果有未儲存的變更，先確認
+    if (visHasChanges && !confirm('有未儲存的變更，確定要切換人員？')) return;
+
+    visSelectedPerson = allPeople.find(p => p.id === id);
+    if (!visSelectedPerson) return;
+
+    // 更新選中狀態 UI
+    document.querySelectorAll('#visSelGrid .sel-cell').forEach(c => c.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+
+    // 顯示人員資訊
+    const role = visSelectedPerson._role;
+    let info = '<span class="badge ' + (roleBadge[role] || 'badge-staff') + '">' + (roleNames[role] || role) + '</span>';
+    document.getElementById('visSelectedInfo').innerHTML = info;
+
+    // 顯示設定區塊
+    document.getElementById('visNoSelection').style.display = 'none';
+    document.getElementById('visContent').style.display = 'block';
+
+    // 渲染模組勾選清單
+    renderVisModules();
+    visHasChanges = false;
+    document.getElementById('saveBar').classList.remove('show');
+}
+
+function renderVisModules() {
+    const list = document.getElementById('visModuleList');
+    // 取得此人目前的 hidden_modules
+    const perms = visSelectedPerson.permissions || {};
+    const hidden = perms.hidden_modules || [];
+
+    let html = '';
+    VIS_MODULES.forEach(mod => {
+        const checked = !hidden.includes(mod.id);
+        html += '<div class="vis-row">' +
+            '<label>' +
+            '<input type="checkbox" data-mod="' + mod.id + '" ' + (checked ? 'checked' : '') + ' onchange="onVisChange()">' +
+            '<span class="vis-icon">' + mod.icon + '</span>' +
+            '<span class="vis-name">' + mod.name + '</span>' +
+            '</label>' +
+            '<span class="vis-desc">' + (VIS_DESCS[mod.id] || '') + '</span>' +
+            '</div>';
+    });
+    list.innerHTML = html;
+    updateVisCount();
+}
+
+function updateVisCount() {
+    const total = VIS_MODULES.length;
+    const checked = document.querySelectorAll('#visModuleList input[type="checkbox"]:checked').length;
+    document.getElementById('visCount').textContent = '（' + checked + ' / ' + total + ' 個模組顯示中）';
+}
+
+function onVisChange() {
+    visHasChanges = true;
+    document.getElementById('saveBar').classList.add('show');
+    updateVisCount();
+}
+
+// 預設套用
+function applyVisPreset(preset) {
+    const allowedIds = VIS_PRESETS[preset] || [];
+    document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {
+        if (preset === 'all') {
+            cb.checked = true;
+        } else if (preset === 'none') {
+            cb.checked = false;
+        } else {
+            cb.checked = allowedIds.includes(cb.dataset.mod);
+        }
+    });
+    onVisChange();
+    const presetNames = { all: '全選', coach: '教練預設', staff: '營運預設', admin: '管理預設', none: '全不選' };
+    showToast('已套用「' + presetNames[preset] + '」');
+}
+
+// ====================================================================
+//  儲存（修改既有的 savePermissions 函式，加入 hidden_modules）
+// ====================================================================
+
+// 在既有 savePermissions() 的 try 區塊內，perms 物件組裝後、送出 update 前
+// 加入以下邏輯：
+
+/*
+  原本的 savePermissions() 只存 modules 和 fields。
+  需要在組裝 perms 物件時加入 hidden_modules。
+
+  以下是修改後的完整 savePermissions() 函式：
+*/
+
+// 覆蓋原本的 savePermissions
+const _origSavePermissions = typeof savePermissions === 'function' ? savePermissions : null;
+
+async function savePermissionsV2() {
+    // 判斷當前在哪個 Tab
+    const visTab = document.getElementById('tab-visibility');
+    const isVisTab = visTab && visTab.style.display !== 'none';
+
+    if (isVisTab && visSelectedPerson) {
+        // ===== 儲存模組顯示設定 =====
+        const hiddenModules = [];
+        document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb => {
+            if (!cb.checked) hiddenModules.push(cb.dataset.mod);
+        });
+
+        try {
+            const table = visSelectedPerson._table;
+            const existingPerms = visSelectedPerson.permissions || {};
+
+            // 更新 hidden_modules（空陣列表示全部顯示，就不用存）
+            if (hiddenModules.length > 0) {
+                existingPerms.hidden_modules = hiddenModules;
+            } else {
+                delete existingPerms.hidden_modules;
+            }
+
+            const { error } = await sb.from(table).update({
+                permissions: existingPerms,
+                updated_at: new Date().toISOString()
+            }).eq('id', visSelectedPerson.id);
+
+            if (error) throw error;
+            visSelectedPerson.permissions = existingPerms;
+            visHasChanges = false;
+            document.getElementById('saveBar').classList.remove('show');
+            showToast('✅ 模組顯示設定已儲存');
+        } catch (e) {
+            showToast('❌ 儲存失敗：' + e.message);
+        }
+    } else if (selectedStaff) {
+        // ===== 原有的權限儲存邏輯（保持不動）=====
+        const modules = {};
+        const defaults = getEffectiveModulePerms(selectedStaff);
+        document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb => {
+            const mod = cb.dataset.mod; const action = cb.dataset.action;
+            const checked = cb.checked;
+            const defaultVal = (defaults[mod] && defaults[mod][action] === true) || false;
+            if (checked !== defaultVal) { if (!modules[mod]) modules[mod] = {}; modules[mod][action] = checked; }
+        });
+        const fields = {};
+        const fieldDefaults = getEffectiveFieldPerms(selectedStaff);
+        for (const [modId, modDef] of Object.entries(FIELD_MODULES)) {
+            const dFields = fieldDefaults[modId] || {};
+            modDef.fields.forEach(field => {
+                const name = 'field_' + modId + '_' + field.id;
+                const radios = document.querySelectorAll('input[name="' + name + '"]');
+                let val = true;
+                radios.forEach(r => { if (r.checked) { if (r.value === 'true') val = true; else if (r.value === 'masked') val = 'masked'; else val = false; } });
+                const defaultVal = dFields[field.id] !== undefined ? dFields[field.id] : true;
+                if (val !== defaultVal) { if (!fields[modId]) fields[modId] = {}; fields[modId][field.id] = val; }
+            });
+        }
+        const perms = {};
+        if (Object.keys(modules).length > 0) perms.modules = modules;
+        if (Object.keys(fields).length > 0) perms.fields = fields;
+        // 保留既有的 hidden_modules（如果有的話）
+        const existingHidden = ((selectedStaff.permissions || {}).hidden_modules);
+        if (existingHidden && existingHidden.length > 0) perms.hidden_modules = existingHidden;
+
+        try {
+            const table = selectedStaff._table;
+            const { error } = await sb.from(table).update({ permissions: perms, updated_at: new Date().toISOString() }).eq('id', selectedStaff.id);
+            if (error) throw error;
+            selectedStaff.permissions = perms;
+            hasChanges = false;
+            document.getElementById('saveBar').classList.remove('show');
+            showToast('✅ 權限已儲存');
+        } catch (e) { showToast('❌ 儲存失敗：' + e.message); }
+    }
+}
 </script>
 </body>
 </html>
