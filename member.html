@@ -327,26 +327,6 @@ async function saveStudent(){
             const j=await r.json();
             if(!j.success){showToast('❌ 新增失敗：'+(j.error||''));return;}
             const newId=j.id;
-            try{
-                const sbData={
-                    id:newId,
-                    name:fields.name,
-                    nickname:fields.nickname,
-                    line_display_name:'',
-                    phone:fields.phone,
-                    email:fields.email,
-                    gender:fields.gender,
-                    birth_date:fields.birth_date,
-                    medical_history:fields.medical_history,
-                    member_level:fields.member_level,
-                    created_at:new Date().toISOString(),
-                    updated_at:new Date().toISOString()
-                };
-                const{error}=await sb.from('students').insert(sbData);
-                if(error)throw error;
-            }catch(se){
-                console.error('Supabase insert error:',se);
-            }
             showToast('✅ 已新增：'+newId);
             closeModal('editModal');
             await loadStudents();
