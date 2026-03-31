@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>諮詢單管理 · 衡點健康</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --green:#7ac19a; --green-dark:#5f846f; --green-light:rgba(122,193,154,.12);
@@ -285,10 +286,11 @@
 
 <script>
 // ═══════════════════════════════════════════════
-//  ⚙️ 部署 Apps Script 後把 Web App URL 貼在這裡
-//  執行身分：我 ／ 存取權：所有人
+//  ⚙️ Supabase 設定
 // ═══════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbx27WHpkD6gj8NvwN_xsPapfpS5bGH7RMqHcPxBl-OAVBhni4zsT84Y4-RmBgdzc-KJ/exec';
+const SUPABASE_URL = 'https://mnjilhpztnowaplggvkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
@@ -326,10 +328,46 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Load ─────────────────────────────────────────
 async function loadAll() {
     try {
-        const res  = await fetch(GAS_URL + '?action=getAll&t=' + Date.now());
-        const body = await res.json();
-        if (!body.success) throw new Error(body.error || '讀取失敗');
-        ALL = body.data || [];
+        const { data, error } = await sb
+            .from('consultation_records')
+            .select('*')
+            .order('id', { ascending: true });
+
+        if (error) throw new Error(error.message);
+
+        // 欄位轉換：Supabase 欄位名 → 前端欄位名
+        ALL = (data || []).map((r, i) => ({
+            _row: r.id,
+            submittedAt: r.submitted_at || '',
+            closed: r.closed || false,
+            name: r.member_name || '',
+            lineId: r.line_id || '',
+            displayName: r.display_name || '',
+            phone: r.member_phone || '',
+            birthday: r.birthday || '',
+            email: r.email || '',
+            gender: r.gender || '',
+            occupation: r.occupation || '',
+            goals: r.fitness_goals || '',
+            courses: r.courses || '',
+            exercise_exp: r.exercise_experience || '',
+            diseases: r.diseases || '',
+            remarks: r.consultation_remarks || '',
+            time_preferences: r.time_preferences || '',
+            booking_status: r.booking_status || '',
+            coach: r.coach || '',
+            sales_person: r.sales_person || '',
+            purchase_will: r.purchase_will || '',
+            coach_report: r.coach_report || '',
+            admin_track: r.admin_track || '',
+            is_ai: r.is_ai || '',
+            is_purchased: r.is_purchased || '',
+            promo: r.promo || '',
+            applicant_type: r.applicant_type || '',
+            inbody: r.inbody || '',
+            statusKey: r.status_key || (r.closed ? 'closed' : r.booking_status ? 'booked' : 'new')
+        }));
+
         stats(); applyFilter();
     } catch(e) {
         showErr(e.message);
@@ -341,7 +379,7 @@ function showErr(msg) {
     document.getElementById('CL').innerHTML =
         `<div class="empty"><div style="font-size:48px;margin-bottom:12px">⚠️</div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px">讀取失敗</div>
-        <div style="font-size:13px;color:var(--muted)">${msg}<br><br>請確認 GAS_URL 已正確填入</div></div>`;
+        <div style="font-size:13px;color:var(--muted)">${msg}<br><br>請確認 Supabase 連線是否正常</div></div>`;
 }
 
 // ── Stats ─────────────────────────────────────────
@@ -811,32 +849,83 @@ async function confirmSave() {
     btn.disabled = true; btn.textContent = '儲存中…';
     if (ch.birthday) ch.age = calcAge(ch.birthday);
 
-    // 更新 statusKey（本地預覽用）
     const newStatusKey = ch.closed ? 'closed' : ch.booking_status ? 'booked' : 'new';
 
     try {
-        const res = await fetch(GAS_URL, {
-            method:  'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body:    JSON.stringify({ action: 'update_consultation', ...ch })
-        });
-        let ok = true;
-        try { const b=await res.json(); if(b.success===false){ok=false;toast('❌ '+(b.error||'儲存失敗'));} } catch(_){}
+        // ── 1. 主寫入：Supabase ──
+        const updateData = {
+            member_name: ch.name,
+            member_phone: ch.phone,
+            line_id: ch.lineId,
+            display_name: ch.displayName,
+            gender: ch.gender,
+            birthday: ch.birthday,
+            email: ch.email,
+            occupation: ch.occupation,
+            fitness_goals: ch.goals,
+            courses: ch.courses,
+            exercise_experience: ch.exercise_exp,
+            diseases: ch.diseases,
+            consultation_remarks: ch.remarks,
+            time_preferences: ch.time_preferences,
+            booking_status: ch.booking_status,
+            coach: ch.coach,
+            sales_person: ch.sales_person,
+            purchase_will: ch.purchase_will,
+            admin_track: ch.admin_track,
+            coach_report: ch.coach_report,
+            is_ai: ch.is_ai,
+            is_purchased: ch.is_purchased,
+            promo: ch.promo,
+            inbody: ch.inbody,
+            applicant_type: ch.applicant_type,
+            closed: ch.closed || false,
+            status_key: newStatusKey,
+            updated_by: ch.updatedBy,
+            updated_at: new Date().toISOString()
+        };
 
-        if (ok) {
-            const idx = ALL.findIndex(r=>r._row===REC._row);
-            const updated = { ...REC, ...ch, statusKey: newStatusKey };
-            if (idx>-1) ALL[idx] = updated;
-            REC=updated; DRAFT=null; EDIT=false; DIRTY=false;
-            stats(); applyFilter();
-            renderView(updated);
-            document.getElementById('ETB').textContent='✏️ 編輯';
-            document.getElementById('ETB').className='etbtn vm';
-            document.getElementById('DF').style.display='none';
-            toast('✅ 已儲存，Sheets 同步完成');
+        const { error } = await sb
+            .from('consultation_records')
+            .update(updateData)
+            .eq('id', REC._row);
+
+        if (error) {
+            toast('❌ ' + error.message);
+            btn.disabled = false; btn.textContent = '💾 儲存';
+            return;
         }
-    } catch(e) { toast('❌ 儲存失敗：'+e.message); }
-    btn.disabled=false; btn.textContent='💾 儲存並同步 Sheets';
+
+        // ── 2. 回寫 Google Sheets（失敗不影響主流程）──
+        try {
+            // 注意：不傳 _row，因為 Supabase id ≠ Sheet 列號
+            // GAS 會自動用 lineId 或 name+phone 配對
+            const sheetData = { ...ch };
+            delete sheetData._row;
+            sheetData.action = 'update_consultation';
+
+            await fetch('https://script.google.com/macros/s/AKfycbx27WHpkD6gj8NvwN_xsPapfpS5bGH7RMqHcPxBl-OAVBhni4zsT84Y4-RmBgdzc-KJ/exec', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(sheetData)
+            });
+        } catch(sheetErr) {
+            console.warn('Sheets 回寫失敗（不影響主資料）:', sheetErr);
+        }
+        // ── 3. 更新前端狀態 ──
+        const idx = ALL.findIndex(r => r._row === REC._row);
+        const updated = { ...REC, ...ch, statusKey: newStatusKey };
+        if (idx > -1) ALL[idx] = updated;
+        REC = updated; DRAFT = null; EDIT = false; DIRTY = false;
+        stats(); applyFilter();
+        renderView(updated);
+        document.getElementById('ETB').textContent = '✏️ 編輯';
+        document.getElementById('ETB').className = 'etbtn vm';
+        document.getElementById('DF').style.display = 'none';
+        toast('✅ 已儲存');
+
+    } catch(e) { toast('❌ 儲存失敗：' + e.message); }
+    btn.disabled = false; btn.textContent = '💾 儲存';
 }
 
 // ── Utils ─────────────────────────────────────────
