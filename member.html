@@ -153,6 +153,13 @@ const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const GAS_URL='https://script.google.com/macros/s/AKfycbw4u3ye9peLwdoz6mK6ZEad94SuJb-dKajZTMB5--J9uzDXIlFP7Ez9nn16e2aV3L0lMw/exec';
+    // ── GAS 回寫重試機制 ──
+async function retryFetch(url, options, maxRetries = 2) {
+    for (let i = 0; i <= maxRetries; i++) {
+        try { const res = await fetch(url, options); return res; }
+        catch(err) { if (i === maxRetries) throw err; await new Promise(r => setTimeout(r, 1000)); }
+    }
+}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
@@ -342,9 +349,31 @@ async function saveStudent(){
     const ee=document.getElementById('edit_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(editingStudent.email||''))u.email=ev;}
     const be=document.getElementById('edit_birth');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(editingStudent.birth_date||''))u.birth_date=bv||null;}
     const me=document.getElementById('edit_medical');if(me&&!me.readOnly){const mv=me.value.trim();if(mv!==(editingStudent.medical_history||''))u.medical_history=mv;}
-    if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
-    try{showToast('⏳ 儲存中...');const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStudent',id:editingStudent.id,fields:u})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
-    try{u.updated_at=new Date().toISOString();const{error}=await sb.from('students').update(u).eq('id',editingStudent.id);if(error)throw error;showToast('✅ 已更新');closeModal('editModal');editingStudent=null;await loadStudents();}catch(e){showToast('⚠️ Sheet/MySQL 已更新但 Supabase 失敗');}
+      if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
+
+    // ── 1. 主寫入：Supabase ──
+    try {
+        showToast('⏳ 儲存中...');
+        u.updated_at = new Date().toISOString();
+        const { error } = await sb.from('students').update(u).eq('id', editingStudent.id);
+        if (error) { showToast('❌ 儲存失敗：' + error.message); return; }
+    } catch(e) { showToast('❌ 儲存失敗：' + e.message); return; }
+
+    // ── 2. 回寫 Google Sheets（diff-only + retry，失敗不影響主流程）──
+    try {
+        const gasData = { action: 'updateStudent', id: editingStudent.id, fields: u, source: 'supabase_frontend' };
+        delete gasData.fields.updated_at; // Sheet 不需要此欄位
+        await retryFetch(GAS_URL, { method: 'POST', body: JSON.stringify(gasData) });
+        console.log('✅ Sheets 回寫成功，更新欄位:', Object.keys(u).join(', '));
+    } catch(sheetErr) {
+        console.warn('⚠️ Sheets 回寫失敗（不影響主資料）:', sheetErr);
+    }
+
+    // ── 3. 更新前端 ──
+    showToast('✅ 已更新');
+    closeModal('editModal');
+    editingStudent = null;
+    await loadStudents();
 }
 function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';let h='';h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fsel('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fta('疾病史','edit_medical','');h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
