@@ -291,6 +291,20 @@
 const SUPABASE_URL = 'https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo8Hmpo-YVIgeSLGXhAQuci1JcQhDuEpLWqrf1ODfvg7bMbv5Y9oCZGM7yCNibdQhu/exec';
+
+// ── GAS 回寫重試機制 ──
+async function retryFetch(url, options, maxRetries = 2) {
+    for (let i = 0; i <= maxRetries; i++) {
+        try {
+            const res = await fetch(url, options);
+            return res;
+        } catch(err) {
+            if (i === maxRetries) throw err;
+            await new Promise(r => setTimeout(r, 1000));
+        }
+    }
+}
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
@@ -896,21 +910,35 @@ async function confirmSave() {
             return;
         }
 
-        // ── 2. 回寫 Google Sheets（失敗不影響主流程）──
+       // ── 2. 回寫 Google Sheets（diff-only + retry，失敗不影響主流程）──
         try {
-            // 注意：不傳 _row，因為 Supabase id ≠ Sheet 列號
-            // GAS 會自動用 lineId 或 name+phone 配對
-            const sheetData = { ...ch };
-            delete sheetData._row;
-            sheetData.action = 'update_consultation';
-
-            await fetch('https://script.google.com/macros/s/AKfycbx27WHpkD6gj8NvwN_xsPapfpS5bGH7RMqHcPxBl-OAVBhni4zsT84Y4-RmBgdzc-KJ/exec', {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(sheetData)
+            // 比對原始資料 vs 修改後資料，只送有變動的欄位
+            const diffKeys = Object.keys(ch).filter(k => {
+                if (k === '_row') return false;
+                return String(ch[k] || '') !== String(REC[k] || '');
             });
+
+            if (diffKeys.length > 0) {
+                const sheetData = {};
+                diffKeys.forEach(k => { sheetData[k] = ch[k]; });
+                // 必帶配對用欄位
+                sheetData.lineId = ch.lineId || REC.lineId;
+                sheetData.name = ch.name || REC.name;
+                sheetData.phone = ch.phone || REC.phone;
+                sheetData.action = 'update_consultation';
+                sheetData.source = 'supabase_frontend';
+
+                await retryFetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(sheetData)
+                });
+                console.log('✅ Sheets 回寫成功，更新欄位:', diffKeys.join(', '));
+            } else {
+                console.log('ℹ️ 無欄位變動，跳過 Sheets 回寫');
+            }
         } catch(sheetErr) {
-            console.warn('Sheets 回寫失敗（不影響主資料）:', sheetErr);
+            console.warn('⚠️ Sheets 回寫失敗（不影響主資料）:', sheetErr);
         }
         // ── 3. 更新前端狀態 ──
         const idx = ALL.findIndex(r => r._row === REC._row);
