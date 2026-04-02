@@ -101,9 +101,113 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbw4u3ye9peLwdoz6mK6ZEad94SuJb-dKajZTMB5--J9uzDXIlFP7Ez9nn16e2aV3L0lMw/exec';
+const GAS_URL='<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>營運人員管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;}
+.top-card{max-width:600px;margin:12px auto 0;padding:0 12px;}
+.top-inner{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+.top-main{display:flex;justify-content:space-between;align-items:flex-start;}
+.top-main h1{font-size:18px;font-weight:700;color:var(--green-dark);}
+.top-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.user-badge{display:flex;align-items:center;gap:6px;background:var(--green-light);padding:4px 10px 4px 6px;border-radius:20px;}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.user-name{font-size:12px;font-weight:600;color:var(--green-dark);}
+.quick-stats{display:flex;gap:8px;margin-top:12px;}
+.qs{flex:1;background:#f8faf8;border-radius:10px;padding:8px 6px;text-align:center;}
+.qs-num{font-size:18px;font-weight:900;color:var(--green-dark);}
+.qs-label{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;}
+.filter-bar{max-width:600px;margin:10px auto 0;padding:0 12px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.filter-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+.filter-chip.active{background:var(--green);color:white;border-color:var(--green);}
+.filter-chip .cnt{background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;}
+.filter-chip.active .cnt{background:rgba(255,255,255,0.3);}
+.action-bar{max-width:600px;margin:8px auto 0;padding:0 12px;display:flex;gap:8px;align-items:center;}
+.search-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;outline:none;background:white;}
+.search-input:focus{border-color:var(--green);}
+.btn{padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn:active{transform:scale(0.96);}
+.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:white;box-shadow:0 2px 8px rgba(122,193,154,0.3);}
+.btn-secondary{background:var(--blue-light);color:var(--blue-dark);}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px;}
+.card-list{max-width:600px;margin:10px auto 0;padding:0 12px 100px;}
+.a-card{background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04);border-left:4px solid var(--green);transition:all 0.2s;cursor:pointer;}
+.a-card.inactive{border-left-color:#ccc;opacity:0.7;}
+.a-card:active{transform:scale(0.995);}
+.a-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.a-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+.a-avatar.admin{background:linear-gradient(135deg,var(--green-light),#a5d6a7);color:var(--green-dark);}
+.a-avatar.staff{background:linear-gradient(135deg,var(--blue-light),#bbdefb);color:var(--blue-dark);}
+.a-avatar.viewer{background:linear-gradient(135deg,#f5f5f5,#e0e0e0);color:#999;}
+.a-info{flex:1;min-width:0;}
+.a-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.a-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.a-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+.a-tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-field{display:flex;gap:4px;align-items:baseline;}.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:12px;}.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.a-field.full{grid-column:1/-1;}
+.a-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+.a-card.expanded .a-expand{display:block;}
+.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;}
+.a-toggle{text-align:center;margin-top:6px;font-size:10px;color:var(--green);font-weight:600;}
+.a-card.expanded .a-toggle{display:none;}
+.badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;}
+.badge-super{background:linear-gradient(135deg,#fff8e1,#ffe082);color:#e65100;}.badge-admin{background:var(--green-light);color:var(--green-dark);}
+.badge-staff{background:var(--blue-light);color:var(--blue-dark);}.badge-viewer{background:#f5f5f5;color:#999;}
+.badge-active{background:var(--green-light);color:var(--green-dark);}.badge-inactive{background:#ffebee;color:#c62828;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal-panel{width:100%;max-width:500px;max-height:92vh;background:white;border-radius:20px 20px 0 0;overflow-y:auto;animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:white;z-index:10;}
+.modal-head h2{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);padding:4px 8px;}
+.modal-body{padding:20px;padding-bottom:100px;}
+.modal-footer{display:none;position:fixed;bottom:0;left:0;right:0;padding:12px 20px;background:white;border-top:1px solid var(--border);gap:10px;z-index:10;justify-content:flex-end;}
+.modal-bg.show .modal-footer{display:flex;}
+.form-group{margin-bottom:14px;}.form-label{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block;}
+.form-input,.form-textarea,.form-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border-color 0.2s;}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--green);}
+.form-textarea{min-height:70px;resize:vertical;}
+.form-hint{font-size:11px;color:var(--text-muted);margin-top:-8px;margin-bottom:12px;}
+.detail-section{margin-bottom:16px;}.detail-section-title{font-size:12px;font-weight:700;color:var(--green-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.detail-field{font-size:13px;}.detail-field.full{grid-column:1/-1;}
+.detail-field-label{font-size:10px;color:var(--text-muted);margin-bottom:1px;}.detail-field-value{font-weight:500;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
+@media(min-width:769px){.modal-bg{align-items:center;}.modal-panel{border-radius:20px;max-height:85vh;}.modal-footer{position:sticky;bottom:0;}}
+</style>
+</head>
+<body>
+<div class="top-card"><div class="top-inner">
+    <div class="top-main"><div><h1>👥 營運人員管理</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name" id="staffName">-</span></div></div>
+    <div class="quick-stats" id="quickStats"></div>
+</div></div>
+<div class="filter-bar" id="filterBar"></div>
+<div class="action-bar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名、暱稱..." oninput="handleSearch()"><button class="btn btn-primary" id="addBtn" onclick="openAddModal()" style="display:none;">+ 新增</button></div>
+<div class="card-list" id="staffList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
+<div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">人員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
+<div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯人員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStaff()">💾 儲存</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const GAS_URL='https://script.google.com/macros/s/AKfycbzRhdI--_uxPn4TGc6Esv-BFqj76uEFycJcY55szSdyVo4t7gz5etKimmV_kjQ4cUTc9Q/exec';
+const GAS4_URL='https://script.google.com/macros/s/AKfycbzfpaCZKS3yPT9_1k5QpY8V01xPJA8ERPjNM59e0ZSLEdHpUJzKYmcCoUhPOqrMr6KOdg/exec';
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
-let allStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=null,currentFilter='all';
+let allStaff=[],archivedStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=null,currentFilter='all';
 const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',viewer:'檢視者'};
 const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',viewer:'badge-viewer'};
 const roleAvatar={super_admin:'admin',admin:'admin',staff:'staff',viewer:'viewer'};
@@ -133,7 +237,9 @@ async function loadStaff(){
     try{
         const{data,error}=await sb.from('staff').select('*').order('id');
         if(error)throw error;
-        allStaff=data||[];
+        const all=data||[];
+        allStaff=all.filter(s=>s.status!=='封存');
+        archivedStaff=all.filter(s=>s.status==='封存');
         document.getElementById('topSub').textContent='共 '+allStaff.length+' 位人員';
         renderStats();renderFilters();applyFilter();
     }catch(e){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';}
@@ -152,16 +258,24 @@ function renderFilters(){
     let h='<span class="filter-chip active" onclick="setFilter(\'all\',this)">全部<span class="cnt">'+allStaff.length+'</span></span>';
     h+='<span class="filter-chip" onclick="setFilter(\'active\',this)">在職<span class="cnt">'+allStaff.filter(s=>s.status!=='inactive').length+'</span></span>';
     Object.keys(types).forEach(t=>{h+='<span class="filter-chip" onclick="setFilter(\'type:'+t+'\',this)">'+escHtml(t)+'<span class="cnt">'+types[t]+'</span></span>';});
+    if(currentUser&&currentUser.role==='super_admin'&&archivedStaff.length>0){h+='<span class="filter-chip" style="border-color:#ffcdd2;color:#c62828;" onclick="setFilter(\'archived\',this)">📦 封存<span class="cnt">'+archivedStaff.length+'</span></span>';}
     document.getElementById('filterBar').innerHTML=h;
 }
 function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');applyFilter();}
 function applyFilter(){
-    filteredStaff=allStaff.filter(s=>{
-        if(currentFilter==='active'&&s.status==='inactive')return false;
-        if(currentFilter.startsWith('type:')&&!(s.staff_type||'').includes(currentFilter.substring(5)))return false;
-        if(searchTerm&&!((s.name||'').includes(searchTerm)||(s.nickname||'').includes(searchTerm)||(s.id||'').includes(searchTerm)))return false;
-        return true;
-    });
+    if(currentFilter==='archived'){
+        filteredStaff=archivedStaff.filter(s=>{
+            if(searchTerm&&!((s.name||'').includes(searchTerm)||(s.nickname||'').includes(searchTerm)||(s.id||'').includes(searchTerm)))return false;
+            return true;
+        });
+    }else{
+        filteredStaff=allStaff.filter(s=>{
+            if(currentFilter==='active'&&s.status==='inactive')return false;
+            if(currentFilter.startsWith('type:')&&!(s.staff_type||'').includes(currentFilter.substring(5)))return false;
+            if(searchTerm&&!((s.name||'').includes(searchTerm)||(s.nickname||'').includes(searchTerm)||(s.id||'').includes(searchTerm)))return false;
+            return true;
+        });
+    }
     renderStaff();
 }
 function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();applyFilter();},300);}
@@ -170,12 +284,12 @@ function renderStaff(){
     const c=document.getElementById('staffList');
     if(filteredStaff.length===0){c.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><p>找不到人員</p></div>';return;}
     c.innerHTML=filteredStaff.map(s=>{
-        const init=(s.nickname||s.name||'?')[0],role=s.permission_level||'staff',isActive=s.status!=='inactive',sid=escAttr(s.id);
+        const init=(s.nickname||s.name||'?')[0],role=s.permission_level||'staff',isArchived=s.status==='封存',isActive=!isArchived&&s.status!=='inactive',sid=escAttr(s.id);
         const avatarCls=roleAvatar[role]||'staff';
         let tags='';
         (s.staff_type||'').split(',').forEach(t=>{t=t.trim();if(t)tags+='<span class="a-tag badge-staff">'+escHtml(t)+'</span>';});
         tags+='<span class="a-tag '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-        tags+='<span class="a-tag '+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'在職':'停用')+'</span>';
+        tags+='<span class="a-tag '+(isArchived?'badge-inactive" style="background:#ffebee;color:#c62828;">已封存':isActive?'badge-active">在職':'badge-inactive">停用')+'</span>';
         let grid='';
         if(s.department)grid+=af('部門',escHtml(s.department));
         if(isVis('phone')&&s.phone)grid+=af('電話',getFD('phone',s.phone,'phone'));
@@ -194,7 +308,8 @@ function renderStaff(){
         if(isVis('line_id')&&s.line_id)exp+=aff('衡點LINE','<span style="font-size:10px;">'+getFD('line_id',s.line_id)+'</span>');
         if(isVis('line_id_edu')&&s.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',s.line_id_edu)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
-        if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStaff(\''+sid+'\')">✏️ 編輯</button>';
+        if(isArchived){acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreStaff(\''+sid+'\')">♻️ 恢復</button>';}
+        else{if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStaff(\''+sid+'\')">✏️ 編輯</button>';}
         return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+avatarCls+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+(s.nickname?escHtml(s.nickname)+' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(s.name)+')</span>':escHtml(s.name))+'</div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(s.staff_type?'<span>'+escHtml(s.staff_type)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
     }).join('');
 }
@@ -203,13 +318,13 @@ function aff(l,v){return '<div class="a-field full"><span class="a-field-label">
 function toggleCard(id){const c=document.getElementById('card-'+id);if(c)c.classList.toggle('expanded');}
 
 function viewDetail(id){
-    const s=allStaff.find(x=>x.id===id);if(!s)return;
+    const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;
     document.getElementById('detailTitle').textContent=s.nickname||s.name;
     let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
     h+=ddf('編號',escHtml(s.id));h+=ddf('姓名',escHtml(s.name));if(s.nickname)h+=ddf('暱稱',escHtml(s.nickname));
     h+=ddf('性別',genderNames[s.gender]||'-');h+=ddf('人員類型',escHtml(s.staff_type||'-'));
     h+=ddf('部門',escHtml(s.department||'-'));h+=ddf('角色',escHtml(s.role||'-'));
-    h+=ddf('權限等級',roleNames[s.permission_level]||s.permission_level||'-');h+=ddf('狀態',s.status==='inactive'?'停用':'在職');
+    h+=ddf('權限等級',roleNames[s.permission_level]||s.permission_level||'-');h+=ddf('狀態',s.status==='封存'?'已封存':(s.status==='inactive'?'停用':'在職'));
     if(s.hire_date)h+=ddf('到職日',escHtml(s.hire_date));if(s.leave_date)h+=ddf('離職日',escHtml(s.leave_date));
     if(isVis('birthday'))h+=ddf('生日',getFD('birthday',s.birthday));
     h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
@@ -218,17 +333,24 @@ function viewDetail(id){
     if(isVis('line_id'))h+=ddf('衡點LINE',getFD('line_id',s.line_id),true);if(isVis('line_id_edu'))h+=ddf('教務LINE',getFD('line_id_edu',s.line_id_edu),true);
     h+='</div></div>';
     if(isVis('emergency_contact')||isVis('emergency_phone')){h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡人</div><div class="detail-grid">';if(isVis('emergency_contact'))h+=ddf('姓名',getFD('emergency_contact',s.emergency_contact));if(isVis('emergency_phone'))h+=ddf('電話',getFD('emergency_phone',s.emergency_phone));if(s.emergency_relation)h+=ddf('關係',escHtml(s.emergency_relation));h+='</div></div>';}
+    if(s.personal_link){h+='<div class="detail-section"><div class="detail-section-title">排班連結</div><div class="detail-grid">';h+=ddf('連結','<a href="'+escAttr(s.personal_link)+'" target="_blank" style="color:var(--blue-dark);word-break:break-all;">'+escHtml(s.personal_link)+'</a>',true);h+='</div></div>';}
     if(s.availability){h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';h+=ddf('備註',escHtml(s.availability),true);h+='</div></div>';}
     h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(s.created_at));h+=ddf('更新',fmtDate(s.updated_at));h+='</div></div>';
     document.getElementById('detailBody').innerHTML=h;
-    let fh='';if(modulePerms.fill||modulePerms.edit)fh='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
+    let fh='';
+    if(s.status==='封存'){
+        fh+='<button class="btn btn-primary" onclick="restoreStaff(\''+escAttr(s.id)+'\')">♻️ 恢復</button>';
+    }else{
+        if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
+        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
+    }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
 }
 function ddf(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
 
 function editStaff(id){
     if(!modulePerms.fill&&!modulePerms.edit){showToast('無編輯權限');return;}
-    const s=allStaff.find(x=>x.id===id);if(!s)return;editingStaff=s;
+    const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;editingStaff=s;
     document.getElementById('editTitle').textContent='編輯：'+(s.nickname||s.name);
     function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
     let h='';
@@ -240,7 +362,7 @@ function editStaff(id){
     h+=fg('部門','text','e_dept',s.department,ro(s.department));
     h+=fg('角色','text','e_role',s.role,ro(s.role));
     h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],s.permission_level||'staff');
-    h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],s.status||'active');
+    h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用'],['封存','封存']],s.status||'active');
     if(isFull('phone'))h+=fg('電話','tel','e_phone',s.phone,ro(s.phone));
     if(isFull('email'))h+=fg('信箱','email','e_email',s.email,ro(s.email));
     if(isFull('birthday'))h+=fg('生日','date','e_bday',s.birthday,ro(s.birthday));
@@ -255,25 +377,366 @@ function editStaff(id){
     h+=fta('備註','e_avail',s.availability,ro(s.availability));
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
-async function saveStaff(){
-    if(!editingStaff)return;const s=editingStaff;const u={};
-    function chk(field,elId,orig){const el=document.getElementById(elId);if(!el||el.readOnly)return;const v=el.value.trim();if(v!==(orig||''))u[field]=v;}
-    chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('role','e_role',s.role);
-    const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
-    const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
-    chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
-    const bd=val('e_bday');if(bd!==(s.birthday||''))u.birthday=bd||null;
-    chk('address','e_addr',s.address);chk('emergency_contact','e_ec',s.emergency_contact);chk('emergency_phone','e_ep',s.emergency_phone);
-    chk('emergency_relation','e_er',s.emergency_relation);
-    const hd=val('e_hire');if(hd!==(s.hire_date||''))u.hire_date=hd||null;
-    const ld=val('e_leave');if(ld!==(s.leave_date||''))u.leave_date=ld||null;
-    chk('availability','e_avail',s.availability);
-    chk('line_id','e_lid',s.line_id);chk('line_id_edu','e_ledu',s.line_id_edu);
-    if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
-    try{showToast('⏳ 儲存中...');const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:u})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
-    try{u.updated_at=new Date().toISOString();const{error}=await sb.from('staff').update(u).eq('id',s.id);if(error)throw error;showToast('✅ 已更新');closeModal('editModal');editingStaff=null;await loadStaff();}catch(e){showToast('⚠️ Sheet/MySQL已更新但Supabase失敗');}
+async function generateStaffId(){
+    const yr=String(new Date().getFullYear()).slice(-2);
+    const prefix='HDB'+yr;
+    const{data}=await sb.from('staff').select('id').like('id',prefix+'%').order('id',{ascending:false}).limit(1);
+    if(data&&data.length>0){const lastSeq=parseInt(data[0].id.slice(5))||0;return prefix+String(lastSeq+1).padStart(5,'0');}
+    return prefix+'00001';
 }
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('角色','text','e_role','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+async function saveStaff(){
+    const isCreate=!editingStaff;
+    if(isCreate){
+        /* === 新增模式：Supabase-first === */
+        const name=val('e_name');if(!name){showToast('請輸入姓名');return;}
+        try{
+            showToast('⏳ 新增中...');
+            const newId=await generateStaffId();
+            const personalLink=GAS4_URL+'?name='+encodeURIComponent(name);
+            const newStaff={id:newId,name:name,nickname:val('e_nick')||null,staff_type:val('e_type')||null,
+                gender:val('e_gender')||null,department:val('e_dept')||null,role:val('e_role')||null,
+                permission_level:val('e_perm')||'staff',status:val('e_status')||'active',
+                phone:val('e_phone')||null,email:val('e_email')||null,birthday:val('e_bday')||null,
+                address:val('e_addr')||null,emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
+                emergency_relation:val('e_er')||null,hire_date:val('e_hire')||null,leave_date:val('e_leave')||null,
+                line_id:val('e_lid')||null,line_id_edu:val('e_ledu')||null,
+                availability:val('e_avail')||null,personal_link:personalLink,
+                created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+            const{error}=await sb.from('staff').insert(newStaff);
+            if(error)throw error;
+            showToast('✅ 已新增（編號：'+newId+'）');closeModal('editModal');
+            /* GAS callback（非阻塞） */
+            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'addStaff',staff:newStaff,source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+            await loadStaff();
+        }catch(e){showToast('❌ 新增失敗：'+e.message);}
+    }else{
+        /* === 編輯模式：Supabase-first === */
+        const s=editingStaff;const u={};
+        function chk(field,elId,orig){const el=document.getElementById(elId);if(!el||el.readOnly)return;const v=el.value.trim();if(v!==(orig||''))u[field]=v;}
+        chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('role','e_role',s.role);
+        const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
+        const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
+        chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
+        const bd=val('e_bday');if(bd!==(s.birthday||''))u.birthday=bd||null;
+        chk('address','e_addr',s.address);chk('emergency_contact','e_ec',s.emergency_contact);chk('emergency_phone','e_ep',s.emergency_phone);
+        chk('emergency_relation','e_er',s.emergency_relation);
+        const hd=val('e_hire');if(hd!==(s.hire_date||''))u.hire_date=hd||null;
+        const ld=val('e_leave');if(ld!==(s.leave_date||''))u.leave_date=ld||null;
+        chk('availability','e_avail',s.availability);
+        chk('line_id','e_lid',s.line_id);chk('line_id_edu','e_ledu',s.line_id_edu);
+        if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
+        try{
+            showToast('⏳ 儲存中...');
+            u.updated_at=new Date().toISOString();
+            const{error}=await sb.from('staff').update(u).eq('id',s.id);
+            if(error)throw error;
+            showToast('✅ 已更新');closeModal('editModal');editingStaff=null;
+            /* GAS callback（非阻塞） */
+            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:u})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+            await loadStaff();
+        }catch(e){showToast('❌ 更新失敗：'+e.message);}
+    }
+}
+async function archiveStaff(id){
+    const s=allStaff.find(x=>x.id===id);if(!s)return;
+    if(!confirm('確定要封存「'+(s.nickname||s.name)+'」嗎？封存後不會出現在人員列表中。'))return;
+    try{
+        showToast('⏳ 封存中...');
+        const{error}=await sb.from('staff').update({status:'封存',updated_at:new Date().toISOString()}).eq('id',s.id);
+        if(error)throw error;
+        showToast('✅ 已封存');closeModal('detailModal');
+        /* GAS callback */
+        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'archiveStaff',name:s.name,status:'封存',source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+        await loadStaff();
+    }catch(e){showToast('❌ 封存失敗：'+e.message);}
+}
+async function restoreStaff(id){
+    const s=archivedStaff.find(x=>x.id===id);if(!s)return;
+    if(!confirm('確定要恢復「'+(s.nickname||s.name)+'」嗎？恢復後將重新出現在人員列表中。'))return;
+    try{
+        showToast('⏳ 恢復中...');
+        const{error}=await sb.from('staff').update({status:'active',updated_at:new Date().toISOString()}).eq('id',s.id);
+        if(error)throw error;
+        showToast('✅ 已恢復');closeModal('detailModal');
+        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:{status:'active'},source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+        await loadStaff();
+    }catch(e){showToast('❌ 恢復失敗：'+e.message);}
+}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('角色','text','e_role','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+
+function openModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
+function fg(l,t,id,v,ro){var s=ro?'readonly style="background:#f0f0f0;cursor:not-allowed;color:#888;"':'';return '<div class="form-group"><label class="form-label">'+l+(ro?' 🔒':'')+'</label><input type="'+t+'" class="form-input" id="'+id+'" value="'+escAttr(v||'')+'" '+s+'></div>';}
+function fta(l,id,v,ro){if(ro)return '<div class="form-group"><label class="form-label">'+l+' 🔒</label><textarea class="form-textarea" id="'+id+'" readonly style="background:#f0f0f0;cursor:not-allowed;color:#888;">'+escHtml(v||'')+'</textarea></div>';return '<div class="form-group"><label class="form-label">'+l+'</label><textarea class="form-textarea" id="'+id+'">'+escHtml(v||'')+'</textarea></div>';}
+function fsel(l,id,opts,sel,ro){if(ro){var sv=opts.find(function(o){return o[0]===sel;});return '<div class="form-group"><label class="form-label">'+l+' 🔒</label><input type="text" class="form-input" id="'+id+'" value="'+escAttr(sv?sv[1]:(sel||''))+'" readonly style="background:#f0f0f0;cursor:not-allowed;color:#888;"></div>';}return '<div class="form-group"><label class="form-label">'+l+'</label><select class="form-select" id="'+id+'">'+opts.map(function(o){return '<option value="'+o[0]+'" '+(o[0]===sel?'selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
+function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
+let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
+document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStaff();});
+</script>
+</body>
+</html>';
+const GAS4_URL='https://script.google.com/macros/s/AKfycbzfpaCZKS3yPT9_1k5QpY8V01xPJA8ERPjNM59e0ZSLEdHpUJzKYmcCoUhPOqrMr6KOdg/exec';
+let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
+let allStaff=[],archivedStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=null,currentFilter='all';
+const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',viewer:'檢視者'};
+const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',viewer:'badge-viewer'};
+const roleAvatar={super_admin:'admin',admin:'admin',staff:'staff',viewer:'viewer'};
+const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
+const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
+
+function initPermissions(){
+    try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
+    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}
+    if(!currentUser){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
+    document.getElementById('staffName').textContent=currentUser.name;
+    document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
+    if(currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
+    else{modulePerms=(currentUser.permissions&&currentUser.permissions['staff-manage'])||{view:false};}
+    if(currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['staff-manage'])||{};}
+    try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('staff-manage');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('staff-manage');}catch(e){}
+    if(modulePerms.fill===undefined)modulePerms.fill=modulePerms.edit||false;
+    if(modulePerms.create)document.getElementById('addBtn').style.display='flex';
+    if(!modulePerms.view){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>無權限</p></div>';return false;}
+    return true;
+}
+function isVis(f){const p=fieldPerms[f];return p===undefined||p===true||p==='masked';}
+function isFull(f){const p=fieldPerms[f];return p===undefined||p===true;}
+function getFD(f,v,mt){const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
+
+async function loadStaff(){
+    try{
+        const{data,error}=await sb.from('staff').select('*').order('id');
+        if(error)throw error;
+        const all=data||[];
+        allStaff=all.filter(s=>s.status!=='封存');
+        archivedStaff=all.filter(s=>s.status==='封存');
+        document.getElementById('topSub').textContent='共 '+allStaff.length+' 位人員';
+        renderStats();renderFilters();applyFilter();
+    }catch(e){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';}
+}
+function renderStats(){
+    const active=allStaff.filter(s=>s.status!=='inactive').length;
+    const roles={};allStaff.forEach(s=>{const r=s.permission_level||'staff';roles[r]=(roles[r]||0)+1;});
+    document.getElementById('quickStats').innerHTML=
+        '<div class="qs"><div class="qs-num">'+active+'</div><div class="qs-label">在職</div></div>'+
+        '<div class="qs"><div class="qs-num">'+(roles.super_admin||0)+'</div><div class="qs-label">超級管理</div></div>'+
+        '<div class="qs"><div class="qs-num">'+(roles.admin||0)+'</div><div class="qs-label">管理員</div></div>'+
+        '<div class="qs"><div class="qs-num">'+((roles.staff||0)+(roles.viewer||0))+'</div><div class="qs-label">營運/檢視</div></div>';
+}
+function renderFilters(){
+    const types={};allStaff.forEach(s=>{(s.staff_type||'').split(',').forEach(t=>{t=t.trim();if(t)types[t]=(types[t]||0)+1;});});
+    let h='<span class="filter-chip active" onclick="setFilter(\'all\',this)">全部<span class="cnt">'+allStaff.length+'</span></span>';
+    h+='<span class="filter-chip" onclick="setFilter(\'active\',this)">在職<span class="cnt">'+allStaff.filter(s=>s.status!=='inactive').length+'</span></span>';
+    Object.keys(types).forEach(t=>{h+='<span class="filter-chip" onclick="setFilter(\'type:'+t+'\',this)">'+escHtml(t)+'<span class="cnt">'+types[t]+'</span></span>';});
+    if(currentUser&&currentUser.role==='super_admin'&&archivedStaff.length>0){h+='<span class="filter-chip" style="border-color:#ffcdd2;color:#c62828;" onclick="setFilter(\'archived\',this)">📦 封存<span class="cnt">'+archivedStaff.length+'</span></span>';}
+    document.getElementById('filterBar').innerHTML=h;
+}
+function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');applyFilter();}
+function applyFilter(){
+    if(currentFilter==='archived'){
+        filteredStaff=archivedStaff.filter(s=>{
+            if(searchTerm&&!((s.name||'').includes(searchTerm)||(s.nickname||'').includes(searchTerm)||(s.id||'').includes(searchTerm)))return false;
+            return true;
+        });
+    }else{
+        filteredStaff=allStaff.filter(s=>{
+            if(currentFilter==='active'&&s.status==='inactive')return false;
+            if(currentFilter.startsWith('type:')&&!(s.staff_type||'').includes(currentFilter.substring(5)))return false;
+            if(searchTerm&&!((s.name||'').includes(searchTerm)||(s.nickname||'').includes(searchTerm)||(s.id||'').includes(searchTerm)))return false;
+            return true;
+        });
+    }
+    renderStaff();
+}
+function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeout=setTimeout(()=>{searchTerm=document.getElementById('searchInput').value.trim();applyFilter();},300);}
+
+function renderStaff(){
+    const c=document.getElementById('staffList');
+    if(filteredStaff.length===0){c.innerHTML='<div class="empty-state"><div class="empty-icon">👥</div><p>找不到人員</p></div>';return;}
+    c.innerHTML=filteredStaff.map(s=>{
+        const init=(s.nickname||s.name||'?')[0],role=s.permission_level||'staff',isArchived=s.status==='封存',isActive=!isArchived&&s.status!=='inactive',sid=escAttr(s.id);
+        const avatarCls=roleAvatar[role]||'staff';
+        let tags='';
+        (s.staff_type||'').split(',').forEach(t=>{t=t.trim();if(t)tags+='<span class="a-tag badge-staff">'+escHtml(t)+'</span>';});
+        tags+='<span class="a-tag '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
+        tags+='<span class="a-tag '+(isArchived?'badge-inactive" style="background:#ffebee;color:#c62828;">已封存':isActive?'badge-active">在職':'badge-inactive">停用')+'</span>';
+        let grid='';
+        if(s.department)grid+=af('部門',escHtml(s.department));
+        if(isVis('phone')&&s.phone)grid+=af('電話',getFD('phone',s.phone,'phone'));
+        if(s.hire_date)grid+=af('到職',escHtml(s.hire_date));
+        if(s.role)grid+=af('角色',escHtml(s.role));
+        let exp='';
+        if(isVis('email')&&s.email)exp+=af('信箱',getFD('email',s.email));
+        if(isVis('birthday')&&s.birthday)exp+=af('生日',getFD('birthday',s.birthday));
+        if(genderNames[s.gender])exp+=af('性別',genderNames[s.gender]);
+        if(isVis('address')&&s.address)exp+=aff('地址',getFD('address',s.address));
+        if(isVis('emergency_contact')&&s.emergency_contact)exp+=af('緊急聯絡人',getFD('emergency_contact',s.emergency_contact));
+        if(isVis('emergency_phone')&&s.emergency_phone)exp+=af('緊急電話',getFD('emergency_phone',s.emergency_phone));
+        if(s.emergency_relation)exp+=af('關係',escHtml(s.emergency_relation));
+        if(s.leave_date)exp+=af('離職日',escHtml(s.leave_date));
+        if(s.availability)exp+=aff('備註',escHtml(s.availability));
+        if(isVis('line_id')&&s.line_id)exp+=aff('衡點LINE','<span style="font-size:10px;">'+getFD('line_id',s.line_id)+'</span>');
+        if(isVis('line_id_edu')&&s.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',s.line_id_edu)+'</span>');
+        let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
+        if(isArchived){acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();restoreStaff(\''+sid+'\')">♻️ 恢復</button>';}
+        else{if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editStaff(\''+sid+'\')">✏️ 編輯</button>';}
+        return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+avatarCls+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+(s.nickname?escHtml(s.nickname)+' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(s.name)+')</span>':escHtml(s.name))+'</div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(s.staff_type?'<span>'+escHtml(s.staff_type)+'</span>':'')+(s.department?'<span>'+escHtml(s.department)+'</span>':'')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
+    }).join('');
+}
+function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'</span><span class="a-field-value">'+v+'</span></div>';}
+function aff(l,v){return '<div class="a-field full"><span class="a-field-label">'+l+'</span><span class="a-field-value" style="white-space:normal;">'+v+'</span></div>';}
+function toggleCard(id){const c=document.getElementById('card-'+id);if(c)c.classList.toggle('expanded');}
+
+function viewDetail(id){
+    const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;
+    document.getElementById('detailTitle').textContent=s.nickname||s.name;
+    let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
+    h+=ddf('編號',escHtml(s.id));h+=ddf('姓名',escHtml(s.name));if(s.nickname)h+=ddf('暱稱',escHtml(s.nickname));
+    h+=ddf('性別',genderNames[s.gender]||'-');h+=ddf('人員類型',escHtml(s.staff_type||'-'));
+    h+=ddf('部門',escHtml(s.department||'-'));h+=ddf('角色',escHtml(s.role||'-'));
+    h+=ddf('權限等級',roleNames[s.permission_level]||s.permission_level||'-');h+=ddf('狀態',s.status==='封存'?'已封存':(s.status==='inactive'?'停用':'在職'));
+    if(s.hire_date)h+=ddf('到職日',escHtml(s.hire_date));if(s.leave_date)h+=ddf('離職日',escHtml(s.leave_date));
+    if(isVis('birthday'))h+=ddf('生日',getFD('birthday',s.birthday));
+    h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
+    if(isVis('phone'))h+=ddf('電話',getFD('phone',s.phone,'phone'));if(isVis('email'))h+=ddf('信箱',getFD('email',s.email));
+    if(isVis('address'))h+=ddf('地址',getFD('address',s.address),true);
+    if(isVis('line_id'))h+=ddf('衡點LINE',getFD('line_id',s.line_id),true);if(isVis('line_id_edu'))h+=ddf('教務LINE',getFD('line_id_edu',s.line_id_edu),true);
+    h+='</div></div>';
+    if(isVis('emergency_contact')||isVis('emergency_phone')){h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡人</div><div class="detail-grid">';if(isVis('emergency_contact'))h+=ddf('姓名',getFD('emergency_contact',s.emergency_contact));if(isVis('emergency_phone'))h+=ddf('電話',getFD('emergency_phone',s.emergency_phone));if(s.emergency_relation)h+=ddf('關係',escHtml(s.emergency_relation));h+='</div></div>';}
+    if(s.personal_link){h+='<div class="detail-section"><div class="detail-section-title">排班連結</div><div class="detail-grid">';h+=ddf('連結','<a href="'+escAttr(s.personal_link)+'" target="_blank" style="color:var(--blue-dark);word-break:break-all;">'+escHtml(s.personal_link)+'</a>',true);h+='</div></div>';}
+    if(s.availability){h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';h+=ddf('備註',escHtml(s.availability),true);h+='</div></div>';}
+    h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(s.created_at));h+=ddf('更新',fmtDate(s.updated_at));h+='</div></div>';
+    document.getElementById('detailBody').innerHTML=h;
+    let fh='';
+    if(s.status==='封存'){
+        fh+='<button class="btn btn-primary" onclick="restoreStaff(\''+escAttr(s.id)+'\')">♻️ 恢復</button>';
+    }else{
+        if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
+        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
+    }
+    document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
+}
+function ddf(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
+
+function editStaff(id){
+    if(!modulePerms.fill&&!modulePerms.edit){showToast('無編輯權限');return;}
+    const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;editingStaff=s;
+    document.getElementById('editTitle').textContent='編輯：'+(s.nickname||s.name);
+    function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
+    let h='';
+    h+=fg('編號','text','e_id',s.id,true);h+=fg('姓名','text','e_name',s.name,true);
+    h+=fg('暱稱','text','e_nick',s.nickname,ro(s.nickname));
+    h+=fg('人員類型','text','e_type',s.staff_type,ro(s.staff_type));
+    if(!ro(s.staff_type))h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';
+    h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
+    h+=fg('部門','text','e_dept',s.department,ro(s.department));
+    h+=fg('角色','text','e_role',s.role,ro(s.role));
+    h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],s.permission_level||'staff');
+    h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用'],['封存','封存']],s.status||'active');
+    if(isFull('phone'))h+=fg('電話','tel','e_phone',s.phone,ro(s.phone));
+    if(isFull('email'))h+=fg('信箱','email','e_email',s.email,ro(s.email));
+    if(isFull('birthday'))h+=fg('生日','date','e_bday',s.birthday,ro(s.birthday));
+    if(isFull('address'))h+=fg('地址','text','e_addr',s.address,ro(s.address));
+    if(isFull('emergency_contact'))h+=fg('緊急聯絡人','text','e_ec',s.emergency_contact,ro(s.emergency_contact));
+    if(isFull('emergency_phone'))h+=fg('緊急電話','tel','e_ep',s.emergency_phone,ro(s.emergency_phone));
+    h+=fg('緊急聯絡人關係','text','e_er',s.emergency_relation,ro(s.emergency_relation));
+    h+=fg('到職日','date','e_hire',s.hire_date,ro(s.hire_date));
+    h+=fg('離職日','date','e_leave',s.leave_date,ro(s.leave_date));
+    if(isFull('line_id'))h+=fg('衡點LINE','text','e_lid',s.line_id,false);
+    if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',s.line_id_edu,false);
+    h+=fta('備註','e_avail',s.availability,ro(s.availability));
+    document.getElementById('editBody').innerHTML=h;openModal('editModal');
+}
+async function generateStaffId(){
+    const yr=String(new Date().getFullYear()).slice(-2);
+    const prefix='HDB'+yr;
+    const{data}=await sb.from('staff').select('id').like('id',prefix+'%').order('id',{ascending:false}).limit(1);
+    if(data&&data.length>0){const lastSeq=parseInt(data[0].id.slice(5))||0;return prefix+String(lastSeq+1).padStart(5,'0');}
+    return prefix+'00001';
+}
+async function saveStaff(){
+    const isCreate=!editingStaff;
+    if(isCreate){
+        /* === 新增模式：Supabase-first === */
+        const name=val('e_name');if(!name){showToast('請輸入姓名');return;}
+        try{
+            showToast('⏳ 新增中...');
+            const newId=await generateStaffId();
+            const personalLink=GAS4_URL+'?name='+encodeURIComponent(name);
+            const newStaff={id:newId,name:name,nickname:val('e_nick')||null,staff_type:val('e_type')||null,
+                gender:val('e_gender')||null,department:val('e_dept')||null,role:val('e_role')||null,
+                permission_level:val('e_perm')||'staff',status:val('e_status')||'active',
+                phone:val('e_phone')||null,email:val('e_email')||null,birthday:val('e_bday')||null,
+                address:val('e_addr')||null,emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
+                emergency_relation:val('e_er')||null,hire_date:val('e_hire')||null,leave_date:val('e_leave')||null,
+                line_id:val('e_lid')||null,line_id_edu:val('e_ledu')||null,
+                availability:val('e_avail')||null,personal_link:personalLink,
+                created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+            const{error}=await sb.from('staff').insert(newStaff);
+            if(error)throw error;
+            showToast('✅ 已新增（編號：'+newId+'）');closeModal('editModal');
+            /* GAS callback（非阻塞） */
+            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'addStaff',staff:newStaff,source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+            await loadStaff();
+        }catch(e){showToast('❌ 新增失敗：'+e.message);}
+    }else{
+        /* === 編輯模式：Supabase-first === */
+        const s=editingStaff;const u={};
+        function chk(field,elId,orig){const el=document.getElementById(elId);if(!el||el.readOnly)return;const v=el.value.trim();if(v!==(orig||''))u[field]=v;}
+        chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('role','e_role',s.role);
+        const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
+        const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
+        chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
+        const bd=val('e_bday');if(bd!==(s.birthday||''))u.birthday=bd||null;
+        chk('address','e_addr',s.address);chk('emergency_contact','e_ec',s.emergency_contact);chk('emergency_phone','e_ep',s.emergency_phone);
+        chk('emergency_relation','e_er',s.emergency_relation);
+        const hd=val('e_hire');if(hd!==(s.hire_date||''))u.hire_date=hd||null;
+        const ld=val('e_leave');if(ld!==(s.leave_date||''))u.leave_date=ld||null;
+        chk('availability','e_avail',s.availability);
+        chk('line_id','e_lid',s.line_id);chk('line_id_edu','e_ledu',s.line_id_edu);
+        if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
+        try{
+            showToast('⏳ 儲存中...');
+            u.updated_at=new Date().toISOString();
+            const{error}=await sb.from('staff').update(u).eq('id',s.id);
+            if(error)throw error;
+            showToast('✅ 已更新');closeModal('editModal');editingStaff=null;
+            /* GAS callback（非阻塞） */
+            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:u})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+            await loadStaff();
+        }catch(e){showToast('❌ 更新失敗：'+e.message);}
+    }
+}
+async function archiveStaff(id){
+    const s=allStaff.find(x=>x.id===id);if(!s)return;
+    if(!confirm('確定要封存「'+(s.nickname||s.name)+'」嗎？封存後不會出現在人員列表中。'))return;
+    try{
+        showToast('⏳ 封存中...');
+        const{error}=await sb.from('staff').update({status:'封存',updated_at:new Date().toISOString()}).eq('id',s.id);
+        if(error)throw error;
+        showToast('✅ 已封存');closeModal('detailModal');
+        /* GAS callback */
+        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'archiveStaff',name:s.name,status:'封存',source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+        await loadStaff();
+    }catch(e){showToast('❌ 封存失敗：'+e.message);}
+}
+async function restoreStaff(id){
+    const s=archivedStaff.find(x=>x.id===id);if(!s)return;
+    if(!confirm('確定要恢復「'+(s.nickname||s.name)+'」嗎？恢復後將重新出現在人員列表中。'))return;
+    try{
+        showToast('⏳ 恢復中...');
+        const{error}=await sb.from('staff').update({status:'active',updated_at:new Date().toISOString()}).eq('id',s.id);
+        if(error)throw error;
+        showToast('✅ 已恢復');closeModal('detailModal');
+        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:{status:'active'},source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
+        await loadStaff();
+    }catch(e){showToast('❌ 恢復失敗：'+e.message);}
+}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('角色','text','e_role','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','管理員'],['super_admin','超級管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
