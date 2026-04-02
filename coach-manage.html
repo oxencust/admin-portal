@@ -107,21 +107,11 @@ let allCoaches=[],filteredCoaches=[],searchTerm='',searchTimeout=null,editingCoa
 const specNames={pilates:'皮拉提斯',weight:'重量訓練',stretch:'伸展課程',ai:'AI 體態分析'};
 const specIcons={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'};
 const specClass={pilates:'badge-pilates',weight:'badge-weight',stretch:'badge-stretch',ai:'badge-ai'};
-/* 中文→英文 key 映射（處理 GAS 同步的中文格式資料） */
-const zhToSpecKey={'皮拉提斯':'pilates','重量訓練':'weight','伸展課程':'stretch','AI 體態分析':'ai','AI體態分析':'ai'};
-function normalizeSpecs(raw){
-    if(!raw)return[];
-    if(Array.isArray(raw)){
-        return raw.map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);
-    }
-    if(typeof raw==='string'){
-        return raw.split(',').map(s=>s.trim()).map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);
-    }
-    return[];
-}
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
 const genderKey=g=>(g==='female'||g==='女')?'f':'m';
 const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
+const zhToSpecKey={'皮拉提斯':'pilates','重量訓練':'weight','伸展課程':'stretch','AI 體態分析':'ai','AI體態分析':'ai'};
+function normalizeSpecs(raw){if(!raw)return[];if(Array.isArray(raw)){return raw.map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);}if(typeof raw==='string'){return raw.split(',').map(s=>s.trim()).map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);}return[];}
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
@@ -246,13 +236,7 @@ function viewDetail(id){
     if(co.certifications||co.notes){h+='<div class="detail-section"><div class="detail-section-title">其他</div><div class="detail-grid">';if(co.certifications)h+=ddf('證照紀錄',escHtml(co.certifications),true);if(co.notes)h+=ddf('備註',escHtml(co.notes),true);h+='</div></div>';}
     h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(co.created_at));h+=ddf('更新',fmtDate(co.updated_at));h+='</div></div>';
     document.getElementById('detailBody').innerHTML=h;
-    let fh='';
-    if(co.is_active===false){
-        fh+='<button class="btn btn-primary" onclick="restoreCoach(\''+escAttr(co.id)+'\')">♻️ 恢復</button>';
-    }else{
-        if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
-        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveCoach(\''+escAttr(co.id)+'\')">📦 封存</button>';
-    }
+    let fh='';if(modulePerms.fill||modulePerms.edit)fh='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
 }
 function ddf(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
@@ -284,102 +268,29 @@ function editCoach(id){
     h+=fta('備註','e_notes',co.notes,ro(co.notes));
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
-async function generateCoachCode(primarySpec){
-    const prefixMap={pilates:'HDP',weight:'HDT',stretch:'HDF',ai:'HDM'};
-    const prefix=prefixMap[primarySpec];
-    if(!prefix)return null;
-    const yr=String(new Date().getFullYear()).slice(-2);
-    const full=prefix+yr;
-    const{data}=await sb.from('coaches').select('coach_code').like('coach_code',full+'%').order('coach_code',{ascending:false}).limit(1);
-    if(data&&data.length>0){const last=parseInt(data[0].coach_code.slice(5))||0;return full+String(last+1).padStart(5,'0');}
-    return full+'00001';
-}
 async function saveCoach(){
-    const isCreate=!editingCoach;
-    if(isCreate){
-        /* === 新增模式：Supabase-first === */
-        const name=val('e_name');if(!name){showToast('請輸入教練名稱');return;}
-        const specs=[];['pilates','weight','stretch','ai'].forEach(s=>{if(document.getElementById('e_spec_'+s)?.checked)specs.push(s);});
-        if(specs.length===0){showToast('請至少選擇一種課程類型');return;}
-        try{
-            showToast('⏳ 新增中...');
-            const primarySpec=specs[0];
-            const coachCode=await generateCoachCode(primarySpec);
-            const newCoach={name:name,real_name:val('e_rname')||null,
-                gender:val('e_gender')||null,phone:val('e_phone')||null,email:val('e_email')||null,
-                birthday:val('e_bday')||null,specialties:specs,is_active:val('e_active')!=='false',
-                certifications:val('e_cert')||null,notes:val('e_notes')||null,
-                emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
-                emergency_relation:val('e_er')||null,
-                coach_code:coachCode,permission_level:'coach',
-                created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-            const{data:inserted,error}=await sb.from('coaches').insert(newCoach).select();
-            if(error)throw error;
-            showToast('✅ 已新增（編號：'+coachCode+'）');closeModal('editModal');
-            /* GAS callback（非阻塞） */
-            const gasCoach=Object.assign({},newCoach);
-            if(inserted&&inserted[0])gasCoach.supabase_id=inserted[0].id;
-            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'addCoach',coach:gasCoach,source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
-            await loadCoaches();
-        }catch(e){showToast('❌ 新增失敗：'+e.message);}
-    }else{
-        /* === 編輯模式：Supabase-first === */
-        const co=editingCoach;const u={};
-        const rn=val('e_rname');if(rn!==(co.real_name||''))u.real_name=rn;
-        const gv=val('e_gender');if(gv!==genderNorm(co.gender))u.gender=gv;
-        const av=val('e_active');if(av!==String(co.is_active!==false))u.is_active=av==='true';
-        const cv=val('e_cert');if(cv!==(co.certifications||''))u.certifications=cv;
-        const nv=val('e_notes');if(nv!==(co.notes||''))u.notes=nv;
-        const specs=[];['pilates','weight','stretch','ai'].forEach(s=>{if(document.getElementById('e_spec_'+s)?.checked)specs.push(s);});
-        if(JSON.stringify(specs.sort())!==JSON.stringify((co.specialties||[]).sort()))u.specialties=specs;
-        const pe=document.getElementById('e_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(co.phone||''))u.phone=pv;}
-        const ee=document.getElementById('e_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(co.email||''))u.email=ev;}
-        const be=document.getElementById('e_bday');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(co.birthday||''))u.birthday=bv||null;}
-        const le=document.getElementById('e_luid');if(le&&!le.readOnly){const lv=le.value.trim();if(lv!==(co.line_uid||''))u.line_uid=lv;}
-        const lde=document.getElementById('e_ledu');if(lde&&!lde.readOnly){const ldv=lde.value.trim();if(ldv!==(co.line_id_edu||''))u.line_id_edu=ldv;}
-        const lge=document.getElementById('e_lgid');if(lge&&!lge.readOnly){const lgv=lge.value.trim();if(lgv!==(co.line_group_id||''))u.line_group_id=lgv;}
-        const ece=document.getElementById('e_ec');if(ece&&!ece.readOnly){const ecv=ece.value.trim();if(ecv!==(co.emergency_contact||''))u.emergency_contact=ecv;}
-        const epe=document.getElementById('e_ep');if(epe&&!epe.readOnly){const epv=epe.value.trim();if(epv!==formatPhone(co.emergency_phone||''))u.emergency_phone=epv;}
-        const ere=document.getElementById('e_er');if(ere&&!ere.readOnly){const erv=ere.value.trim();if(erv!==(co.emergency_relation||''))u.emergency_relation=erv;}
-        if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
-        try{
-            showToast('⏳ 儲存中...');
-            u.updated_at=new Date().toISOString();
-            const{error}=await sb.from('coaches').update(u).eq('id',co.id);
-            if(error)throw error;
-            showToast('✅ 已更新');closeModal('editModal');editingCoach=null;
-            /* GAS callback（非阻塞） */
-            try{const gf=Object.assign({},u);gf.name=co.name;if(!u.line_uid)gf.line_uid=co.line_uid||'';await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateCoach',fields:gf})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
-            await loadCoaches();
-        }catch(e){showToast('❌ 更新失敗：'+e.message);}
-    }
+    if(!editingCoach)return;const co=editingCoach;const u={};
+    const rn=val('e_rname');if(rn!==(co.real_name||''))u.real_name=rn;
+    const gv=val('e_gender');if(gv!==genderNorm(co.gender))u.gender=gv;
+    const av=val('e_active');if(av!==String(co.is_active!==false))u.is_active=av==='true';
+    const cv=val('e_cert');if(cv!==(co.certifications||''))u.certifications=cv;
+    const nv=val('e_notes');if(nv!==(co.notes||''))u.notes=nv;
+    const specs=[];['pilates','weight','stretch','ai'].forEach(s=>{if(document.getElementById('e_spec_'+s)?.checked)specs.push(s);});
+    if(JSON.stringify(specs.sort())!==JSON.stringify((co.specialties||[]).sort()))u.specialties=specs;
+    const pe=document.getElementById('e_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(co.phone||''))u.phone=pv;}
+    const ee=document.getElementById('e_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(co.email||''))u.email=ev;}
+    const be=document.getElementById('e_bday');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(co.birthday||''))u.birthday=bv||null;}
+    const le=document.getElementById('e_luid');if(le&&!le.readOnly){const lv=le.value.trim();if(lv!==(co.line_uid||''))u.line_uid=lv;}
+    const lde=document.getElementById('e_ledu');if(lde&&!lde.readOnly){const ldv=lde.value.trim();if(ldv!==(co.line_id_edu||''))u.line_id_edu=ldv;}
+    const lge=document.getElementById('e_lgid');if(lge&&!lge.readOnly){const lgv=lge.value.trim();if(lgv!==(co.line_group_id||''))u.line_group_id=lgv;}
+    const ece=document.getElementById('e_ec');if(ece&&!ece.readOnly){const ecv=ece.value.trim();if(ecv!==(co.emergency_contact||''))u.emergency_contact=ecv;}
+    const epe=document.getElementById('e_ep');if(epe&&!epe.readOnly){const epv=epe.value.trim();if(epv!==formatPhone(co.emergency_phone||''))u.emergency_phone=epv;}
+    const ere=document.getElementById('e_er');if(ere&&!ere.readOnly){const erv=ere.value.trim();if(erv!==(co.emergency_relation||''))u.emergency_relation=erv;}
+    if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
+    try{showToast('⏳ 儲存中...');const gf=Object.assign({},u);gf.name=co.name;if(!u.line_uid)gf.line_uid=co.line_uid||'';const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateCoach',fields:gf})});const j=await r.json();if(!j.success){showToast('❌ 回寫失敗：'+(j.error||''));return;}}catch(e){showToast('❌ 回寫失敗：'+e.message);return;}
+    try{u.updated_at=new Date().toISOString();const{error}=await sb.from('coaches').update(u).eq('id',co.id);if(error)throw error;showToast('✅ 已更新');closeModal('editModal');editingCoach=null;await loadCoaches();}catch(e){showToast('⚠️ Sheet/MySQL已更新但Supabase失敗');}
 }
-async function archiveCoach(id){
-    const co=allCoaches.find(x=>x.id===id);if(!co)return;
-    if(!confirm('確定要封存「'+co.name+'」嗎？封存後不會出現在啟用列表中。'))return;
-    try{
-        showToast('⏳ 封存中...');
-        const{error}=await sb.from('coaches').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',co.id);
-        if(error)throw error;
-        showToast('✅ 已封存');closeModal('detailModal');
-        /* GAS callback */
-        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'archiveCoach',name:co.name,is_active:false,source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
-        await loadCoaches();
-    }catch(e){showToast('❌ 封存失敗：'+e.message);}
-}
-async function restoreCoach(id){
-    const co=allCoaches.find(x=>x.id===id);if(!co)return;
-    if(!confirm('確定要恢復「'+co.name+'」嗎？恢復後將重新出現在啟用列表中。'))return;
-    try{
-        showToast('⏳ 恢復中...');
-        const{error}=await sb.from('coaches').update({is_active:true,updated_at:new Date().toISOString()}).eq('id',co.id);
-        if(error)throw error;
-        showToast('✅ 已恢復');closeModal('detailModal');
-        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateCoach',fields:{name:co.name,is_active:true},source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
-        await loadCoaches();
-    }catch(e){showToast('❌ 恢復失敗：'+e.message);}
-}
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingCoach=null;document.getElementById('editTitle').textContent='新增教練';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號將依課程類型自動產生</p>';h+=fg('教練名稱 *','text','e_name','');h+=fg('本名','text','e_rname','');h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('與緊急聯絡人關係','text','e_er','');h+='<div class="form-group"><label class="form-label">課程類型 *（第一個勾選的為主要類型）</label><div class="checkbox-row">';['pilates','weight','stretch','ai'].forEach(s=>{h+='<label class="checkbox-item"><input type="checkbox" id="e_spec_'+s+'">'+specIcons[s]+' '+specNames[s]+'</label>';});h+='</div></div>';h+=fsel('狀態','e_active',[['true','啟用'],['false','停用']],'true');h+=fta('證照紀錄','e_cert','');h+=fta('備註','e_notes','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingCoach=null;document.getElementById('editTitle').textContent='新增教練';let h='';h+=fg('教練名稱 *','text','e_name','');h+=fg('本名','text','e_rname','');h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('與緊急聯絡人關係','text','e_er','');h+='<div class="form-group"><label class="form-label">課程類型</label><div class="checkbox-row">';['pilates','weight','stretch','ai'].forEach(s=>{h+='<label class="checkbox-item"><input type="checkbox" id="e_spec_'+s+'">'+specIcons[s]+' '+specNames[s]+'</label>';});h+='</div></div>';h+=fsel('狀態','e_active',[['true','啟用'],['false','停用']],'true');h+=fta('證照紀錄','e_cert','');h+=fta('備註','e_notes','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
