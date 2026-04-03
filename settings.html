@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -6,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>權限設定</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js CDN 已移除，改用 Edge Function -->
 <style>
 :root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--purple:#a78bca;--purple-light:#f3e8ff;--purple-dark:#7b5ea7;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -179,10 +178,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="save-bar" id="saveBar"><button class="btn btn-secondary" onclick="cancelChanges()">取消</button><button class="btn btn-primary" onclick="savePermissionsV2()">💾 儲存權限</button></div>
 <div class="toast" id="toast"></div>
 <script>
-const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbxBhtPBEcV_gBautvKcxAK_kk2GdDUrV8lGbP5x_UrDknIOxV9YPnJz7Ky3o5EElwhFMg/exec';
+const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
 let currentUser=null,allPeople=[],selectedStaff=null,hasChanges=false;
 const ALL_MODULES=[{id:'member',icon:'👤',name:'學員管理'},{id:'coach',icon:'👨‍🏫',name:'教練管理'},{id:'staff-manage',icon:'👥',name:'營運人員'},{id:'substitute',icon:'📋',name:'代課管理'},{id:'schedule',icon:'🗓️',name:'行政排班'},{id:'punch',icon:'⏰',name:'上下班打卡'},{id:'report',icon:'📊',name:'報表統計'},{id:'settings',icon:'🔐',name:'權限設定'},{id:'moti-booking',icon:'📝',name:'預填Moti'},{id:'leave-manage',icon:'🏥',name:'學員請假'},{id:'personal-schedule',icon:'📅',name:'個人排班'},{id:'trial-schedule',icon:'🗓️',name:'體驗排程'},{id:'trial-feedback',icon:'💬',name:'體驗回報'},{id:'class-record',icon:'📋',name:'課表紀錄'},{id:'moti-analyze',icon:'🔬',name:'Moti檢測'}];
 const ACTIONS=['view','fill','edit','create','delete','export'];
@@ -205,7 +202,7 @@ function initPermissions(){
 
 async function loadAllPeople(){
     try{
-        const[staffRes,coachRes]=await Promise.all([sb.from('staff').select('*').order('name'),sb.from('coaches').select('*').order('name')]);
+        const result=await callEdge('getAllPeople');const staffRes={data:result.staff,error:null};const coachRes={data:result.coaches,error:null};
         const staffData=(staffRes.data||[]).map(s=>Object.assign(s,{_table:'staff',_label:(s.nickname||s.name),_role:s.permission_level||'staff',_type:s.staff_type||''}));
         const coachData=(coachRes.data||[]).map(c=>Object.assign(c,{_table:'coaches',_label:c.name+(c.real_name&&c.real_name!==c.name?' ('+c.real_name+')':''),_role:c.permission_level||'coach',_type:(c.specialties||[]).join(',')}));
         allPeople=[...staffData.filter(s=>s._role!=='super_admin'),...coachData.filter(c=>c._role!=='super_admin')];
@@ -317,7 +314,7 @@ async function savePermissions(){
     const perms={};if(Object.keys(modules).length>0)perms.modules=modules;if(Object.keys(fields).length>0)perms.fields=fields;
     try{
         const table=selectedStaff._table;
-        const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
+        const{error}=await callEdge('savePermissions',{table,id:selectedStaff.id,permissions:perms}).then(()=>({error:null})).catch(e=>({error:e}));
         if(error)throw error;
         selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');
     }catch(e){showToast('❌ 儲存失敗：'+e.message);}
@@ -327,7 +324,8 @@ function cancelChanges(){if(hasChanges&&!confirm('放棄未儲存的變更？'))
 async function runManualSync(target){
     const targetNames={all:'全部',students:'學員',coaches:'教練',staff:'營運人員'};const btns=document.querySelectorAll('.sync-btn');btns.forEach(b=>b.disabled=true);
     showToast('⏳ 正在同步'+targetNames[target]+'...');document.getElementById('syncResult').style.display='none';
-    try{const resp=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'manualSync',target:target})});const result=await resp.json();
+    // GAS sync has been replaced with Edge Function calls
+    try{const result=await callEdge('manualSync',{target:target});
         if(!result.success){showToast('❌ 同步失敗：'+(result.error||''));btns.forEach(b=>b.disabled=false);return;}
         let html='';const r=result.results||{};
         if(r.students)html+='<div class="sync-result-item">👤 <span class="label">學員</span> <span class="value">更新 '+r.students.updated+' / 新增 '+r.students.inserted+' / 略過 '+r.students.skipped+'</span></div>';
@@ -468,7 +466,7 @@ async function savePermissionsV2(){
             const existingPerms=visSelectedPerson.permissions||{};
             if(hiddenModules.length>0){existingPerms.hidden_modules=hiddenModules;}
             else{delete existingPerms.hidden_modules;}
-            const{error}=await sb.from(table).update({permissions:existingPerms,updated_at:new Date().toISOString()}).eq('id',visSelectedPerson.id);
+            const{error}=await callEdge('savePermissions',{table,id:visSelectedPerson.id,permissions:existingPerms}).then(()=>({error:null})).catch(e=>({error:e}));
             if(error)throw error;
             visSelectedPerson.permissions=existingPerms;
             visHasChanges=false;
@@ -486,7 +484,7 @@ async function savePermissionsV2(){
         if(existingHidden&&existingHidden.length>0)perms.hidden_modules=existingHidden;
         try{
             const table=selectedStaff._table;
-            const{error}=await sb.from(table).update({permissions:perms,updated_at:new Date().toISOString()}).eq('id',selectedStaff.id);
+            const{error}=await callEdge('savePermissions',{table,id:selectedStaff.id,permissions:perms}).then(()=>({error:null})).catch(e=>({error:e}));
             if(error)throw error;
             selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');
         }catch(e){showToast('❌ 儲存失敗：'+e.message);}
