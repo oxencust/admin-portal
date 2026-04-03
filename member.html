@@ -323,7 +323,7 @@ async function saveStudent(){
             const newId=idData.member_id;
 
             // ── 2. 主寫入：Edge Function ──
-            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,mysql_id:newId,updated_at:new Date().toISOString()};
+            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,updated_at:new Date().toISOString()};
             const{error}=await callEdge('addStudent',{student});
             if(error){showToast('❌ 新增失敗：'+error);return;}
 
