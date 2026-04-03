@@ -150,7 +150,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="toast" id="toast"></div>
 <script>
 const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
-async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
+async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});const json=await res.json().catch(()=>({}));if(!res.ok)throw new Error(json.error||json.message||'Edge Function error: '+res.status);return json;}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
@@ -323,7 +323,7 @@ async function saveStudent(){
             const newId=idData.member_id;
 
             // ── 2. 主寫入：Edge Function ──
-            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,mysql_id:newId};
+            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,mysql_id:newId,updated_at:new Date().toISOString()};
             const{error}=await callEdge('addStudent',{student});
             if(error){showToast('❌ 新增失敗：'+error);return;}
 
