@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>學員管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js CDN 已移除，改用 Edge Function -->
 <style>
 :root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -149,17 +149,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 <script>
-const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbzRhdI--_uxPn4TGc6Esv-BFqj76uEFycJcY55szSdyVo4t7gz5etKimmV_kjQ4cUTc9Q/exec';
-    // ── GAS 回寫重試機制 ──
-async function retryFetch(url, options, maxRetries = 2) {
-    for (let i = 0; i <= maxRetries; i++) {
-        try { const res = await fetch(url, options); return res; }
-        catch(err) { if (i === maxRetries) throw err; await new Promise(r => setTimeout(r, 1000)); }
-    }
-}
+const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
@@ -193,11 +184,8 @@ function isMasked(f){return fieldPerms[f]==='masked';}
 
 async function loadStudents(){
     try{
-        let q=sb.from('students').select('*',{count:'exact'});
-        if(searchTerm)q=q.or('name.ilike.%'+searchTerm+'%,id.ilike.%'+searchTerm+'%,phone.ilike.%'+searchTerm+'%,line_display_name.ilike.%'+searchTerm+'%');
         const from=(currentPage-1)*pageSize;
-        const{data,error,count}=await q.order('id',{ascending:false}).range(from,from+pageSize-1);
-        if(error)throw error;
+        const{data,count}=await callEdge('getStudents',{searchTerm,page:currentPage,pageSize});
         students=data||[];totalCount=count||0;
         document.getElementById('topSub').textContent='共 '+totalCount+' 位學員';
         renderStudents();renderPagination();
@@ -206,7 +194,7 @@ async function loadStudents(){
 }
 async function loadStats(){
     try{
-        const{data,count}=await sb.from('students').select('member_level,pilates_coach,weight_coach',{count:'exact'}).limit(5000);
+        const{data,count}=await callEdge('getStudentStats');
         if(!data)return;
         const lvl={};const coaches=new Set();
         data.forEach(s=>{lvl[s.member_level||'normal']=(lvl[s.member_level||'normal']||0)+1;if(s.pilates_coach)coaches.add(s.pilates_coach);if(s.weight_coach)coaches.add(s.weight_coach);});
@@ -310,7 +298,7 @@ function editStudent(id){
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
 async function saveStudent(){
-    // ===== 新增模式 =====
+    // ===== 新增模式（Supabase-first + GAS callback）=====
     if(!editingStudent){
         const name=val('edit_name');
         const gender=val('edit_gender');
@@ -318,23 +306,28 @@ async function saveStudent(){
         if(!name){showToast('請填寫姓名');return;}
         if(!gender){showToast('請選擇性別');return;}
         if(!phone){showToast('請填寫電話');return;}
-        const fields={
-            name:name,
-            nickname:val('edit_nickname'),
-            gender:gender,
-            phone:phone,
-            email:val('edit_email'),
-            birth_date:val('edit_birth')||null,
-            medical_history:val('edit_medical'),
-            member_level:val('edit_level')||'normal'
-        };
+
+        const genderZh = {'male':'男','female':'女','other':'其他'}[gender] || gender;
+        const nickname = val('edit_nickname');
+        const email = val('edit_email');
+        const birthDate = val('edit_birth') || null;
+        const medicalHistory = val('edit_medical');
+        const memberLevel = val('edit_level') || 'normal';
+
         try{
             showToast('⏳ 新增中...');
-            const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'createStudent',fields:fields})});
-            const j=await r.json();
-            if(!j.success){showToast('❌ 新增失敗：'+(j.error||''));return;}
-            const newId=j.id;
-            showToast('✅ 已新增：'+newId);
+
+            // ── 1. 從 Edge Function 產生下一個 ID──
+            const yearPrefix = 'HDS' + String(new Date().getFullYear()).substring(2);
+            const{data:idData}=await callEdge('generateMemberId',{prefix:yearPrefix});
+            const newId=idData.member_id;
+
+            // ── 2. 主寫入：Edge Function ──
+            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,mysql_id:newId};
+            const{error}=await callEdge('addStudent',{student});
+            if(error){showToast('❌ 新增失敗：'+error);return;}
+
+            showToast('✅ 已新增：' + newId);
             closeModal('editModal');
             await loadStudents();
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
@@ -351,23 +344,13 @@ async function saveStudent(){
     const me=document.getElementById('edit_medical');if(me&&!me.readOnly){const mv=me.value.trim();if(mv!==(editingStudent.medical_history||''))u.medical_history=mv;}
       if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
 
-    // ── 1. 主寫入：Supabase ──
+    // ── 1. 主寫入：Edge Function ──
     try {
         showToast('⏳ 儲存中...');
         u.updated_at = new Date().toISOString();
-        const { error } = await sb.from('students').update(u).eq('id', editingStudent.id);
-        if (error) { showToast('❌ 儲存失敗：' + error.message); return; }
+        const { error } = await callEdge('updateStudent', {id: editingStudent.id, updates: u});
+        if (error) { showToast('❌ 儲存失敗：' + error); return; }
     } catch(e) { showToast('❌ 儲存失敗：' + e.message); return; }
-
-    // ── 2. 回寫 Google Sheets（diff-only + retry，失敗不影響主流程）──
-    try {
-        const gasData = { action: 'updateStudent', id: editingStudent.id, fields: u, source: 'supabase_frontend' };
-        delete gasData.fields.updated_at; // Sheet 不需要此欄位
-        await retryFetch(GAS_URL, { method: 'POST', body: JSON.stringify(gasData) });
-        console.log('✅ Sheets 回寫成功，更新欄位:', Object.keys(u).join(', '));
-    } catch(sheetErr) {
-        console.warn('⚠️ Sheets 回寫失敗（不影響主資料）:', sheetErr);
-    }
 
     // ── 3. 更新前端 ──
     showToast('✅ 已更新');
@@ -398,7 +381,7 @@ async function openMotiHistory(memberId, memberName) {
     document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
     openModal('recordModal');
     try {
-        const {data, error} = await sb.from('moti_assessments').select('*').eq('member_id', memberId).order('assessment_date', {ascending: false});
+        const {data} = await callEdge('getAssessmentHistory', {memberId});
         if (error) throw error;
         if (!data || data.length === 0) {
             document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">📊</div><p>尚無 MOTI 檢測紀錄</p></div>';
@@ -489,13 +472,8 @@ async function openInbodyHistory(memberId, memberName) {
     document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
     openModal('recordModal');
     try {
-        // 同時查 InBody 數據 + MOTI 的 InBody 圖片
-        const [inbodyRes, motiRes] = await Promise.all([
-            sb.from('inbody_records').select('*').eq('member_id', memberId).order('test_date', {ascending: false}),
-            sb.from('moti_assessments').select('assessment_date,inbody_images').eq('member_id', memberId).order('assessment_date', {ascending: false})
-        ]);
-        const data = inbodyRes.data || [];
-        const motiData = motiRes.data || [];
+        // 查 InBody 數據 + MOTI 的 InBody 圖片
+        const {data,motiData}=await callEdge('getInbodyHistory',{memberId});
         
         // 建立日期→圖片對照表
         var imgByDate = {};
@@ -608,19 +586,12 @@ function closeLightbox() { document.getElementById('lightbox').classList.remove(
     btn.classList.add('syncing');
     btn.querySelector('.sync-label').textContent='同步中';
     try{
-        const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'manualSync',target:'all'})});
-        const j=await r.json();
-        if(j.success){
-            const res=j.results||{};
-            const parts=[];
-            if(res.students)parts.push('學員 '+((res.students.updated||0)+(res.students.inserted||0)));
-            if(res.moti)parts.push('MOTI '+(res.moti.inserted||0));
-            if(res.inbody)parts.push('InBody '+(res.inbody.inserted||0));
-            if(res.class_sessions)parts.push('課表 '+(res.class_sessions.inserted||0));
-            showToast('✅ 同步完成：'+(parts.join('、')||'無新資料'));
+        const{success,error}=await callEdge('manualSync',{target:'all'});
+        if(success){
+            showToast('✅ 同步完成');
             await loadStudents();
         }else{
-            showToast('❌ 同步失敗：'+(j.error||''));
+            showToast('❌ 同步失敗：'+(error||''));
         }
     }catch(e){showToast('❌ 同步失敗：'+e.message);}
     btn.classList.remove('syncing');
