@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- supabase-js CDN 已移除，改用 Edge Function -->
     <style>
         :root {
             --green: #7ac19a;
@@ -392,13 +392,21 @@
     // ====================================================================
     const CONFIG = {
         LIFF_ID: '2007947083-YCFwz7Uk',
-        SUPABASE_URL: 'https://mnjilhpztnowaplggvkk.supabase.co',
-        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg',
+        EDGE_FUNCTION_URL: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
         VERSION: '3.0.0'
     };
 
-    const supabaseClient = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    // === Edge Function 呼叫工具 ===
+    async function callEdge(action, params = {}) {
+        const res = await fetch(CONFIG.EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, ...params })
+        });
+        if (!res.ok) throw new Error(`Edge Function error: ${res.status}`);
+        return res.json();
+    }
 
     // ====================================================================
     //  ALL MODULES
@@ -673,14 +681,10 @@
         try {
             updateLoadingText('驗證身份中...');
 
-            // 同時查 staff 和 coaches 兩張表
-            const [staffResult, coachResult] = await Promise.all([
-                supabaseClient.from('staff').select('*').eq('line_id_edu', lineUid).single(),
-                supabaseClient.from('coaches').select('*').eq('line_id_edu', lineUid).single()
-            ]);
-
-            const staff = (!staffResult.error && staffResult.data) ? staffResult.data : null;
-            const coach = (!coachResult.error && coachResult.data) ? coachResult.data : null;
+            // 透過 Edge Function 驗證身份
+            const result = await callEdge('verifyUser', { lineUid });
+            const staff = result.staff || null;
+            const coach = result.coach || null;
 
             // 兩張表都找不到
             if (!staff && !coach) {
