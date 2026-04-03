@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>營運人員管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js CDN 已移除，改用 Edge Function -->
 <style>
 :root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -98,11 +98,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯人員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStaff()">💾 儲存</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
-const SUPABASE_URL='https://mnjilhpztnowaplggvkk.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const GAS_URL='https://script.google.com/macros/s/AKfycbw4u3ye9peLwdoz6mK6ZEad94SuJb-dKajZTMB5--J9uzDXIlFP7Ez9nn16e2aV3L0lMw/exec';
-const GAS4_URL='https://script.google.com/macros/s/AKfycbzfpaCZKS3yPT9_1k5QpY8V01xPJA8ERPjNM59e0ZSLEdHpUJzKYmcCoUhPOqrMr6KOdg/exec';
+const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let allStaff=[],archivedStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=null,currentFilter='all';
 const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',viewer:'檢視者'};
@@ -132,7 +129,7 @@ function getFD(f,v,mt){const p=fieldPerms[f];if(p===undefined||p===true)return e
 
 async function loadStaff(){
     try{
-        const{data,error}=await sb.from('staff').select('*').order('id');
+        const{data,error}=await callEdge('getStaff').then(r=>({data:r.data,error:null})).catch(e=>({data:null,error:e}));
         if(error)throw error;
         const all=data||[];
         allStaff=all.filter(s=>s.status!=='封存');
@@ -277,7 +274,7 @@ function editStaff(id){
 async function generateStaffId(){
     const yr=String(new Date().getFullYear()).slice(-2);
     const prefix='HDB'+yr;
-    const{data}=await sb.from('staff').select('id').like('id',prefix+'%').order('id',{ascending:false}).limit(1);
+    const{data}=await callEdge('generateStaffId',{prefix});
     if(data&&data.length>0){const lastSeq=parseInt(data[0].id.slice(5))||0;return prefix+String(lastSeq+1).padStart(5,'0');}
     return prefix+'00001';
 }
@@ -289,7 +286,8 @@ async function saveStaff(){
         try{
             showToast('⏳ 新增中...');
             const newId=await generateStaffId();
-            const personalLink=GAS4_URL+'?name='+encodeURIComponent(name);
+            // TODO: personalLink for user-facing schedule page needs to be implemented via Edge Function or alternative solution
+            const personalLink=null;
             const newStaff={id:newId,name:name,nickname:val('e_nick')||null,staff_type:val('e_type')||null,
                 gender:val('e_gender')||null,department:val('e_dept')||null,role:val('e_role')||null,
                 permission_level:val('e_perm')||'staff',status:val('e_status')||'active',
@@ -299,11 +297,9 @@ async function saveStaff(){
                 line_id:val('e_lid')||null,line_id_edu:val('e_ledu')||null,
                 availability:val('e_avail')||null,personal_link:personalLink,
                 created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-            const{error}=await sb.from('staff').insert(newStaff);
+            const{error}=await callEdge('addStaff',{staff:newStaff}).then(()=>({error:null})).catch(e=>({error:e}));
             if(error)throw error;
             showToast('✅ 已新增（編號：'+newId+'）');closeModal('editModal');
-            /* GAS callback（非阻塞） */
-            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'addStaff',staff:newStaff,source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
             await loadStaff();
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
     }else{
@@ -325,11 +321,9 @@ async function saveStaff(){
         try{
             showToast('⏳ 儲存中...');
             u.updated_at=new Date().toISOString();
-            const{error}=await sb.from('staff').update(u).eq('id',s.id);
+            const{error}=await callEdge('updateStaff',{id:s.id,updates:u}).then(()=>({error:null})).catch(e=>({error:e}));
             if(error)throw error;
             showToast('✅ 已更新');closeModal('editModal');editingStaff=null;
-            /* GAS callback（非阻塞） */
-            try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:u})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
             await loadStaff();
         }catch(e){showToast('❌ 更新失敗：'+e.message);}
     }
@@ -339,11 +333,9 @@ async function archiveStaff(id){
     if(!confirm('確定要封存「'+(s.nickname||s.name)+'」嗎？封存後不會出現在人員列表中。'))return;
     try{
         showToast('⏳ 封存中...');
-        const{error}=await sb.from('staff').update({status:'封存',updated_at:new Date().toISOString()}).eq('id',s.id);
+        const{error}=await callEdge('archiveStaff',{id:s.id}).then(()=>({error:null})).catch(e=>({error:e}));
         if(error)throw error;
         showToast('✅ 已封存');closeModal('detailModal');
-        /* GAS callback */
-        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'archiveStaff',name:s.name,status:'封存',source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
         await loadStaff();
     }catch(e){showToast('❌ 封存失敗：'+e.message);}
 }
@@ -352,10 +344,9 @@ async function restoreStaff(id){
     if(!confirm('確定要恢復「'+(s.nickname||s.name)+'」嗎？恢復後將重新出現在人員列表中。'))return;
     try{
         showToast('⏳ 恢復中...');
-        const{error}=await sb.from('staff').update({status:'active',updated_at:new Date().toISOString()}).eq('id',s.id);
+        const{error}=await callEdge('restoreStaff',{id:s.id}).then(()=>({error:null})).catch(e=>({error:e}));
         if(error)throw error;
         showToast('✅ 已恢復');closeModal('detailModal');
-        try{await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'updateStaff',id:s.id,fields:{status:'active'},source:'supabase_frontend'})});}catch(gasErr){console.warn('⚠️ GAS 回寫失敗',gasErr);}
         await loadStaff();
     }catch(e){showToast('❌ 恢復失敗：'+e.message);}
 }
