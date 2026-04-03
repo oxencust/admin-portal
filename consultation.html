@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>諮詢單管理 · 衡點健康</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- supabase-js CDN 已移除，改用 Edge Function -->
     <style>
         :root {
             --green:#7ac19a; --green-dark:#5f846f; --green-light:rgba(122,193,154,.12);
@@ -288,23 +288,17 @@
 // ═══════════════════════════════════════════════
 //  ⚙️ Supabase 設定
 // ═══════════════════════════════════════════════
-const SUPABASE_URL = 'https://mnjilhpztnowaplggvkk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo8Hmpo-YVIgeSLGXhAQuci1JcQhDuEpLWqrf1ODfvg7bMbv5Y9oCZGM7yCNibdQhu/exec';
-
-// ── GAS 回寫重試機制 ──
-async function retryFetch(url, options, maxRetries = 2) {
-    for (let i = 0; i <= maxRetries; i++) {
-        try {
-            const res = await fetch(url, options);
-            return res;
-        } catch(err) {
-            if (i === maxRetries) throw err;
-            await new Promise(r => setTimeout(r, 1000));
-        }
-    }
+const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
+async function callEdge(action, params = {}) {
+    const res = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...params })
+    });
+    if (!res.ok) throw new Error('Edge Function error: ' + res.status);
+    return res.json();
 }
+
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
@@ -342,12 +336,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Load ─────────────────────────────────────────
 async function loadAll() {
     try {
-        const { data, error } = await sb
-            .from('consultation_records')
-            .select('*')
-            .order('id', { ascending: true });
+        const res = await callEdge('getAll', {});
+        const data = res.data || [];
+        const error = res.error || null;
 
-        if (error) throw new Error(error.message);
+        if (error) throw new Error(error);
 
         // 欄位轉換：Supabase 欄位名 → 前端欄位名
         ALL = (data || []).map((r, i) => ({
@@ -393,7 +386,7 @@ function showErr(msg) {
     document.getElementById('CL').innerHTML =
         `<div class="empty"><div style="font-size:48px;margin-bottom:12px">⚠️</div>
         <div style="font-size:16px;font-weight:600;margin-bottom:6px">讀取失敗</div>
-        <div style="font-size:13px;color:var(--muted)">${msg}<br><br>請確認 Supabase 連線是否正常</div></div>`;
+        <div style="font-size:13px;color:var(--muted)">${msg}<br><br>請確認連線是否正常</div></div>`;
 }
 
 // ── Stats ─────────────────────────────────────────
@@ -899,48 +892,18 @@ async function confirmSave() {
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await sb
-            .from('consultation_records')
-            .update(updateData)
-            .eq('id', REC._row);
+        const res = await callEdge('update', {
+            recordId: REC._row,
+            ...updateData
+        });
 
-        if (error) {
-            toast('❌ ' + error.message);
+        if (res.error) {
+            toast('❌ ' + res.error);
             btn.disabled = false; btn.textContent = '💾 儲存';
             return;
         }
 
-       // ── 2. 回寫 Google Sheets（diff-only + retry，失敗不影響主流程）──
-        try {
-            // 比對原始資料 vs 修改後資料，只送有變動的欄位
-            const diffKeys = Object.keys(ch).filter(k => {
-                if (k === '_row') return false;
-                return String(ch[k] || '') !== String(REC[k] || '');
-            });
-
-            if (diffKeys.length > 0) {
-                const sheetData = {};
-                diffKeys.forEach(k => { sheetData[k] = ch[k]; });
-                // 必帶配對用欄位
-                sheetData.lineId = ch.lineId || REC.lineId;
-                sheetData.name = ch.name || REC.name;
-                sheetData.phone = ch.phone || REC.phone;
-                sheetData.action = 'update_consultation';
-                sheetData.source = 'supabase_frontend';
-
-                await retryFetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(sheetData)
-                });
-                console.log('✅ Sheets 回寫成功，更新欄位:', diffKeys.join(', '));
-            } else {
-                console.log('ℹ️ 無欄位變動，跳過 Sheets 回寫');
-            }
-        } catch(sheetErr) {
-            console.warn('⚠️ Sheets 回寫失敗（不影響主資料）:', sheetErr);
-        }
-        // ── 3. 更新前端狀態 ──
+        // ── 2. 更新前端狀態 ──
         const idx = ALL.findIndex(r => r._row === REC._row);
         const updated = { ...REC, ...ch, statusKey: newStatusKey };
         if (idx > -1) ALL[idx] = updated;
