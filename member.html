@@ -317,8 +317,9 @@ async function saveStudent(){
         try{
             showToast('⏳ 新增中...');
 
-            // ── 1. 從 Edge Function 產生下一個 ID──
-            const yearPrefix = 'HDS' + String(new Date().getFullYear()).substring(2);
+            // ── 1. 從 Edge Function 產生下一個 ID（依選擇的加入年份）──
+            const joinYear = val('edit_join_year') || String(new Date().getFullYear());
+            const yearPrefix = 'HDS' + joinYear.substring(2);
             const{data:idData}=await callEdge('generateMemberId',{prefix:yearPrefix});
             const newId=idData.member_id;
 
@@ -358,7 +359,7 @@ async function saveStudent(){
     editingStudent = null;
     await loadStudents();
 }
-function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';let h='';h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fsel('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fta('疾病史','edit_medical','');h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';const cy=new Date().getFullYear();const yearOpts=[];for(let y=2030;y>=2020;y--)yearOpts.push([String(y),String(y)+'年']);let h='';h+=fsel('加入年份 *','edit_join_year',yearOpts,String(cy));h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fsel('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fta('疾病史','edit_medical','');h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
