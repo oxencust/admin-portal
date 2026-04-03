@@ -315,7 +315,7 @@ async function saveStudent(){
         const memberLevel = val('edit_level') || 'normal';
 
         try{
-            showToast('⏳ 新增中...');
+            showToast('⏳ 新增中...請稍候',0);
 
             // ── 1. 從 Edge Function 產生下一個 ID（依選擇的加入年份）──
             const joinYear = val('edit_join_year') || String(new Date().getFullYear());
@@ -323,7 +323,7 @@ async function saveStudent(){
             const{data:idData}=await callEdge('generateMemberId',{prefix:yearPrefix});
             const newId=idData.member_id;
 
-            // ── 2. 主寫入：Edge Function ──
+            // ── 2. 主寫入：Edge Function（含 GAS 回寫 Google Sheet）──
             const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,updated_at:new Date().toISOString()};
             const{error}=await callEdge('addStudent',{student});
             if(error){showToast('❌ 新增失敗：'+error);return;}
@@ -347,7 +347,7 @@ async function saveStudent(){
 
     // ── 1. 主寫入：Edge Function ──
     try {
-        showToast('⏳ 儲存中...');
+        showToast('⏳ 儲存中...請稍候',0);
         u.updated_at = new Date().toISOString();
         const { error } = await callEdge('updateStudent', {id: editingStudent.id, updates: u});
         if (error) { showToast('❌ 儲存失敗：' + error); return; }
@@ -370,7 +370,7 @@ function val(id){const e=document.getElementById(id);return e?e.value.trim():'';
 function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
 function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
-let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+let toastTimer=null;function showToast(m,duration){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);if(duration===0)return;toastTimer=setTimeout(()=>t.classList.remove('show'),duration||2500);}
 document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStudents();});
 
