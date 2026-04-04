@@ -474,6 +474,10 @@
           url:'https://oxencust.github.io/class-record/', color:'blue',
           roles:['super_admin','admin','coach'] },
 
+        { id:'class-record-query', icon:'🔍', name:'課表查詢', desc:'課表紀錄查詢管理',
+          url:'https://oxencust.github.io/class-record-admin/', color:'blue',
+          roles:['super_admin','admin','staff'] },
+
         { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
           url:'https://analyze-form.zeabur.app', color:'purple',
           roles:['super_admin','admin','analyst'] },
@@ -516,6 +520,7 @@
             'trial-schedule': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             'class-record': { view:true, fill:false, edit:false, create:false, delete:false, export:true },
+            'class-record-query': { view:true, fill:false, edit:true, create:false, delete:false, export:true },
             'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true }
         },
         coach: {
@@ -531,7 +536,8 @@
             punch: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'moti-booking': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'leave-manage': { view:true, fill:true, edit:true, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
+            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            'class-record-query': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
         },
         viewer: {
             member: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
@@ -548,7 +554,8 @@
             punch: { view:true, fill:true, edit:true, create:true },
             'leave-manage': { view:true, fill:true, edit:true },
             'moti-booking': { view:true, fill:true, edit:true, create:true },
-            'personal-schedule': { view:true }
+            'personal-schedule': { view:true },
+            'class-record-query': { view:true, fill:false, edit:true, export:true }
         },
         '教練': {
             'substitute-coach': { view:true, fill:true, edit:true, create:true },
@@ -562,7 +569,8 @@
         '管理': {
             report: { view:true, export:true },
             schedule: { view:true, fill:true, edit:true, create:true },
-            'staff-manage': { view:true, fill:true, edit:true, export:true }
+            'staff-manage': { view:true, fill:true, edit:true, export:true },
+            'class-record-query': { view:true, edit:true, export:true }
         }
     };
 
@@ -1035,7 +1043,7 @@
     const COACH_MODULES = ['trial-schedule', 'trial-feedback', 'class-record', 'substitute', 'substitute-coach'];
 
     // 外部模組：需要自己做 LIFF 登入，用新分頁開啟（不載入 iframe）
-    const EXTERNAL_MODULES = ['substitute', 'substitute-coach', 'trial-schedule', 'trial-feedback', 'class-record', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
+    const EXTERNAL_MODULES = ['substitute', 'substitute-coach', 'trial-schedule', 'trial-feedback', 'class-record', 'class-record-query', 'moti-analyze', 'schedule', 'personal-schedule', 'moti-booking'];
 
     const SPEC_TYPE_NAMES = { pilates:'皮拉提斯', weight:'重訓', stretch:'伸展', ai:'AI分析' };
 
