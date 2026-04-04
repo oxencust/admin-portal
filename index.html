@@ -471,7 +471,7 @@
           roles:['super_admin','admin','coach'] },
 
         { id:'class-record', icon:'📋', name:'課表紀錄', desc:'課堂紀錄查詢',
-          url:'https://oxencust.github.io/class-record/', color:'blue',
+          url:'https://classrecord.zeabur.app', color:'blue',
           roles:['super_admin','admin','coach'] },
 
         { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
@@ -718,7 +718,7 @@
                 staffType = '';
                 dbPerms = coach.permissions || {};
                 userName = coach.name || displayName;
-                userId = coach.id;
+                userId = coach.coach_code || coach.id;
                 hiddenModules = (coach.permissions || {}).hidden_modules || [];
             }
 
@@ -1077,7 +1077,7 @@
         // 教練專屬參數
         if (useCoachIdentity) {
             baseParams.coach_name = coachData.name;
-            baseParams.coach_id = coachData.id;
+            baseParams.coach_id = coachData.coach_code || coachData.id;
             if (coachData.line_id_edu) baseParams.line_id_edu = coachData.line_id_edu;
         }
 
