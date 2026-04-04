@@ -1078,6 +1078,7 @@
         if (useCoachIdentity) {
             baseParams.coach_name = coachData.name;
             baseParams.coach_id = coachData.coach_code || coachData.id;
+            if (coachData.coach_type) baseParams.coach_type = coachData.coach_type;
             if (coachData.line_id_edu) baseParams.line_id_edu = coachData.line_id_edu;
         }
 
