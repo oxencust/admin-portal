@@ -871,10 +871,23 @@
         // ============================================
         const CONFIG = {
             LIFF_ID: '2007947083-YgZ9QQRn',
-            WEBHOOK_URL: 'https://hook.us2.make.com/9ydnn20drmcegfl5cvm9e3tqqb37azir',
+            EDGE_FUNCTION_URL: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/class-record-api',
             DEBUG_MODE: false
         };
-        
+
+        // ============================================
+        // Edge Function Helper
+        // ============================================
+        async function callEdge(action, params = {}) {
+            const response = await fetch(CONFIG.EDGE_FUNCTION_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, ...params })
+            });
+            if (!response.ok) throw new Error(`Edge Function error: ${response.statusText}`);
+            return response.json();
+        }
+
         const CLASS_TYPE_CONFIG = {
             'strength_training': { name: '💪 重訓', icon: '💪', class: 'strength' },
             'pilates': { name: '🧘 皮拉提斯', icon: '🧘', class: 'pilates' },
@@ -973,12 +986,7 @@
         
         async function loadUserInfo(lineUserId) {
             try {
-                const response = await fetch(CONFIG.WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getUserRole', lineUserId })
-                });
-                const data = await response.json();
+                const data = await callEdge('getUserRole', { lineUserId });
                 if (data.success) {
                     currentUser = data.user;
                     document.getElementById('userBadge').textContent = currentUser.name;
@@ -998,12 +1006,7 @@
                         { id: 4, name: '陳美玲' }
                     ];
                 } else {
-                    const response = await fetch(CONFIG.WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'getCoachList' })
-                    });
-                    const data = await response.json();
+                    const data = await callEdge('getCoachList');
                     if (data.success) coachList = data.coaches || [];
                 }
                 renderCoachChips();
@@ -1070,12 +1073,7 @@
                         m.name.includes(query) || m.phone.includes(query) || m.id.includes(query)
                     );
                 } else {
-                    const response = await fetch(CONFIG.WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'searchMembers', query })
-                    });
-                    const data = await response.json();
+                    const data = await callEdge('searchMembers', { query });
                     if (data.success) {
                         members = (data.members || []).filter(m => m && m.id && m.name);
                     }
@@ -1184,16 +1182,10 @@
                     await new Promise(r => setTimeout(r, 500));
                     allRecords = getMockRecords();
                 } else {
-                    const response = await fetch(CONFIG.WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'getClassRecords',
-                            targetType: currentTarget.type,
-                            targetId: currentTarget.id
-                        })
+                    const data = await callEdge('getClassRecords', {
+                        targetType: currentTarget.type,
+                        targetId: currentTarget.id
                     });
-                    const data = await response.json();
                     allRecords = data.success ? (data.records || []) : [];
                 }
                 
