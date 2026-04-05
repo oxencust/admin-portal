@@ -659,12 +659,16 @@ const COACH_TYPE_LABELS = { weight:'重訓', strength_training:'重訓', pilates
 function renderFilterBar() {
     const bar = document.getElementById('filterBar');
     // 收集所有教練課種（排除 ai_analysis，因為 AI 歸類為分析師）
+    // 統一轉小寫 + trim，避免 DB 大小寫或空白差異產生重複按鈕
     const coachTypes = new Set();
     allPeople.forEach(p => {
         if (p._role === 'coach' && p._table === 'coaches') {
-            const ct = p.coach_type || '';
+            const ct = (p.coach_type || '').trim().toLowerCase();
             if (ct && ct !== 'ai_analysis') coachTypes.add(ct);
-            (p.specialties || []).forEach(s => { if (s !== 'ai') coachTypes.add(s); });
+            (p.specialties || []).forEach(s => {
+                const ns = (s||'').trim().toLowerCase();
+                if (ns && ns !== 'ai') coachTypes.add(ns);
+            });
         }
     });
 
@@ -673,11 +677,11 @@ function renderFilterBar() {
     html += '<span class="filter-chip" onclick="setFilter(this,\'employee\')">員工</span>';
     html += '<span class="filter-chip" onclick="setFilter(this,\'coach\')">教練（全部）</span>';
 
-    // 教練子分類（以中文標籤去重，避免同義鍵重複顯示）
-    const seenLabels = new Map(); // label → first raw key
+    // 教練子分類（只顯示有中文對應的，以中文標籤去重）
+    const seenLabels = new Map(); // chineseLabel → raw key
     [...coachTypes].forEach(t => {
-        const label = COACH_TYPE_LABELS[t] || t;
-        if (!seenLabels.has(label)) seenLabels.set(label, t);
+        const label = COACH_TYPE_LABELS[t];
+        if (label && !seenLabels.has(label)) seenLabels.set(label, t);
     });
     [...seenLabels.entries()].sort((a,b) => a[0].localeCompare(b[0],'zh-TW')).forEach(([label, key]) => {
         html += '<span class="filter-chip" onclick="setFilter(this,\'coach:' + key + '\')" style="font-size:11px;">┗ ' + label + '</span>';
