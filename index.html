@@ -282,6 +282,15 @@
             transition:opacity 0.2s;
         }
         .profile-submit-btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+        /* 自訂圖示按鈕 */
+        .cust-icon-btn {
+            width:38px; height:38px; border:1.5px solid #e8e8e8; border-radius:10px;
+            background:#fff; font-size:18px; cursor:pointer; display:flex;
+            align-items:center; justify-content:center; transition:all 0.15s;
+        }
+        .cust-icon-btn:hover { border-color:var(--green); background:rgba(122,193,154,0.08); transform:scale(1.1); }
+        .cust-icon-btn.active { border-color:var(--green); background:rgba(122,193,154,0.15); box-shadow:0 0 0 2px rgba(122,193,154,0.3); }
     </style>
 </head>
 <body>
@@ -413,6 +422,49 @@
         </div>
     </div>
 
+    <!-- 自訂模組名稱與圖示彈窗 -->
+    <div class="profile-overlay" id="customizeModuleOverlay" onclick="if(event.target===this)closeCustomizeModule()" style="display:none;">
+        <div class="profile-card" style="max-width:340px;">
+            <div class="profile-header" style="padding-bottom:8px;">
+                <div id="custModTitle" style="font-size:16px;font-weight:700;">自訂模組</div>
+                <p style="color:#999;font-size:11px;margin-top:2px;">只影響你自己的畫面，不影響其他人</p>
+            </div>
+            <div style="padding:0 4px;">
+                <div style="text-align:center;font-size:48px;margin:8px 0;" id="custModIconPreview">📦</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px;">
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('👤')">👤</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('👨‍🏫')">👨‍🏫</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('👥')">👥</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('📋')">📋</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('💬')">💬</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🗓️')">🗓️</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('⏰')">⏰</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('📊')">📊</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🔐')">🔐</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('📝')">📝</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🏥')">🏥</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('📅')">📅</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🔍')">🔍</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🔬')">🔬</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('📦')">📦</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('⭐')">⭐</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🎯')">🎯</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('💪')">💪</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('🧘')">🧘</button>
+                    <button class="cust-icon-btn" onclick="selectCustomIcon('❤️')">❤️</button>
+                </div>
+                <div class="pf-field" style="margin-bottom:14px;">
+                    <label style="font-size:12px;color:#666;">顯示名稱</label>
+                    <input id="custModName" type="text" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;font-family:inherit;" />
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="resetCustomizeModule()" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#999;">恢復預設</button>
+                    <button onclick="saveCustomizeModule()" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--green);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 模組管理彈窗 -->
     <div class="profile-overlay" id="moduleManagerOverlay" onclick="if(event.target===this)closeModuleManager()" style="display:none;">
         <div class="profile-card" style="max-width:460px;max-height:85vh;overflow-y:auto;">
@@ -529,6 +581,7 @@
     let MODULES = [];
     let ALL_SHORTCUTS = [];
     let _originalModuleNames = {}; // 存放 DB 原始名稱
+    let _originalModuleIcons = {}; // 存放 DB 原始圖示
 
     const DEFAULT_SHORTCUTS_BY_ROLE = {
         super_admin: ['sc_personal-schedule', 'sc_moti-booking'],
@@ -543,8 +596,8 @@
         try {
             const result = await callEdge('getModules');
             if (result.success && result.data) {
-                // 儲存原始名稱（用於長按改名恢復）
-                result.data.forEach(m => { _originalModuleNames[m.id] = m.name; });
+                // 儲存原始名稱與圖示（用於自訂恢復）
+                result.data.forEach(m => { _originalModuleNames[m.id] = m.name; _originalModuleIcons[m.id] = m.icon; });
 
                 MODULES = result.data
                     .filter(m => m.is_active)
@@ -561,12 +614,14 @@
                         sort_order: m.sort_order
                     }));
 
-                // 套用使用者自訂名稱
+                // 套用使用者自訂名稱與圖示
                 const customNames = loadCustomModuleNames();
+                const customIcons = loadCustomModuleIcons();
                 if (customNames) {
-                    MODULES.forEach(m => {
-                        if (customNames[m.id]) m.name = customNames[m.id];
-                    });
+                    MODULES.forEach(m => { if (customNames[m.id]) m.name = customNames[m.id]; });
+                }
+                if (customIcons) {
+                    MODULES.forEach(m => { if (customIcons[m.id]) m.icon = customIcons[m.id]; });
                 }
 
                 ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
@@ -581,23 +636,103 @@
     function loadCustomModuleNames() { try { const s=localStorage.getItem(getStorageKey('module_names')); return s?JSON.parse(s):null; } catch{return null;} }
     function saveCustomModuleNames(names) { try{localStorage.setItem(getStorageKey('module_names'),JSON.stringify(names));}catch{} }
 
-    function promptRenameModule(modId, currentName) {
-        const newName = prompt('自訂此模組的顯示名稱：', currentName);
-        if (newName === null) return; // 取消
+    // 使用者自訂圖示
+    function loadCustomModuleIcons() { try { const s=localStorage.getItem(getStorageKey('module_icons')); return s?JSON.parse(s):null; } catch{return null;} }
+    function saveCustomModuleIcons(icons) { try{localStorage.setItem(getStorageKey('module_icons'),JSON.stringify(icons));}catch{} }
+
+    let _customizeModuleId = null;
+
+    function showCustomizeModuleModal(modId) {
+        _customizeModuleId = modId;
+        const mod = MODULES.find(m => m.id === modId);
+        if (!mod) return;
+
         const names = loadCustomModuleNames() || {};
-        if (newName.trim() === '' || newName.trim() === getOriginalModuleName(modId)) {
-            delete names[modId]; // 恢復原名
+        const icons = loadCustomModuleIcons() || {};
+        const currentName = names[modId] || getOriginalModuleName(modId);
+        const currentIcon = icons[modId] || _originalModuleIcons[modId] || mod.icon;
+
+        document.getElementById('custModName').value = currentName;
+        document.getElementById('custModIconPreview').textContent = currentIcon;
+        document.getElementById('custModTitle').textContent = `自訂「${getOriginalModuleName(modId)}」`;
+
+        // 標記目前選中的 icon
+        document.querySelectorAll('.cust-icon-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent === currentIcon);
+        });
+
+        document.getElementById('customizeModuleOverlay').style.display = 'flex';
+    }
+
+    function closeCustomizeModule() {
+        document.getElementById('customizeModuleOverlay').style.display = 'none';
+    }
+
+    function selectCustomIcon(icon) {
+        document.getElementById('custModIconPreview').textContent = icon;
+        document.querySelectorAll('.cust-icon-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent === icon);
+        });
+    }
+
+    function saveCustomizeModule() {
+        const modId = _customizeModuleId;
+        if (!modId) return;
+
+        const newName = document.getElementById('custModName').value.trim();
+        const newIcon = document.getElementById('custModIconPreview').textContent.trim();
+
+        // 名稱
+        const names = loadCustomModuleNames() || {};
+        if (!newName || newName === getOriginalModuleName(modId)) {
+            delete names[modId];
         } else {
-            names[modId] = newName.trim();
+            names[modId] = newName;
         }
         saveCustomModuleNames(names);
-        // 即時更新 MODULES 和畫面
+
+        // 圖示
+        const icons = loadCustomModuleIcons() || {};
+        if (!newIcon || newIcon === (_originalModuleIcons[modId] || '')) {
+            delete icons[modId];
+        } else {
+            icons[modId] = newIcon;
+        }
+        saveCustomModuleIcons(icons);
+
+        // 即時更新
         const mod = MODULES.find(m => m.id === modId);
-        if (mod) mod.name = names[modId] || getOriginalModuleName(modId);
+        if (mod) {
+            mod.name = names[modId] || getOriginalModuleName(modId);
+            mod.icon = icons[modId] || _originalModuleIcons[modId] || mod.icon;
+        }
         ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
         renderModules();
         renderUtilities();
-        showToast('✅ 名稱已更新');
+        closeCustomizeModule();
+        showToast('✅ 已更新');
+    }
+
+    function resetCustomizeModule() {
+        const modId = _customizeModuleId;
+        if (!modId) return;
+        const names = loadCustomModuleNames() || {};
+        const icons = loadCustomModuleIcons() || {};
+        delete names[modId];
+        delete icons[modId];
+        saveCustomModuleNames(names);
+        saveCustomModuleIcons(icons);
+
+        const mod = MODULES.find(m => m.id === modId);
+        if (mod) {
+            mod.name = getOriginalModuleName(modId);
+            mod.icon = _originalModuleIcons[modId] || mod.icon;
+        }
+        ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
+        renderModules();
+        renderUtilities();
+        closeCustomizeModule();
+        showToast('✅ 已恢復預設');
     }
 
     function getOriginalModuleName(modId) {
@@ -969,10 +1104,10 @@
                 navigateToModule(mod);
             };
 
-            // 長按改名
+            // 長按（手機）或右鍵（電腦）→ 自訂名稱與圖示
             let longPressTimer = null;
             card.addEventListener('touchstart', () => {
-                longPressTimer = setTimeout(() => { longPressTimer = 'fired'; promptRenameModule(mod.id, mod.name); }, 800);
+                longPressTimer = setTimeout(() => { longPressTimer = 'fired'; showCustomizeModuleModal(mod.id); }, 800);
             }, { passive: true });
             card.addEventListener('touchend', (e) => {
                 if (longPressTimer === 'fired') { e.preventDefault(); e.stopPropagation(); }
@@ -983,6 +1118,11 @@
                 if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
                 longPressTimer = null;
             }, { passive: true });
+            card.addEventListener('contextmenu', (e) => {
+                if (isEditMode) return;
+                e.preventDefault();
+                showCustomizeModuleModal(mod.id);
+            });
 
             const badgeHtml = isDev ? '<div class="module-dev-tag">開發中</div>' : '';
             const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
