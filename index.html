@@ -262,6 +262,26 @@
             .module-icon-wrap { width: 42px; height: 42px; font-size: 20px; }
             .module-name { font-size: 11px; }
         }
+
+        /* 首次登入資料補全 */
+        .profile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; overflow-y:auto; padding:20px; }
+        .profile-overlay.show { display:flex; justify-content:center; align-items:flex-start; }
+        .profile-card { background:#fff; border-radius:16px; max-width:500px; width:100%; margin:auto; padding:28px 24px; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+        .profile-header { text-align:center; margin-bottom:20px; }
+        .profile-header h2 { font-size:18px; color:#2d3436; font-weight:600; }
+        .pf-field { margin-bottom:14px; }
+        .pf-field label { display:block; font-size:13px; font-weight:500; color:#555; margin-bottom:4px; }
+        .pf-field input, .pf-field select, .pf-field textarea {
+            width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px;
+            font-size:14px; font-family:inherit; transition:border-color 0.2s;
+        }
+        .pf-field input:focus, .pf-field select:focus, .pf-field textarea:focus { border-color:var(--green); outline:none; }
+        .profile-submit-btn {
+            width:100%; padding:14px; background:var(--green); color:#fff; border:none;
+            border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; margin-top:8px;
+            transition:opacity 0.2s;
+        }
+        .profile-submit-btn:disabled { opacity:0.6; cursor:not-allowed; }
     </style>
 </head>
 <body>
@@ -302,6 +322,8 @@
                     <div class="role-tag"><span>🔑</span><span id="userRoleText">營運人員</span></div>
                 </div>
                 <div class="header-actions">
+                    <div class="icon-btn glass" id="moduleManageBtn" onclick="showModuleManager()" title="模組管理" style="display:none;">⚙️</div>
+                    <div class="icon-btn glass" id="addMemberBtn" onclick="showAddMemberModal()" title="新增人員" style="display:none;">➕</div>
                     <div class="icon-btn glass" onclick="refreshData()" title="重新整理">🔄</div>
                     <div class="icon-btn glass" onclick="handleLogout()" title="登出">⏏️</div>
                 </div>
@@ -376,6 +398,95 @@
         </div>
     </div>
 
+    <!-- 首次登入資料補全 -->
+    <div class="profile-overlay" id="profileOverlay">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div style="font-size:40px;margin-bottom:8px;">📋</div>
+                <h2 id="profileFormTitle">請完善您的個人資料</h2>
+                <p style="color:#666;font-size:13px;margin-top:4px;">首次登入需填寫以下資料，之後即可正常使用系統</p>
+            </div>
+            <form id="profileForm" onsubmit="event.preventDefault();submitProfile();">
+                <div id="profileFormFields"></div>
+                <button type="submit" class="profile-submit-btn" id="profileSubmitBtn">完成送出</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模組管理彈窗 -->
+    <div class="profile-overlay" id="moduleManagerOverlay" onclick="if(event.target===this)closeModuleManager()" style="display:none;">
+        <div class="profile-card" style="max-width:460px;max-height:85vh;overflow-y:auto;">
+            <div class="profile-header">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <h2 style="margin:0;">⚙️ 模組管理</h2>
+                    <button onclick="showAddModuleForm()" style="padding:6px 14px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">＋ 新增模組</button>
+                </div>
+                <p style="color:#666;font-size:12px;margin-top:6px;">管理所有模組的名稱、連結、角色權限、啟用狀態</p>
+            </div>
+            <!-- 新增/編輯模組表單（預設隱藏）-->
+            <div id="moduleEditForm" style="display:none;padding:12px;background:rgba(122,193,154,0.08);border-radius:12px;margin-bottom:12px;">
+                <div style="font-weight:600;margin-bottom:10px;" id="moduleEditTitle">新增模組</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div><label style="font-size:11px;color:#666;">模組 ID</label><input id="me_id" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;" placeholder="如 new-module" /></div>
+                    <div><label style="font-size:11px;color:#666;">名稱</label><input id="me_name" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;" placeholder="模組名稱" /></div>
+                    <div><label style="font-size:11px;color:#666;">Icon</label><input id="me_icon" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;" placeholder="📦" value="📦" /></div>
+                    <div><label style="font-size:11px;color:#666;">色系</label>
+                        <select id="me_color" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;">
+                            <option value="green">🟢 綠色</option><option value="blue">🔵 藍色</option>
+                            <option value="pink">🩷 粉紅</option><option value="yellow">🟡 黃色</option><option value="purple">🟣 紫色</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top:8px;"><label style="font-size:11px;color:#666;">連結 URL</label><input id="me_url" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;" placeholder="https://... 或 page.html" /></div>
+                <div style="margin-top:8px;"><label style="font-size:11px;color:#666;">說明</label><input id="me_desc" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;" placeholder="模組功能說明" /></div>
+                <div style="margin-top:8px;"><label style="font-size:11px;color:#666;">可見角色（多選）</label>
+                    <div id="me_roles" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                        <label style="font-size:12px;display:flex;align-items:center;gap:3px;"><input type="checkbox" value="super_admin" checked disabled /> 超級管理員</label>
+                        <label style="font-size:12px;display:flex;align-items:center;gap:3px;"><input type="checkbox" value="admin" /> 管理員</label>
+                        <label style="font-size:12px;display:flex;align-items:center;gap:3px;"><input type="checkbox" value="staff" /> 營運人員</label>
+                        <label style="font-size:12px;display:flex;align-items:center;gap:3px;"><input type="checkbox" value="coach" /> 教練</label>
+                        <label style="font-size:12px;display:flex;align-items:center;gap:3px;"><input type="checkbox" value="analyst" /> 分析師</label>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button onclick="cancelModuleEdit()" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#666;">取消</button>
+                    <button id="moduleEditSaveBtn" onclick="saveModuleEdit()" style="flex:1;padding:8px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">儲存</button>
+                </div>
+            </div>
+            <!-- 模組列表 -->
+            <div id="moduleManagerList" style="padding:0 4px;"></div>
+        </div>
+    </div>
+
+    <!-- 新增人員彈窗 -->
+    <div class="profile-overlay" id="addMemberOverlay" onclick="if(event.target===this)closeAddMemberModal()" style="display:none;">
+        <div class="profile-card" style="max-width:380px;">
+            <div class="profile-header">
+                <div style="font-size:40px;margin-bottom:8px;">➕</div>
+                <h2>新增人員</h2>
+                <p style="color:#666;font-size:13px;margin-top:4px;">建立空白紀錄並產生邀請碼，傳給新人即可加入</p>
+            </div>
+            <div style="padding:0 4px;">
+                <div class="pf-field">
+                    <label class="pf-label">人員類型</label>
+                    <select id="addMemberType" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;font-family:inherit;background:#fff;">
+                        <option value="coaches">教練</option>
+                        <option value="staff">營運人員</option>
+                    </select>
+                </div>
+                <div class="pf-field">
+                    <label class="pf-label">姓名</label>
+                    <input id="addMemberName" type="text" placeholder="請輸入新人姓名" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;font-family:inherit;" />
+                </div>
+                <div id="addMemberResult" style="min-height:60px;margin:12px 0;text-align:center;"></div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="closeAddMemberModal()" style="flex:1;padding:12px;border:1.5px solid #ddd;border-radius:12px;background:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;color:#666;">取消</button>
+                    <button id="addMemberSubmitBtn" onclick="createInviteCode()" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">產生邀請碼</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
     <div class="spec-picker-overlay" id="specPickerOverlay" onclick="if(event.target===this)closeSpecPicker()">
         <div class="spec-picker-box">
@@ -409,85 +520,11 @@
     }
 
     // ====================================================================
-    //  ALL MODULES
+    //  ALL MODULES — 從 Supabase portal_modules 表動態載入
     // ====================================================================
-    const MODULES = [
-        { id:'member', icon:'👤', name:'學員管理', desc:'會員資料、狀態管理',
-          url:'member.html', color:'green',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'coach', icon:'👨‍🏫', name:'教練管理', desc:'教練名單、資料管理',
-          url:'coach-manage.html', color:'blue',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'staff-manage', icon:'👥', name:'營運人員', desc:'營運人員管理',
-          url:'staff-manage.html', color:'green',
-          roles:['super_admin','admin'] },
-
-        { id:'substitute', icon:'📋', name:'代課管理', desc:'代課請求、管理協調',
-          url:'https://oxencust.github.io/coach_coordinate/admin.html', color:'pink',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'substitute-coach', icon:'💬', name:'代課協調', desc:'代課回應、聊天協調',
-          url:'https://oxencust.github.io/coach_coordinate/coach.html', color:'pink',
-          roles:['coach'] },
-
-        { id:'schedule', icon:'🗓️', name:'行政排班', desc:'排班管理、班表設定',
-          url:'https://oxencust.github.io/staff-schedule/', color:'yellow',
-          roles:['super_admin','admin'] },
-
-        { id:'punch', icon:'⏰', name:'上下班打卡', desc:'打卡紀錄、出勤統計',
-          url:'punch.html', color:'green',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'report', icon:'📊', name:'報表統計', desc:'營運數據、分析報表',
-          url:'report.html', color:'blue',
-          roles:['super_admin','admin'] },
-
-        { id:'settings', icon:'🔐', name:'系統設定', desc:'權限管理、系統配置',
-          url:'settings.html', color:'pink',
-          roles:['super_admin'] },
-
-        { id:'moti-booking', icon:'📝', name:'預填Moti名單', desc:'Moti預約名單預填',
-          url:'https://oxencust.github.io/moti-ai-bookinglist/', color:'blue',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'leave-manage', icon:'🏥', name:'學員請假管理', desc:'學員請假申請處理',
-          url:'', color:'pink',
-          roles:['super_admin','admin','staff'], developing: true },
-
-        { id:'personal-schedule', icon:'📅', name:'個人排班', desc:'查看我的排班',
-          url:'https://oxencust.github.io/staff-schedule/personal', color:'yellow',
-          roles:['super_admin','admin','staff'],
-          customParams: { name: '{realName}' } },
-
-        { id:'trial-schedule', icon:'🗓️', name:'體驗排程', desc:'體驗課可預約時段',
-          url:'https://experience3.zeabur.app/', color:'yellow',
-          roles:['super_admin','admin','coach'],
-          customParams: { teacher: '{name}', type: '{type}' } },
-
-        { id:'trial-feedback', icon:'💬', name:'體驗課回報', desc:'體驗課後回報填寫',
-          url:'https://oxencust.github.io/trial-feedbackform/', color:'green',
-          roles:['super_admin','admin','coach'] },
-
-        { id:'class-record', icon:'📋', name:'課表紀錄', desc:'課堂紀錄查詢',
-          url:'https://oxencust.github.io/class-record/', color:'blue',
-          roles:['super_admin','admin','coach'] },
-
-        { id:'class-record-query', icon:'🔍', name:'課表查詢', desc:'課表紀錄查詢管理',
-          url:'https://oxencust.github.io/class-record-admin/', color:'blue',
-          roles:['super_admin','admin','staff'] },
-
-        { id:'moti-analyze', icon:'🔬', name:'Moti檢測紀錄', desc:'Moti檢測紀錄表',
-          url:'https://oxencust.github.io/moti-ai-assessment/', color:'purple',
-          roles:['super_admin','admin','analyst'] },
-
-        { id:'consultation', icon:'📋', name:'諮詢單管理', desc:'顧客體驗諮詢資料管理',
-          url:'consultation.html', color:'pink',
-          roles:['super_admin','admin','staff'] },
-    ];
-
-    const ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
+    let MODULES = [];
+    let ALL_SHORTCUTS = [];
+    let _originalModuleNames = {}; // 存放 DB 原始名稱
 
     const DEFAULT_SHORTCUTS_BY_ROLE = {
         super_admin: ['sc_personal-schedule', 'sc_moti-booking'],
@@ -496,6 +533,72 @@
         staff: ['sc_personal-schedule', 'sc_punch'],
         analyst: ['sc_moti-analyze']
     };
+
+    // 從 Supabase 載入模組清單
+    async function loadModulesFromDB() {
+        try {
+            const result = await callEdge('getModules');
+            if (result.success && result.data) {
+                // 儲存原始名稱（用於長按改名恢復）
+                result.data.forEach(m => { _originalModuleNames[m.id] = m.name; });
+
+                MODULES = result.data
+                    .filter(m => m.is_active)
+                    .map(m => ({
+                        id: m.id,
+                        icon: m.icon,
+                        name: m.name,
+                        desc: m.description,
+                        url: m.url,
+                        color: m.color,
+                        roles: m.roles || [],
+                        customParams: m.custom_params || {},
+                        developing: m.is_developing || false,
+                        sort_order: m.sort_order
+                    }));
+
+                // 套用使用者自訂名稱
+                const customNames = loadCustomModuleNames();
+                if (customNames) {
+                    MODULES.forEach(m => {
+                        if (customNames[m.id]) m.name = customNames[m.id];
+                    });
+                }
+
+                ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
+            }
+        } catch(e) {
+            console.error('Load modules error:', e);
+            // 載入失敗時使用空陣列，頁面可正常顯示但沒有模組
+        }
+    }
+
+    // 使用者自訂模組名稱
+    function loadCustomModuleNames() { try { const s=localStorage.getItem(getStorageKey('module_names')); return s?JSON.parse(s):null; } catch{return null;} }
+    function saveCustomModuleNames(names) { try{localStorage.setItem(getStorageKey('module_names'),JSON.stringify(names));}catch{} }
+
+    function promptRenameModule(modId, currentName) {
+        const newName = prompt('自訂此模組的顯示名稱：', currentName);
+        if (newName === null) return; // 取消
+        const names = loadCustomModuleNames() || {};
+        if (newName.trim() === '' || newName.trim() === getOriginalModuleName(modId)) {
+            delete names[modId]; // 恢復原名
+        } else {
+            names[modId] = newName.trim();
+        }
+        saveCustomModuleNames(names);
+        // 即時更新 MODULES 和畫面
+        const mod = MODULES.find(m => m.id === modId);
+        if (mod) mod.name = names[modId] || getOriginalModuleName(modId);
+        ALL_SHORTCUTS = MODULES.filter(m => !m.developing).map(m => ({ ...m, id: 'sc_' + m.id }));
+        renderModules();
+        renderUtilities();
+        showToast('✅ 名稱已更新');
+    }
+
+    function getOriginalModuleName(modId) {
+        return _originalModuleNames[modId] || modId;
+    }
 
     let currentUser = null, isEditMode = false;
 
@@ -667,6 +770,14 @@
 
     async function initApp() {
         try {
+            // 偵測從 LINE 綁定回來的 ?bind=success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('bind') === 'success') {
+                // 清除 URL 參數，避免重整時重複顯示
+                history.replaceState(null, '', window.location.pathname);
+                setTimeout(() => showToast('✅ LINE 帳號綁定成功'), 1500);
+            }
+
             await liff.init({ liffId: CONFIG.LIFF_ID });
 
             if (liff.isLoggedIn()) {
@@ -694,9 +805,9 @@
             const staff = result.staff || null;
             const coach = result.coach || null;
 
-            // 兩張表都找不到
+            // 兩張表都找不到 → 顯示邀請碼輸入
             if (!staff && !coach) {
-                showNoPermission(displayName);
+                showInviteCodeScreen(displayName, lineUid);
                 return;
             }
 
@@ -760,7 +871,15 @@
             sessionStorage.setItem('staffLineUid', lineUid);
             if (coach) sessionStorage.setItem('currentCoach', JSON.stringify(coach));
 
+            // 首次登入資料補全檢查
+            if (!checkProfileCompleted()) {
+                hideLoading();
+                showProfileForm();
+                return;
+            }
+
             updateLoadingText('載入模組中...');
+            await loadModulesFromDB();
             renderApp();
             hideLoading();
 
@@ -801,6 +920,15 @@
         }
         document.getElementById('userRoleText').textContent = roleText;
 
+        // 管理員才顯示「新增人員」按鈕
+        if (['super_admin', 'admin'].includes(currentUser.role)) {
+            document.getElementById('addMemberBtn').style.display = '';
+        }
+        // 超級管理員才顯示「模組管理」按鈕
+        if (currentUser.role === 'super_admin') {
+            document.getElementById('moduleManageBtn').style.display = '';
+        }
+
         renderModules();
         renderUtilities();
     }
@@ -835,6 +963,21 @@
                 if (isDev) { showDevModal(); return; }
                 navigateToModule(mod);
             };
+
+            // 長按改名
+            let longPressTimer = null;
+            card.addEventListener('touchstart', () => {
+                longPressTimer = setTimeout(() => { longPressTimer = 'fired'; promptRenameModule(mod.id, mod.name); }, 800);
+            }, { passive: true });
+            card.addEventListener('touchend', (e) => {
+                if (longPressTimer === 'fired') { e.preventDefault(); e.stopPropagation(); }
+                if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
+                longPressTimer = null;
+            });
+            card.addEventListener('touchmove', () => {
+                if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }, { passive: true });
 
             const badgeHtml = isDev ? '<div class="module-dev-tag">開發中</div>' : '';
             const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
@@ -1171,14 +1314,20 @@
 
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
-        // 系統設定只有超級管理員可見
-        if (mod.id === 'settings') return currentUser.role === 'super_admin';
         // 超級管理員看到全部
         if (currentUser.role === 'super_admin') return true;
+        // 檢查角色是否在模組的 roles 清單中
+        if (mod.roles && mod.roles.length > 0 && !mod.roles.includes(currentUser.role)) {
+            // 雙重身份：如果使用者同時是 coach，也檢查 coach 角色
+            if (currentUser.coach_data && mod.roles.includes('coach')) {
+                // 允許
+            } else {
+                return false;
+            }
+        }
         // 檢查是否被管理員隱藏
         const hiddenModules = currentUser.hidden_modules || [];
         if (hiddenModules.includes(mod.id)) return false;
-        // 預設全部顯示
         return true;
     }
 
@@ -1244,6 +1393,86 @@
         document.getElementById('loginScreen').classList.add('show');
     }
 
+    // ====================================================================
+    //  邀請碼註冊畫面
+    // ====================================================================
+    let _inviteLineUid = '';
+    let _inviteDisplayName = '';
+    let inviteRedeeming = false;
+
+    function showInviteCodeScreen(displayName, lineUid) {
+        _inviteLineUid = lineUid;
+        _inviteDisplayName = displayName;
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').style.display = 'block';
+        document.querySelector('.main').innerHTML = `
+            <div class="no-permission" style="text-align: center;">
+                <div class="no-permission-icon">🎟️</div>
+                <div class="no-permission-title">歡迎加入衡點</div>
+                <div class="no-permission-desc" style="margin-bottom: 20px;">
+                    ${displayName || ''}，請輸入管理員提供的邀請碼<br>完成註冊。
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; margin-bottom: 12px;">
+                    <input id="inviteCodeInput" type="text" placeholder="例: HD-A3X9"
+                        maxlength="7"
+                        style="width: 160px; padding: 12px 16px; border: 2px solid #ddd; border-radius: 12px; font-size: 18px; font-weight: 700; text-align: center; letter-spacing: 3px; text-transform: uppercase; font-family: 'Noto Sans TC', sans-serif; outline: none; transition: border-color 0.2s;"
+                        onfocus="this.style.borderColor='var(--green)'"
+                        onblur="this.style.borderColor='#ddd'"
+                        onkeydown="if(event.key==='Enter') redeemInviteCode()" />
+                    <button id="inviteSubmitBtn" onclick="redeemInviteCode()"
+                        style="padding: 12px 20px; border: none; border-radius: 12px; background: var(--green); color: white; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                        驗證
+                    </button>
+                </div>
+                <div id="inviteError" style="color: var(--danger); font-size: 13px; min-height: 20px;"></div>
+                <div style="margin-top: 16px; font-size: 12px; color: #999;">沒有邀請碼？請聯繫管理員取得</div>
+                <button onclick="handleLogout()" style="margin-top: 16px; padding: 10px 20px; border: 1px solid #ddd; border-radius: 12px; background: transparent; color: #999; font-size: 13px; cursor: pointer;">登出</button>
+            </div>
+        `;
+        // 自動 focus
+        setTimeout(() => document.getElementById('inviteCodeInput')?.focus(), 300);
+    }
+
+    async function redeemInviteCode() {
+        if (inviteRedeeming) return;
+        const input = document.getElementById('inviteCodeInput');
+        const errEl = document.getElementById('inviteError');
+        const btn = document.getElementById('inviteSubmitBtn');
+        const code = (input?.value || '').trim().toUpperCase();
+
+        if (!code) { errEl.textContent = '請輸入邀請碼'; return; }
+        errEl.textContent = '';
+
+        inviteRedeeming = true;
+        btn.disabled = true; btn.textContent = '驗證中...';
+
+        try {
+            const result = await callEdge('redeemInvite', {
+                inviteCode: code,
+                lineUid: _inviteLineUid,
+                displayName: _inviteDisplayName
+            });
+
+            if (!result.success) {
+                errEl.textContent = result.error || '邀請碼無效';
+                return;
+            }
+
+            // 兌換成功 → 重新走驗證流程（會進入 profile 表單）
+            showToast('✅ 驗證成功，請完善個人資料');
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loadingScreen').classList.remove('hide');
+            await authenticateWithStaff(_inviteLineUid, _inviteDisplayName);
+
+        } catch(e) {
+            console.error('Redeem error:', e);
+            errEl.textContent = '連線失敗，請重試';
+        } finally {
+            inviteRedeeming = false;
+            if (btn) { btn.disabled = false; btn.textContent = '驗證'; }
+        }
+    }
+
     function showNoPermission(displayName, message) {
         document.getElementById('loadingScreen').classList.add('hide');
         document.getElementById('mainApp').style.display = 'block';
@@ -1282,6 +1511,381 @@
     }
 
     function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+
+    // ====================================================================
+    //  模組管理（super_admin）
+    // ====================================================================
+    let _allModulesRaw = []; // 存放從 DB 拉取的完整模組列表（含停用的）
+    let _editingModuleId = null; // null = 新增, 有值 = 編輯
+
+    async function showModuleManager() {
+        document.getElementById('moduleManagerOverlay').style.display = 'flex';
+        cancelModuleEdit();
+        await refreshModuleManagerList();
+    }
+
+    function closeModuleManager() {
+        document.getElementById('moduleManagerOverlay').style.display = 'none';
+    }
+
+    async function refreshModuleManagerList() {
+        const listEl = document.getElementById('moduleManagerList');
+        listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">載入中...</div>';
+        try {
+            const result = await callEdge('getModules');
+            if (!result.success) { listEl.innerHTML = '<div style="color:var(--danger);">載入失敗</div>'; return; }
+            _allModulesRaw = result.data || [];
+
+            if (_allModulesRaw.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">尚無模組</div>';
+                return;
+            }
+
+            listEl.innerHTML = _allModulesRaw.map(m => {
+                const statusBadge = !m.is_active ? '<span style="color:#e05252;font-size:11px;">⏸ 停用</span>'
+                    : m.is_developing ? '<span style="color:#f0932b;font-size:11px;">🔨 開發中</span>'
+                    : '<span style="color:#27ae60;font-size:11px;">✅ 啟用</span>';
+                const rolesTxt = (m.roles || []).join(', ');
+                return `<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid #f0f0f0;">
+                    <div style="font-size:22px;flex-shrink:0;width:32px;text-align:center;">${m.icon}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name}</div>
+                        <div style="font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rolesTxt}</div>
+                    </div>
+                    <div style="flex-shrink:0;">${statusBadge}</div>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <button onclick="editModuleInManager('${m.id}')" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit;">編輯</button>
+                        <button onclick="toggleModuleActive('${m.id}',${!m.is_active})" style="padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:inherit;">${m.is_active ? '停用' : '啟用'}</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch(e) {
+            listEl.innerHTML = '<div style="color:var(--danger);">連線失敗</div>';
+        }
+    }
+
+    function showAddModuleForm() {
+        _editingModuleId = null;
+        document.getElementById('moduleEditTitle').textContent = '新增模組';
+        document.getElementById('me_id').value = '';
+        document.getElementById('me_id').disabled = false;
+        document.getElementById('me_name').value = '';
+        document.getElementById('me_icon').value = '📦';
+        document.getElementById('me_url').value = '';
+        document.getElementById('me_desc').value = '';
+        document.getElementById('me_color').value = 'green';
+        // 重設角色勾選
+        document.querySelectorAll('#me_roles input[type=checkbox]').forEach(cb => {
+            cb.checked = (cb.value === 'super_admin');
+        });
+        document.getElementById('moduleEditForm').style.display = 'block';
+    }
+
+    function editModuleInManager(modId) {
+        const mod = _allModulesRaw.find(m => m.id === modId);
+        if (!mod) return;
+        _editingModuleId = modId;
+        document.getElementById('moduleEditTitle').textContent = '編輯模組';
+        document.getElementById('me_id').value = mod.id;
+        document.getElementById('me_id').disabled = true; // ID 不可改
+        document.getElementById('me_name').value = mod.name || '';
+        document.getElementById('me_icon').value = mod.icon || '📦';
+        document.getElementById('me_url').value = mod.url || '';
+        document.getElementById('me_desc').value = mod.description || '';
+        document.getElementById('me_color').value = mod.color || 'green';
+        // 設定角色勾選
+        const roles = mod.roles || [];
+        document.querySelectorAll('#me_roles input[type=checkbox]').forEach(cb => {
+            cb.checked = (cb.value === 'super_admin') || roles.includes(cb.value);
+        });
+        document.getElementById('moduleEditForm').style.display = 'block';
+    }
+
+    function cancelModuleEdit() {
+        _editingModuleId = null;
+        document.getElementById('moduleEditForm').style.display = 'none';
+    }
+
+    async function saveModuleEdit() {
+        const btn = document.getElementById('moduleEditSaveBtn');
+        const id = document.getElementById('me_id').value.trim();
+        const name = document.getElementById('me_name').value.trim();
+        const url = document.getElementById('me_url').value.trim();
+        if (!id || !name) { showToast('請填寫 ID 和名稱'); return; }
+
+        const roles = ['super_admin']; // 超管永遠有
+        document.querySelectorAll('#me_roles input[type=checkbox]:checked').forEach(cb => {
+            if (cb.value !== 'super_admin') roles.push(cb.value);
+        });
+
+        const moduleData = {
+            id,
+            name,
+            icon: document.getElementById('me_icon').value.trim() || '📦',
+            url,
+            description: document.getElementById('me_desc').value.trim(),
+            color: document.getElementById('me_color').value,
+            roles
+        };
+
+        btn.disabled = true; btn.textContent = '儲存中...';
+
+        try {
+            let result;
+            if (_editingModuleId) {
+                // 編輯
+                result = await callEdge('updateModule', { id: _editingModuleId, moduleData });
+            } else {
+                // 新增
+                result = await callEdge('addModule', { moduleData });
+            }
+
+            if (!result.success) {
+                showToast('❌ ' + (result.error || '儲存失敗'));
+                return;
+            }
+
+            showToast('✅ 已儲存');
+            cancelModuleEdit();
+            await refreshModuleManagerList();
+            // 重新載入前端模組
+            await loadModulesFromDB();
+            renderModules();
+            renderUtilities();
+        } catch(e) {
+            showToast('❌ 連線失敗');
+        } finally {
+            btn.disabled = false; btn.textContent = '儲存';
+        }
+    }
+
+    async function toggleModuleActive(modId, newState) {
+        try {
+            const result = await callEdge('updateModule', {
+                id: modId,
+                moduleData: { is_active: newState }
+            });
+            if (!result.success) { showToast('❌ 操作失敗'); return; }
+            showToast(newState ? '✅ 已啟用' : '⏸ 已停用');
+            await refreshModuleManagerList();
+            await loadModulesFromDB();
+            renderModules();
+            renderUtilities();
+        } catch(e) {
+            showToast('❌ 連線失敗');
+        }
+    }
+
+    // ====================================================================
+    //  新增人員（邀請碼）
+    // ====================================================================
+    let addMemberCreating = false;
+
+    function showAddMemberModal() {
+        document.getElementById('addMemberOverlay').style.display = 'flex';
+        document.getElementById('addMemberName').value = '';
+        document.getElementById('addMemberResult').innerHTML = '';
+        document.getElementById('addMemberSubmitBtn').disabled = false;
+        document.getElementById('addMemberSubmitBtn').textContent = '產生邀請碼';
+        setTimeout(() => document.getElementById('addMemberName')?.focus(), 200);
+    }
+
+    function closeAddMemberModal() {
+        document.getElementById('addMemberOverlay').style.display = 'none';
+    }
+
+    async function createInviteCode() {
+        if (addMemberCreating) return;
+        const name = document.getElementById('addMemberName').value.trim();
+        const table = document.getElementById('addMemberType').value;
+        const resultEl = document.getElementById('addMemberResult');
+        const btn = document.getElementById('addMemberSubmitBtn');
+
+        if (!name) { resultEl.innerHTML = '<span style="color:var(--danger);">請輸入姓名</span>'; return; }
+
+        addMemberCreating = true;
+        btn.disabled = true; btn.textContent = '產生中...';
+        resultEl.innerHTML = '';
+
+        try {
+            const result = await callEdge('createInvite', { table, name });
+            if (!result.success) {
+                resultEl.innerHTML = `<span style="color:var(--danger);">${result.error || '建立失敗'}</span>`;
+                return;
+            }
+
+            const typeText = table === 'coaches' ? '教練' : '營運人員';
+            resultEl.innerHTML = `
+                <div style="background:linear-gradient(135deg,rgba(122,193,154,0.1),rgba(159,204,204,0.1));border-radius:12px;padding:16px;margin:4px 0;">
+                    <div style="font-size:13px;color:#666;margin-bottom:6px;">已建立 ${typeText}：${name}</div>
+                    <div style="font-size:28px;font-weight:800;letter-spacing:4px;color:#2d3436;margin:8px 0;" id="inviteCodeDisplay">${result.invite_code}</div>
+                    <button onclick="copyInviteCode()" style="padding:6px 16px;border:1px solid var(--green);border-radius:8px;background:#fff;color:var(--green-dark);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📋 複製邀請碼</button>
+                </div>
+                <div style="font-size:11px;color:#999;margin-top:8px;">請將邀請碼傳給 ${name}，對方登入後輸入即可加入</div>
+            `;
+            btn.textContent = '再建一位';
+            btn.onclick = () => {
+                document.getElementById('addMemberName').value = '';
+                resultEl.innerHTML = '';
+                btn.textContent = '產生邀請碼';
+                btn.onclick = createInviteCode;
+                document.getElementById('addMemberName').focus();
+            };
+        } catch(e) {
+            console.error('Create invite error:', e);
+            resultEl.innerHTML = '<span style="color:var(--danger);">連線失敗，請重試</span>';
+        } finally {
+            addMemberCreating = false;
+            btn.disabled = false;
+        }
+    }
+
+    function copyInviteCode() {
+        const code = document.getElementById('inviteCodeDisplay')?.textContent;
+        if (code && navigator.clipboard) {
+            navigator.clipboard.writeText(code).then(() => showToast('✅ 已複製邀請碼'));
+        }
+    }
+
+    // ====================================================================
+    //  首次登入資料補全
+    // ====================================================================
+    const HENGDIAN_LIFF_ID = '2008660081-D1NqGfk0';
+
+    function checkProfileCompleted() {
+        const src = currentUser.source; // 'staff' or 'coaches'
+        const raw = src === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+        return raw && raw.profile_completed === true;
+    }
+
+    function showProfileForm() {
+        const src = currentUser.source;
+        const raw = src === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+        const isCoach = src === 'coaches';
+
+        // 動態產生表單欄位
+        const formEl = document.getElementById('profileFormFields');
+        const fields = isCoach ? [
+            { key: 'name', label: '教練本名', type: 'text', required: true },
+            { key: 'nickname', label: '教練名稱（顯示用）', type: 'text', required: false },
+            { key: 'coach_type', label: '教練類型', type: 'select', options: ['strength_training', 'pilates', 'stretch', 'ai'], optionLabels: ['重量訓練', '皮拉提斯', '伸展', 'AI體態'], required: true },
+            { key: 'phone', label: '電話', type: 'tel', required: true },
+            { key: 'gender', label: '性別', type: 'select', options: ['男', '女'], required: true },
+            { key: 'birthday', label: '生日', type: 'date', required: true },
+            { key: 'email', label: '信箱', type: 'email', required: false },
+            { key: 'certifications', label: '證照紀錄', type: 'textarea', required: false },
+            { key: 'notes', label: '備註', type: 'textarea', required: false },
+            { key: 'emergency_contact', label: '緊急聯絡人', type: 'text', required: true },
+            { key: 'emergency_phone', label: '緊急聯絡人電話', type: 'tel', required: true },
+            { key: 'emergency_relation', label: '與緊急聯絡人關係', type: 'text', required: true },
+        ] : [
+            { key: 'name', label: '姓名', type: 'text', required: true },
+            { key: 'nickname', label: '暱稱', type: 'text', required: false },
+            { key: 'staff_type', label: '人員類型', type: 'text', required: false, placeholder: '例：行政、櫃檯' },
+            { key: 'phone', label: '電話', type: 'tel', required: true },
+            { key: 'gender', label: '性別', type: 'select', options: ['男', '女'], required: true },
+            { key: 'birthday', label: '生日', type: 'date', required: true },
+            { key: 'email', label: '信箱', type: 'email', required: false },
+            { key: 'address', label: '通訊地址', type: 'text', required: false },
+            { key: 'department', label: '部門', type: 'text', required: false },
+            { key: 'hire_date', label: '到職日', type: 'date', required: false },
+            { key: 'notes', label: '備註', type: 'textarea', required: false },
+            { key: 'emergency_contact', label: '緊急聯絡人', type: 'text', required: true },
+            { key: 'emergency_phone', label: '緊急聯絡人電話', type: 'tel', required: true },
+            { key: 'emergency_relation', label: '與緊急聯絡人關係', type: 'text', required: true },
+        ];
+
+        document.getElementById('profileFormTitle').textContent =
+            `👋 ${currentUser.realName || currentUser.name}，請完善您的個人資料`;
+
+        formEl.innerHTML = fields.map(f => {
+            const val = (raw && raw[f.key]) || '';
+            const req = f.required ? '<span style="color:#e05252;">*</span>' : '';
+
+            if (f.type === 'select') {
+                const opts = (f.options || []).map((o, i) => {
+                    const label = f.optionLabels ? f.optionLabels[i] : o;
+                    return `<option value="${o}" ${val === o ? 'selected' : ''}>${label}</option>`;
+                }).join('');
+                return `<div class="pf-field">
+                    <label>${f.label}${req}</label>
+                    <select name="${f.key}" ${f.required ? 'required' : ''}><option value="">請選擇</option>${opts}</select>
+                </div>`;
+            }
+            if (f.type === 'textarea') {
+                return `<div class="pf-field">
+                    <label>${f.label}${req}</label>
+                    <textarea name="${f.key}" rows="2" ${f.required ? 'required' : ''}>${val}</textarea>
+                </div>`;
+            }
+            return `<div class="pf-field">
+                <label>${f.label}${req}</label>
+                <input type="${f.type}" name="${f.key}" value="${val}" ${f.required ? 'required' : ''} ${f.placeholder ? `placeholder="${f.placeholder}"` : ''}>
+            </div>`;
+        }).join('');
+
+        document.getElementById('profileOverlay').classList.add('show');
+    }
+
+    let profileSubmitting = false;
+    async function submitProfile() {
+        if (profileSubmitting) return;
+        const form = document.getElementById('profileForm');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        profileSubmitting = true;
+        const btn = document.getElementById('profileSubmitBtn');
+        btn.disabled = true; btn.textContent = '儲存中...';
+
+        try {
+            const formData = new FormData(form);
+            const profileData = {};
+            for (const [k, v] of formData.entries()) {
+                if (v.trim()) profileData[k] = v.trim();
+            }
+
+            const src = currentUser.source;
+            const raw = src === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+            await callEdge('completeProfile', {
+                table: src === 'staff' ? 'staff' : 'coaches',
+                id: raw.id,
+                profileData
+            });
+
+            // 更新本地資料
+            if (src === 'staff') {
+                Object.assign(currentUser.staff_data, profileData, { profile_completed: true });
+            } else {
+                Object.assign(currentUser.coach_data, profileData, { profile_completed: true });
+            }
+            sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
+
+            document.getElementById('profileOverlay').classList.remove('show');
+            showToast('✅ 資料已儲存');
+            renderApp();
+            hideLoading();
+
+            // 嘗試開啟衡點官方 LIFF 綁定 LINE ID
+            tryBindHengdianLineId();
+
+        } catch(e) {
+            console.error('Profile save error:', e);
+            showToast('❌ 儲存失敗，請重試');
+        } finally {
+            profileSubmitting = false;
+            btn.disabled = false; btn.textContent = '完成送出';
+        }
+    }
+
+    function tryBindHengdianLineId() {
+        if (!HENGDIAN_LIFF_ID) return;
+        const raw = currentUser.source === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+        if (raw && raw.line_id) return; // 已綁定
+
+        // 同頁跳轉到衡點官方 LIFF，自動抓 LINE UID 後會跳回本頁
+        const bindUrl = `https://liff.line.me/${HENGDIAN_LIFF_ID}?action=bind&table=${currentUser.source === 'staff' ? 'staff' : 'coaches'}&id=${raw.id}`;
+        window.location.href = bindUrl;
+    }
     </script>
 </body>
 </html>
