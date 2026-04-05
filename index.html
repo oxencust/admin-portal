@@ -1094,11 +1094,12 @@
                 }
             } else {
                 // ---- 純教練（不在 staff 表）----
-                const coachDefaultRole = (coach.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
-                role = coach.role || coach.permission_level || coachDefaultRole;
+                role = coach.role || coach.permission_level || 'coach';
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
                 if (role === 'viewer') role = 'analyst';
+                // coach_type === 'ai_analysis' 強制歸為 analyst
+                if (coach.coach_type === 'ai_analysis' && (role === 'coach' || role === 'employee')) role = 'analyst';
                 staffType = '';
                 dbPerms = coach.permissions || {};
                 userName = coach.name || displayName;
