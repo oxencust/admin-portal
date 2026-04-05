@@ -606,7 +606,7 @@ async function loadAllPeople() {
             if (c.coach_type === 'ai_analysis' && (role === 'coach' || role === 'employee')) role = 'analyst';
 
             // 教練課種分類
-            const specMap = {pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI分析'};
+            const specMap = {pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI分析',ai_analysis:'AI分析'};
             const coachTypeLabel = c.coach_type ? (specMap[c.coach_type] || c.coach_type) : '';
             const specLabels = (c.specialties||[]).map(s => specMap[s]||s);
             const deptLabel = coachTypeLabel || specLabels.join(',') || '教練';
@@ -654,7 +654,7 @@ async function loadAllPeople() {
 // ====================================================================
 //  FILTER BAR — 動態生成（含教練課種子分類）
 // ====================================================================
-const COACH_TYPE_LABELS = { weight:'重訓', pilates:'皮拉提斯', stretch:'伸展', ai_analysis:'AI分析' };
+const COACH_TYPE_LABELS = { weight:'重訓', pilates:'皮拉提斯', stretch:'伸展', ai:'AI分析', ai_analysis:'AI分析', yoga:'瑜珈', boxing:'拳擊', cardio:'有氧', rehab:'復健' };
 
 function renderFilterBar() {
     const bar = document.getElementById('filterBar');
