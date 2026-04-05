@@ -606,7 +606,7 @@ async function loadAllPeople() {
             if (c.coach_type === 'ai_analysis' && (role === 'coach' || role === 'employee')) role = 'analyst';
 
             // 教練課種分類
-            const specMap = {pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI分析',ai_analysis:'AI分析'};
+            const specMap = {pilates:'皮拉提斯',weight:'重訓',strength_training:'重訓',stretch:'伸展',stretching:'伸展',ai:'AI分析',ai_analysis:'AI分析'};
             const coachTypeLabel = c.coach_type ? (specMap[c.coach_type] || c.coach_type) : '';
             const specLabels = (c.specialties||[]).map(s => specMap[s]||s);
             const deptLabel = coachTypeLabel || specLabels.join(',') || '教練';
@@ -654,7 +654,7 @@ async function loadAllPeople() {
 // ====================================================================
 //  FILTER BAR — 動態生成（含教練課種子分類）
 // ====================================================================
-const COACH_TYPE_LABELS = { weight:'重訓', pilates:'皮拉提斯', stretch:'伸展', ai:'AI分析', ai_analysis:'AI分析', yoga:'瑜珈', boxing:'拳擊', cardio:'有氧', rehab:'復健' };
+const COACH_TYPE_LABELS = { weight:'重訓', strength_training:'重訓', pilates:'皮拉提斯', stretch:'伸展', stretching:'伸展', ai:'AI分析', ai_analysis:'AI分析', yoga:'瑜珈', boxing:'拳擊', cardio:'有氧', rehab:'復健' };
 
 function renderFilterBar() {
     const bar = document.getElementById('filterBar');
@@ -673,11 +673,14 @@ function renderFilterBar() {
     html += '<span class="filter-chip" onclick="setFilter(this,\'employee\')">員工</span>';
     html += '<span class="filter-chip" onclick="setFilter(this,\'coach\')">教練（全部）</span>';
 
-    // 教練子分類
-    const sortedTypes = [...coachTypes].sort();
-    sortedTypes.forEach(t => {
+    // 教練子分類（以中文標籤去重，避免同義鍵重複顯示）
+    const seenLabels = new Map(); // label → first raw key
+    [...coachTypes].forEach(t => {
         const label = COACH_TYPE_LABELS[t] || t;
-        html += '<span class="filter-chip" onclick="setFilter(this,\'coach:' + t + '\')" style="font-size:11px;">┗ ' + label + '</span>';
+        if (!seenLabels.has(label)) seenLabels.set(label, t);
+    });
+    [...seenLabels.entries()].sort((a,b) => a[0].localeCompare(b[0],'zh-TW')).forEach(([label, key]) => {
+        html += '<span class="filter-chip" onclick="setFilter(this,\'coach:' + key + '\')" style="font-size:11px;">┗ ' + label + '</span>';
     });
 
     html += '<span class="filter-chip" onclick="setFilter(this,\'analyst\')">分析師</span>';
@@ -708,10 +711,14 @@ function getFilteredPeople() {
     return allPeople.filter(p => {
         if (currentFilter !== 'all') {
             if (currentFilter.startsWith('coach:')) {
-                // 教練子分類篩選：coach:weight, coach:pilates, etc.
+                // 教練子分類篩選：coach:strength_training, coach:pilates, etc.
                 const subType = currentFilter.split(':')[1];
+                // 同義鍵映射（DB 值可能不同寫法）
+                const synonyms = {weight:['weight','strength_training'],strength_training:['weight','strength_training'],stretch:['stretch','stretching'],stretching:['stretch','stretching']};
+                const matchKeys = synonyms[subType] || [subType];
                 if (p._role !== 'coach') return false;
-                if (!p._type.includes(subType) && p.coach_type !== subType) return false;
+                const typeMatch = matchKeys.some(k => (p._type||'').includes(k) || p.coach_type === k);
+                if (!typeMatch) return false;
             } else {
                 if (p._role !== currentFilter) return false;
             }
