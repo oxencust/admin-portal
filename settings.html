@@ -453,20 +453,72 @@ let isSaving = false;
 // ====================================================================
 //  INIT & AUTH
 // ====================================================================
-function initPermissions() {
+async function initPermissions() {
+    // 1. 取得前端暫存的使用者資料
     try { currentUser = JSON.parse(sessionStorage.getItem('currentStaff')); } catch(e) {}
     if (!currentUser) {
         const p = new URLSearchParams(window.location.search);
-        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('role')||'staff' };
+        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('role')||'staff', lineUid: p.get('uid') };
     }
-    // 只有 super_admin 和 manager 可以進入權限設定
-    if (!currentUser || (currentUser.role !== 'super_admin' && currentUser.role !== 'admin' && currentUser.role !== 'manager')) {
-        document.querySelector('.container').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>僅限管理員存取</p></div>';
+    if (!currentUser) {
+        showBlockedScreen('🔒', '無法識別身份，請從入口頁面登入');
+        return false;
+    }
+
+    // 2. 後端驗證：用 lineUid 從資料庫確認真實角色
+    const lineUid = currentUser.lineUid || sessionStorage.getItem('staffLineUid') || '';
+    if (!lineUid) {
+        showBlockedScreen('🔒', '缺少身份資訊，請從入口頁面重新登入');
+        return false;
+    }
+    try {
+        const result = await callEdge('verifyUser', { lineUid });
+        const staff = result.staff || null;
+        const coach = result.coach || null;
+        if (!staff && !coach) {
+            showBlockedScreen('🔒', '查無此帳號，請聯繫管理員');
+            return false;
+        }
+        // 以資料庫角色為準（不信任前端傳來的 role）
+        let dbRole = 'employee';
+        let dbName = currentUser.name;
+        let dbDept = '';
+        if (staff) {
+            dbRole = staff.role || staff.permission_level || 'employee';
+            dbName = staff.nickname || staff.name || currentUser.name;
+            dbDept = staff.department || '';
+        } else if (coach) {
+            const coachDefault = (coach.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
+            dbRole = coach.role || coach.permission_level || coachDefault;
+            dbName = coach.name || currentUser.name;
+        }
+        // 映射舊角色名
+        if (dbRole === 'admin') dbRole = 'manager';
+        if (dbRole === 'staff') dbRole = 'employee';
+        if (dbRole === 'viewer') dbRole = 'analyst';
+
+        // 覆寫前端資料為資料庫真實值
+        currentUser.role = dbRole;
+        currentUser.name = dbName;
+        currentUser.department = dbDept;
+    } catch(e) {
+        console.error('後端驗證失敗:', e);
+        showBlockedScreen('⚠️', '身份驗證失敗，請稍後再試');
+        return false;
+    }
+
+    // 3. 權限檢查：只有 super_admin / manager 可進入
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'manager') {
+        showBlockedScreen('🔒', '僅限管理員存取');
         return false;
     }
     document.getElementById('myName').textContent = currentUser.name;
     document.getElementById('userAvatar').textContent = (currentUser.name||'?')[0];
     return true;
+}
+
+function showBlockedScreen(icon, msg) {
+    document.getElementById('tab-permissions').innerHTML = '<div class="empty-state" style="padding-top:120px;"><div class="empty-icon">' + icon + '</div><p>' + msg + '</p></div>';
 }
 
 async function loadAllPeople() {
@@ -494,7 +546,9 @@ async function loadAllPeople() {
             };
         });
         const coachData = (result.coaches||[]).map(c => {
-            let role = c.role || c.permission_level || 'coach';
+            // coach_type === 'ai_analysis' 的教練預設歸為 analyst
+            const defaultRole = (c.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
+            let role = c.role || c.permission_level || defaultRole;
             if (role === 'admin') role = 'manager';
             if (role === 'staff') role = 'employee';
             if (role === 'viewer') role = 'analyst';
@@ -1145,7 +1199,7 @@ function showToast(m) {
 //  BOOTSTRAP
 // ====================================================================
 document.addEventListener('DOMContentLoaded', async () => {
-    if (initPermissions()) await loadAllPeople();
+    if (await initPermissions()) await loadAllPeople();
 });
 </script>
 </body>
