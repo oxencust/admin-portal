@@ -745,9 +745,10 @@
     //  三層權限系統：permission_level + staff_type tags + permissions JSON
     // ====================================================================
 
-    // 第 1 層：依 permission_level（基本角色）預設
+    // 第 1 層：依角色預設（支援新舊角色名稱）
     const ROLE_DEFAULTS = {
-        admin: {
+        // 新角色名 manager（舊 admin）
+        manager: {
             member: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             coach: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             'staff-manage': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
@@ -763,31 +764,66 @@
             'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             'class-record': { view:true, fill:false, edit:false, create:false, delete:false, export:true },
             'class-record-query': { view:true, fill:false, edit:true, create:false, delete:false, export:true },
-            'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true }
+            'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true },
+            'substitute-coach': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            consultation: { view:true, fill:true, edit:true, create:true, delete:false, export:true }
         },
+        // 舊名相容
+        admin: null,
+        // 新角色名 employee（舊 staff）
+        employee: {
+            member: { view:true, fill:true, edit:false, create:false, delete:false, export:false },
+            substitute: { view:true, fill:true, edit:true, create:false, delete:false, export:false },
+            punch: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'moti-booking': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
+            'leave-manage': { view:true, fill:true, edit:true, create:false, delete:false, export:false },
+            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            'class-record-query': { view:true, fill:false, edit:false, create:false, delete:false, export:false },
+            consultation: { view:true, fill:true, edit:true, create:false, delete:false, export:false }
+        },
+        // 舊名相容
+        staff: null,
         coach: {
             'substitute-coach': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'trial-schedule': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
             'trial-feedback': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
             'class-record': { view:true, fill:true, edit:true, create:true, delete:false, export:true }
         },
-        staff: {
-            member: { view:true, fill:true, edit:false, create:false, delete:false, export:false },
-            coach: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
-            substitute: { view:true, fill:true, edit:true, create:false, delete:false, export:false },
-            punch: { view:true, fill:true, edit:true, create:true, delete:false, export:false },
-            'moti-booking': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
-            'leave-manage': { view:true, fill:true, edit:true, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false },
-            'class-record-query': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
+        // 新角色名 analyst（舊 viewer）
+        analyst: {
+            'moti-analyze': { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            'moti-booking': { view:true, fill:true, edit:false, create:false, delete:false, export:false }
         },
-        viewer: {
-            member: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
-            coach: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
-            substitute: { view:true, fill:false, edit:false, create:false, delete:false, export:false },
-            'personal-schedule': { view:true, fill:false, edit:false, create:false, delete:false, export:false }
-        }
+        // 舊名相容
+        viewer: null,
     };
+    // 舊名映射到新名
+    ROLE_DEFAULTS.admin = ROLE_DEFAULTS.manager;
+    ROLE_DEFAULTS.staff = ROLE_DEFAULTS.employee;
+    ROLE_DEFAULTS.viewer = ROLE_DEFAULTS.analyst;
+
+    // 權限 v2 模組 ID 清單（與權限設定 UI 一致）
+    const ALL_MODULE_IDS_V2 = [
+        'member','coach','staff-manage','substitute','substitute-coach','schedule',
+        'punch','report','settings','moti-booking','leave-manage','personal-schedule',
+        'trial-schedule','trial-feedback','class-record','class-record-query','moti-analyze','consultation'
+    ];
+    // 權限 v2 角色→模組映射（on/off 簡化版）
+    const ROLE_MODULE_DEFAULTS_V2 = {
+        super_admin: ALL_MODULE_IDS_V2,
+        manager: ALL_MODULE_IDS_V2.filter(m => m !== 'settings'),
+        employee: ['member','substitute','punch','moti-booking','leave-manage','personal-schedule','class-record-query','consultation'],
+        coach: ['substitute-coach','trial-schedule','trial-feedback','class-record'],
+        analyst: ['moti-analyze','moti-booking'],
+    };
+
+    // 根據 v2 權限欄位計算 hidden_modules
+    function computeHiddenModulesV2(role, modulesAdd, modulesRemove) {
+        const defaults = new Set(ROLE_MODULE_DEFAULTS_V2[role] || []);
+        (modulesAdd || []).forEach(m => defaults.add(m));
+        (modulesRemove || []).forEach(m => defaults.delete(m));
+        return ALL_MODULE_IDS_V2.filter(m => !defaults.has(m));
+    }
 
     // 第 2 層：依職能標籤自動加開模組（staff_type 用逗號分隔多標籤）
     const TAG_EXTRAS = {
@@ -816,23 +852,28 @@
         }
     };
 
-    // 欄位層級預設（依 permission_level）
+    // 欄位層級預設（支援新舊角色名）
     // true = 顯示, "masked" = 遮罩, false = 隱藏
     const FIELD_DEFAULTS = {
-        super_admin: {}, // 全開，不需要定義
-        admin: {},       // 全開
+        super_admin: {}, // 全開
+        manager: {},     // 全開（舊 admin）
+        admin: {},       // 向下相容
         coach: {},       // 教練看自己相關模組全開
-        staff: {
+        employee: {      // 舊 staff
             member: { phone:'masked', email:false, medical_history:false, line_uid:false },
             coach: { phone:'masked', email:false, line_uid:false, line_id_edu:false },
             'staff-manage': { phone:'masked', email:false, emergency_contact:false, emergency_phone:false, address:false, birthday:false }
         },
-        viewer: {
+        staff: null,     // 向下相容
+        analyst: {       // 舊 viewer
             member: { phone:false, email:false, medical_history:false, line_uid:false, birth_date:false, fitness_goal:false },
             coach: { phone:false, email:false, line_uid:false, line_id_edu:false, birthday:false },
             'staff-manage': { phone:false, email:false, emergency_contact:false, emergency_phone:false, emergency_relation:false, address:false, birthday:false, hire_date:false, leave_date:false }
-        }
+        },
+        viewer: null,    // 向下相容
     };
+    FIELD_DEFAULTS.staff = FIELD_DEFAULTS.employee;
+    FIELD_DEFAULTS.viewer = FIELD_DEFAULTS.analyst;
 
     // 合併三層權限
     function resolvePermissions(role, staffType, dbPermissions) {
@@ -871,24 +912,95 @@
         return merged;
     }
 
-    // 合併欄位權限
-    function resolveFieldPermissions(role, dbPermissions) {
+    // 合併欄位權限（支援 v1 FIELD_DEFAULTS + v2 data_level 兩種模式）
+    function resolveFieldPermissions(role, dbPermissions, staffRecord) {
+        // v2 模式：如果有 data_level 欄位，使用新的資料等級系統
+        if (staffRecord && (staffRecord.data_level || staffRecord.data_mode === 'custom')) {
+            return resolveFieldPermissionsV2(role, staffRecord);
+        }
+
+        // v1 模式：使用舊的 FIELD_DEFAULTS
         const defaults = FIELD_DEFAULTS[role] || {};
         const overrides = (dbPermissions && dbPermissions.fields) ? dbPermissions.fields : {};
         const merged = {};
 
-        // 套用預設
         for (const [modId, fields] of Object.entries(defaults)) {
-            merged[modId] = { ...fields };
+            if (fields) merged[modId] = { ...fields };
         }
 
-        // DB 覆蓋
         for (const [modId, fields] of Object.entries(overrides)) {
             if (!merged[modId]) merged[modId] = {};
             for (const [field, value] of Object.entries(fields)) {
                 merged[modId][field] = value;
             }
         }
+
+        return merged;
+    }
+
+    // v2 欄位權限：基於 data_level + field_overrides
+    const DATA_LEVEL_HIERARCHY_V2 = ['public', 'general', 'sensitive', 'confidential'];
+    const DEFAULT_DATA_LEVEL_V2 = { super_admin:'confidential', manager:'sensitive', employee:'general', coach:'public', analyst:'general' };
+    // 每個欄位的最低可見等級
+    const FIELD_LEVEL_MAP_V2 = {
+        name:'public', gender:'public', class_record:'public', course_status:'general',
+        phone:'general', email:'general', birthday:'general', attendance:'general', moti_result:'general',
+        address:'sensitive', emergency_contact:'sensitive', emergency_phone:'sensitive', medical:'sensitive',
+        contract:'sensitive', payment:'sensitive',
+        id_number:'confidential', salary:'confidential', revenue:'confidential',
+    };
+
+    function resolveFieldPermissionsV2(role, record) {
+        const activeLevel = record.data_level || DEFAULT_DATA_LEVEL_V2[role] || 'public';
+        const levelIdx = DATA_LEVEL_HIERARCHY_V2.indexOf(activeLevel);
+        const overrides = record.field_overrides || {};
+        const merged = {};
+
+        // 對 member 模組的欄位做映射
+        const memberFields = {
+            phone: 'phone', email: 'email', birth_date: 'birthday',
+            medical_history: 'medical', line_uid: 'id_number',
+            fitness_goal: 'course_status', address: 'address',
+            emergency_contact: 'emergency_contact', emergency_phone: 'emergency_phone'
+        };
+        const memberResult = {};
+        for (const [dbField, v2Field] of Object.entries(memberFields)) {
+            const fieldMinLevel = FIELD_LEVEL_MAP_V2[v2Field] || 'public';
+            const fieldLevelIdx = DATA_LEVEL_HIERARCHY_V2.indexOf(fieldMinLevel);
+            let visible = levelIdx >= fieldLevelIdx;
+            // 應用欄位覆蓋
+            if (overrides[v2Field] !== undefined) visible = overrides[v2Field];
+            if (!visible) memberResult[dbField] = false;
+        }
+        if (Object.keys(memberResult).length > 0) merged.member = memberResult;
+
+        // coach 模組欄位
+        const coachFields = { phone:'phone', email:'email', birthday:'birthday', line_uid:'id_number', line_id_edu:'id_number' };
+        const coachResult = {};
+        for (const [dbField, v2Field] of Object.entries(coachFields)) {
+            const fieldMinLevel = FIELD_LEVEL_MAP_V2[v2Field] || 'public';
+            const fieldLevelIdx = DATA_LEVEL_HIERARCHY_V2.indexOf(fieldMinLevel);
+            let visible = levelIdx >= fieldLevelIdx;
+            if (overrides[v2Field] !== undefined) visible = overrides[v2Field];
+            if (!visible) coachResult[dbField] = false;
+        }
+        if (Object.keys(coachResult).length > 0) merged.coach = coachResult;
+
+        // staff-manage 模組欄位
+        const staffFields = {
+            phone:'phone', email:'email', birthday:'birthday', address:'address',
+            emergency_contact:'emergency_contact', emergency_phone:'emergency_phone',
+            line_id:'id_number', line_id_edu:'id_number'
+        };
+        const staffResult = {};
+        for (const [dbField, v2Field] of Object.entries(staffFields)) {
+            const fieldMinLevel = FIELD_LEVEL_MAP_V2[v2Field] || 'public';
+            const fieldLevelIdx = DATA_LEVEL_HIERARCHY_V2.indexOf(fieldMinLevel);
+            let visible = levelIdx >= fieldLevelIdx;
+            if (overrides[v2Field] !== undefined) visible = overrides[v2Field];
+            if (!visible) staffResult[dbField] = false;
+        }
+        if (Object.keys(staffResult).length > 0) merged['staff-manage'] = staffResult;
 
         return merged;
     }
@@ -964,20 +1076,38 @@
 
             if (staff) {
                 // ---- 有 staff 身分（不論 status）----
-                role = staff.permission_level || staff.role || 'staff';
+                // 優先使用新 role 欄位，再 fallback 到舊 permission_level
+                role = staff.role || staff.permission_level || 'employee';
+                // 映射舊角色名到新角色名
+                if (role === 'admin') role = 'manager';
+                if (role === 'staff') role = 'employee';
+                if (role === 'viewer') role = 'analyst';
                 staffType = staff.staff_type || '';
                 dbPerms = staff.permissions || {};
                 userName = staff.nickname || staff.name || displayName;
                 userId = staff.id;
-                hiddenModules = (staff.permissions || {}).hidden_modules || [];
+                // 權限 v2：從 modules_add/modules_remove 計算 hidden_modules
+                if (staff.modules_add || staff.modules_remove) {
+                    hiddenModules = computeHiddenModulesV2(role, staff.modules_add || [], staff.modules_remove || []);
+                } else {
+                    hiddenModules = (staff.permissions || {}).hidden_modules || [];
+                }
             } else {
                 // ---- 純教練（不在 staff 表）----
-                role = coach.permission_level || 'coach';
+                const coachDefaultRole = (coach.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
+                role = coach.role || coach.permission_level || coachDefaultRole;
+                if (role === 'admin') role = 'manager';
+                if (role === 'staff') role = 'employee';
+                if (role === 'viewer') role = 'analyst';
                 staffType = '';
                 dbPerms = coach.permissions || {};
                 userName = coach.name || displayName;
                 userId = coach.coach_code || coach.id;
-                hiddenModules = (coach.permissions || {}).hidden_modules || [];
+                if (coach.modules_add || coach.modules_remove) {
+                    hiddenModules = computeHiddenModulesV2(role, coach.modules_add || [], coach.modules_remove || []);
+                } else {
+                    hiddenModules = (coach.permissions || {}).hidden_modules || [];
+                }
             }
 
             // 三層權限合併（模組內部操作權限，保留不動）
@@ -987,7 +1117,7 @@
 
             const resolvedFields = role === 'super_admin'
                 ? {}
-                : resolveFieldPermissions(role, dbPerms);
+                : resolveFieldPermissions(role, dbPerms, staff || coach);
 
             currentUser = {
                 id: userId,
@@ -1461,16 +1591,27 @@
         if (!currentUser) return false;
         // 超級管理員看到全部
         if (currentUser.role === 'super_admin') return true;
-        // 檢查角色是否在模組的 roles 清單中
-        if (mod.roles && mod.roles.length > 0 && !mod.roles.includes(currentUser.role)) {
-            // 雙重身份：如果使用者同時是 coach，也檢查 coach 角色
-            if (currentUser.coach_data && mod.roles.includes('coach')) {
-                // 允許
-            } else {
-                return false;
+        // 權限設定模組：只有 super_admin 和 manager 可看
+        if (mod.id === 'settings') {
+            return currentUser.role === 'manager' || currentUser.role === 'admin';
+        }
+        // 檢查角色是否在模組的 roles 清單中（相容新舊角色名）
+        if (mod.roles && mod.roles.length > 0) {
+            const userRoles = [currentUser.role];
+            // 映射新→舊角色名做相容
+            const roleCompat = { manager:'admin', employee:'staff', analyst:'viewer' };
+            if (roleCompat[currentUser.role]) userRoles.push(roleCompat[currentUser.role]);
+            const hasRole = userRoles.some(r => mod.roles.includes(r));
+            if (!hasRole) {
+                // 雙重身份：如果使用者同時是 coach，也檢查 coach 角色
+                if (currentUser.coach_data && mod.roles.includes('coach')) {
+                    // 允許
+                } else {
+                    return false;
+                }
             }
         }
-        // 檢查是否被管理員隱藏
+        // 檢查是否被管理員隱藏（v2 或 v1 格式）
         const hiddenModules = currentUser.hidden_modules || [];
         if (hiddenModules.includes(mod.id)) return false;
         return true;
