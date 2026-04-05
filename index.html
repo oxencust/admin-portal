@@ -875,6 +875,9 @@
             sessionStorage.setItem('staffLineUid', lineUid);
             if (coach) sessionStorage.setItem('currentCoach', JSON.stringify(coach));
 
+            // 先載入模組（不論是否需要補全資料，後續 renderApp 都需要）
+            await loadModulesFromDB();
+
             // 首次登入資料補全檢查
             if (!checkProfileCompleted()) {
                 hideLoading();
@@ -882,8 +885,6 @@
                 return;
             }
 
-            updateLoadingText('載入模組中...');
-            await loadModulesFromDB();
             renderApp();
             hideLoading();
 
@@ -1845,17 +1846,42 @@
 
             const src = currentUser.source;
             const raw = src === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+
+            // 寫入主要身份
             await callEdge('completeProfile', {
                 table: src === 'staff' ? 'staff' : 'coaches',
                 id: raw.id,
                 profileData
             });
 
+            // 雙重身份：同步寫入另一張表（共用欄位）
+            const otherData = src === 'staff' ? currentUser.coach_data : currentUser.staff_data;
+            if (otherData) {
+                const sharedFields = {};
+                ['name', 'nickname', 'phone', 'gender', 'birthday', 'email',
+                 'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
+                    if (profileData[key]) sharedFields[key] = profileData[key];
+                });
+                if (Object.keys(sharedFields).length > 0) {
+                    await callEdge('completeProfile', {
+                        table: src === 'staff' ? 'coaches' : 'staff',
+                        id: otherData.id,
+                        profileData: sharedFields
+                    }).catch(e => console.warn('同步另一身份失敗（不影響主流程）:', e));
+                }
+            }
+
             // 更新本地資料
-            if (src === 'staff') {
+            if (currentUser.staff_data) {
                 Object.assign(currentUser.staff_data, profileData, { profile_completed: true });
-            } else {
-                Object.assign(currentUser.coach_data, profileData, { profile_completed: true });
+            }
+            if (currentUser.coach_data) {
+                const sharedUpdate = {};
+                ['name', 'nickname', 'phone', 'gender', 'birthday', 'email',
+                 'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
+                    if (profileData[key]) sharedUpdate[key] = profileData[key];
+                });
+                Object.assign(currentUser.coach_data, sharedUpdate, { profile_completed: true });
             }
             sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
 
