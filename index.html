@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#5f846f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="衡點">
+    <meta name="apple-mobile-web-app-title" content="衡點行政">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1033,12 +1033,29 @@
 
     async function initApp() {
         try {
-            // PWA 獨立模式偵測：直接跳轉到 LINE 內開啟 LIFF
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
+
+            // PWA 獨立模式：嘗試從 localStorage / sessionStorage 復原登入狀態
             if (isStandalone) {
-                // 用 LIFF URL 開啟 LINE App，避免登入循環
-                window.location.href = 'https://liff.line.me/' + CONFIG.LIFF_ID;
+                const cached = sessionStorage.getItem('currentStaff') || localStorage.getItem('pwa_currentStaff');
+                if (cached) {
+                    try {
+                        currentUser = JSON.parse(cached);
+                        sessionStorage.setItem('currentStaff', cached);
+                        const uid = sessionStorage.getItem('staffLineUid') || localStorage.getItem('pwa_staffLineUid');
+                        if (uid) sessionStorage.setItem('staffLineUid', uid);
+                        await loadModulesFromDB();
+                        renderApp();
+                        hideLoading();
+                        return;
+                    } catch(e) {
+                        sessionStorage.removeItem('currentStaff');
+                        localStorage.removeItem('pwa_currentStaff');
+                    }
+                }
+                // 沒有快取 → 顯示手動跳轉按鈕（不自動跳轉，避免循環）
+                showPwaLoginPrompt();
                 return;
             }
 
@@ -1161,6 +1178,9 @@
             sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
             sessionStorage.setItem('staffLineUid', lineUid);
             if (coach) sessionStorage.setItem('currentCoach', JSON.stringify(coach));
+            // 也存到 localStorage 供 PWA standalone 模式復原
+            localStorage.setItem('pwa_currentStaff', JSON.stringify(currentUser));
+            localStorage.setItem('pwa_staffLineUid', lineUid);
 
             // 先載入模組（不論是否需要補全資料，後續 renderApp 都需要）
             await loadModulesFromDB();
@@ -1192,6 +1212,8 @@
         sessionStorage.removeItem('currentStaff');
         sessionStorage.removeItem('staffLineUid');
         sessionStorage.removeItem('currentCoach');
+        localStorage.removeItem('pwa_currentStaff');
+        localStorage.removeItem('pwa_staffLineUid');
         try { if (liff.isLoggedIn()) liff.logout(); } catch(e) {}
         window.location.reload();
     }
@@ -1701,6 +1723,23 @@
         document.getElementById('loginScreen').classList.add('show');
     }
 
+    // PWA standalone 模式：顯示手動跳轉 LINE 登入的畫面
+    function showPwaLoginPrompt() {
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').style.display = 'block';
+        document.querySelector('.main').innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;text-align:center;padding:20px;">
+                <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+                <h2 style="color:var(--green-dark);margin-bottom:8px;">請先登入</h2>
+                <p style="color:#666;margin-bottom:24px;font-size:14px;">首次使用需透過 LINE 登入驗證身份</p>
+                <a href="https://liff.line.me/${CONFIG.LIFF_ID}"
+                   style="display:inline-block;padding:14px 32px;background:#06C755;color:#fff;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;">
+                    用 LINE 開啟登入
+                </a>
+                <p style="color:#999;margin-top:16px;font-size:12px;">登入後回到主畫面再次開啟即可使用</p>
+            </div>`;
+    }
+
     // ====================================================================
     //  邀請碼註冊畫面
     // ====================================================================
@@ -2187,6 +2226,7 @@
                 Object.assign(currentUser.coach_data, sharedUpdate, { profile_completed: true });
             }
             sessionStorage.setItem('currentStaff', JSON.stringify(currentUser));
+            localStorage.setItem('pwa_currentStaff', JSON.stringify(currentUser));
 
             document.getElementById('profileOverlay').classList.remove('show');
             showToast('✅ 資料已儲存');
