@@ -36,43 +36,48 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%); background-attachment:fixed; color:var(--text); min-height:100vh; }
 
-/* === TOP CARD === */
-.top-card { max-width:600px; margin:12px auto 0; padding:0 12px; }
-.top-inner { background:white; border-radius:16px; padding:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
-.top-main { display:flex; justify-content:space-between; align-items:flex-start; }
-.top-main h1 { font-size:18px; font-weight:700; color:var(--green-dark); }
-.top-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
-.user-badge { display:flex; align-items:center; gap:6px; background:var(--green-light); padding:4px 10px 4px 6px; border-radius:20px; }
-.user-avatar { width:24px; height:24px; border-radius:50%; background:var(--green); color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
-.user-name-badge { font-size:12px; font-weight:600; color:var(--green-dark); }
-.quick-stats { display:flex; gap:8px; margin-top:12px; }
-.qs { flex:1; background:#f8faf8; border-radius:10px; padding:8px 6px; text-align:center; }
-.qs-num { font-size:18px; font-weight:900; color:var(--green-dark); }
-.qs-label { font-size:9px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+/* === HEADER BAR === */
+.header-bar { background:linear-gradient(135deg,var(--green-dark),var(--green)); color:var(--white); padding:12px 24px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 8px rgba(95,132,111,.3); }
+.header-bar h1 { font-size:18px; font-weight:700; letter-spacing:.5px; }
+.header-bar .header-sub { margin-left:auto; font-size:12px; opacity:.85; }
+.header-bar .user-badge { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.2); padding:4px 10px 4px 6px; border-radius:20px; }
+.header-bar .user-avatar { width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.3); color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.header-bar .user-name-badge { font-size:12px; font-weight:600; color:var(--white); }
 
-/* === CONTAINER === */
-.container { max-width:600px; margin:0 auto; padding:12px; padding-bottom:100px; }
+/* === LAYOUT: sidebar + main === */
+.layout { display:flex; height:calc(100vh - 52px); }
 
-/* === SEARCH & FILTER === */
-.search-box { margin-bottom:12px; }
-.search-box input { width:100%; padding:10px 14px 10px 36px; border:1.5px solid var(--gray-border); border-radius:10px; font-size:14px; outline:none; background:var(--white); font-family:inherit; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23808080' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:12px center; }
-.search-box input:focus { border-color:var(--green); }
+/* === SIDEBAR === */
+.sidebar { width:320px; background:var(--white); border-right:1px solid var(--gray-border); display:flex; flex-direction:column; flex-shrink:0; }
+.sidebar-header { padding:12px 14px; border-bottom:1px solid var(--gray-border); }
+.sidebar-header .quick-stats { display:flex; gap:8px; margin-top:8px; }
+.sidebar-header .qs { flex:1; background:#f8faf8; border-radius:8px; padding:6px 4px; text-align:center; }
+.sidebar-header .qs-num { font-size:16px; font-weight:900; color:var(--green-dark); }
+.sidebar-header .qs-label { font-size:9px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
 
-.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+/* === MAIN PANEL === */
+.main-panel { flex:1; overflow-y:auto; padding:20px; background:linear-gradient(135deg,#f5f9f6 0%,#f0f5f5 30%,#faf5f3 60%,#fdf9f0 100%); }
+
+/* === SEARCH & FILTER (inside sidebar) === */
+.search-box { padding:12px 14px; border-bottom:1px solid var(--gray-border); }
+.search-box input { width:100%; padding:10px 14px 10px 36px; border:1.5px solid var(--gray-border); border-radius:10px; font-size:14px; outline:none; background:var(--gray-light); font-family:inherit; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23808080' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:12px center; transition:border-color .2s; }
+.search-box input:focus { border-color:var(--green); background-color:var(--white); }
+
+.filter-bar { padding:10px 14px; display:flex; gap:6px; flex-wrap:wrap; border-bottom:1px solid var(--gray-border); }
 .filter-chip { padding:5px 12px; border-radius:14px; font-size:12px; cursor:pointer; border:1.5px solid var(--gray-border); background:var(--white); color:var(--gray); transition:all .2s; font-weight:500; }
 .filter-chip:hover { border-color:var(--green); color:var(--green-dark); }
 .filter-chip.active { background:var(--green); color:var(--white); border-color:var(--green); }
 
-/* === BATCH BAR === */
-.batch-bar { display:flex; align-items:center; gap:8px; margin-bottom:12px; padding:10px 14px; background:var(--white); border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+/* === BATCH BAR (inside sidebar) === */
+.batch-bar { display:flex; align-items:center; gap:8px; padding:8px 14px; border-bottom:1px solid var(--gray-border); background:#fafafa; }
 .batch-bar .select-all-wrap { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gray); cursor:pointer; }
 .batch-bar .select-all-wrap input { width:16px; height:16px; accent-color:var(--green-dark); cursor:pointer; }
 .batch-bar .batch-count { margin-left:auto; font-size:12px; font-weight:600; color:var(--green-dark); }
 .batch-bar .batch-btn { padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; background:var(--green-dark); color:var(--white); border:none; cursor:pointer; transition:all .2s; font-family:inherit; }
 .batch-bar .batch-btn:disabled { background:#ccc; cursor:not-allowed; }
 
-/* === USER LIST === */
-.user-list { background:var(--white); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); overflow:hidden; margin-bottom:16px; max-height:280px; overflow-y:auto; }
+/* === USER LIST (scrollable in sidebar) === */
+.user-list { flex:1; overflow-y:auto; }
 .user-item { padding:12px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; border-bottom:1px solid #f5f5f5; transition:all .15s; }
 .user-item:last-child { border-bottom:none; }
 .user-item:hover { background:var(--green-light); }
@@ -217,39 +222,60 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
 .sync-result-item .value { font-weight:600; }
 
 /* === EMPTY STATE === */
-.empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
-.empty-icon { font-size:48px; margin-bottom:12px; }
+.empty-state { text-align:center; padding:80px 20px; color:var(--text-muted); }
+.empty-icon { font-size:56px; margin-bottom:16px; }
+.empty-state p { font-size:14px; }
 
 /* === TOAST === */
 .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--green-dark); color:white; padding:10px 20px; border-radius:10px; font-size:13px; z-index:999; opacity:0; transition:opacity 0.3s; pointer-events:none; max-width:90%; text-align:center; }
 .toast.show { opacity:1; }
 
-/* === TAB BAR === */
-.tab-bar { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+/* === TAB BAR (inside header) === */
+.tab-bar { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .tab-bar::-webkit-scrollbar { display:none; }
-.tab-btn { padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; border:1.5px solid var(--border); background:white; color:var(--text-secondary); cursor:pointer; white-space:nowrap; transition:all 0.2s; font-family:inherit; }
-.tab-btn.active { background:var(--green); color:white; border-color:var(--green); }
+.tab-btn { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; border:1.5px solid rgba(255,255,255,.3); background:rgba(255,255,255,.15); color:rgba(255,255,255,.8); cursor:pointer; white-space:nowrap; transition:all 0.2s; font-family:inherit; }
+.tab-btn:hover { background:rgba(255,255,255,.25); }
+.tab-btn.active { background:white; color:var(--green-dark); border-color:white; }
 
 .section { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
 .section-title { font-size:13px; font-weight:700; color:var(--green-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
 .section-desc { font-size:11px; color:var(--text-muted); margin-bottom:12px; }
+
+/* === PERMISSION CARD in main panel === */
+.main-panel .permission-card, .main-panel .batch-card { max-width:680px; }
+.main-panel .hint-box { max-width:680px; margin-bottom:16px; }
+
+/* === RESPONSIVE: mobile fallback === */
+@media (max-width: 768px) {
+    .layout { flex-direction:column; height:auto; }
+    .sidebar { width:100%; border-right:none; border-bottom:1px solid var(--gray-border); max-height:50vh; }
+    .main-panel { padding:12px; }
+    .main-panel .permission-card, .main-panel .batch-card, .main-panel .hint-box { max-width:100%; }
+}
 </style>
 </head>
 <body>
-<div class="top-card"><div class="top-inner">
-    <div class="top-main"><div><h1>🔐 權限設定</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name-badge" id="myName">-</span></div></div>
-    <div class="quick-stats" id="quickStats"></div>
-</div></div>
-<div class="container">
-    <div class="tab-bar">
+<!-- HEADER -->
+<div class="header-bar">
+    <span>🔐</span>
+    <h1>權限設定</h1>
+    <div class="tab-bar" style="margin:0 0 0 24px;">
         <button class="tab-btn active" onclick="switchTab('permissions',this)">🔐 權限管理</button>
         <button class="tab-btn" onclick="switchTab('sync',this)">🔄 手動同步</button>
     </div>
+    <div class="header-sub">
+        <div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name-badge" id="myName">-</span></div>
+    </div>
+</div>
 
-    <!-- ===== 權限管理 Tab ===== -->
-    <div id="tab-permissions">
-        <div class="hint-box">💡 super_admin 擁有全部權限。其他角色會先載入預設權限，你可以針對個別人員調整模組開關與資料存取等級。</div>
-
+<!-- ===== 權限管理 Tab ===== -->
+<div id="tab-permissions" class="layout">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div style="font-size:13px;font-weight:700;color:var(--green-dark);" id="topSub">載入中...</div>
+            <div class="quick-stats" id="quickStats"></div>
+        </div>
         <div class="search-box">
             <input type="text" placeholder="搜尋人員姓名..." id="searchInput" oninput="filterUsers()">
         </div>
@@ -269,11 +295,19 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
             <button class="batch-btn" id="batchBtn" disabled onclick="showBatchPanel()">批量設定</button>
         </div>
         <div class="user-list" id="userList"></div>
-        <div id="permContent"></div>
     </div>
+    <!-- RIGHT MAIN PANEL -->
+    <div class="main-panel">
+        <div class="hint-box">💡 super_admin 擁有全部權限。其他角色會先載入預設權限，你可以針對個別人員調整模組開關與資料存取等級。</div>
+        <div id="permContent">
+            <div class="empty-state"><div class="empty-icon">👈</div><p>請從左側選擇人員來設定權限</p></div>
+        </div>
+    </div>
+</div>
 
-    <!-- ===== 手動同步 Tab ===== -->
-    <div id="tab-sync" style="display:none;">
+<!-- ===== 手動同步 Tab ===== -->
+<div id="tab-sync" style="display:none;padding:20px;">
+    <div style="max-width:700px;margin:0 auto;">
         <div class="hint-box">💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>正常情況下每天凌晨 3:00 會自動同步。</div>
         <div class="section">
             <div class="section-title">🔄 選擇同步目標</div>
@@ -509,8 +543,10 @@ async function loadAllPeople() {
 function switchTab(tab, el) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('tab-permissions').style.display = tab === 'permissions' ? '' : 'none';
-    document.getElementById('tab-sync').style.display = tab === 'sync' ? '' : 'none';
+    const permTab = document.getElementById('tab-permissions');
+    const syncTab = document.getElementById('tab-sync');
+    permTab.style.display = tab === 'permissions' ? 'flex' : 'none';
+    syncTab.style.display = tab === 'sync' ? 'block' : 'none';
 }
 
 // ====================================================================
@@ -925,7 +961,7 @@ function showBatchPanel() {
 
             <!-- BATCH SAVE -->
             <div class="card-actions">
-                <button class="btn btn-secondary" onclick="checkedUsers.clear(); renderUserList(); document.getElementById('permContent').innerHTML='';">取消選取</button>
+                <button class="btn btn-secondary" onclick="checkedUsers.clear(); selectedPerson=null; renderUserList(); document.getElementById('permContent').innerHTML='<div class=\'empty-state\'><div class=\'empty-icon\'>👈</div><p>請從左側選擇人員來設定權限</p></div>';">取消選取</button>
                 <button class="btn btn-primary" onclick="saveBatchPermissions()">💾 批量儲存全部</button>
             </div>
         </div>
