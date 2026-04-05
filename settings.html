@@ -56,7 +56,8 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
 .sidebar-header .qs-label { font-size:9px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
 
 /* === MAIN PANEL === */
-.main-panel { flex:1; overflow-y:auto; padding:20px; background:linear-gradient(135deg,#f5f9f6 0%,#f0f5f5 30%,#faf5f3 60%,#fdf9f0 100%); }
+.main-panel { flex:1; overflow-y:auto; background:linear-gradient(135deg,#f5f9f6 0%,#f0f5f5 30%,#faf5f3 60%,#fdf9f0 100%); }
+.main-panel-inner { padding:20px; }
 
 /* === SEARCH & FILTER (inside sidebar) === */
 .search-box { padding:12px 14px; border-bottom:1px solid var(--gray-border); }
@@ -245,12 +246,55 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
 .main-panel .permission-card, .main-panel .batch-card { max-width:680px; }
 .main-panel .hint-box { max-width:680px; margin-bottom:16px; }
 
-/* === RESPONSIVE: mobile fallback === */
+/* === MOBILE: 滑頁切換模式 === */
+.mobile-back-bar { display:none; }
+
 @media (max-width: 768px) {
-    .layout { flex-direction:column; height:auto; }
-    .sidebar { width:100%; border-right:none; border-bottom:1px solid var(--gray-border); max-height:50vh; }
-    .main-panel { padding:12px; }
-    .main-panel .permission-card, .main-panel .batch-card, .main-panel .hint-box { max-width:100%; }
+    .layout { display:block; height:auto; position:relative; }
+    .sidebar { width:100%; border-right:none; height:calc(100vh - 52px); display:flex; flex-direction:column; }
+    .main-panel {
+        display:none; /* 預設隱藏，點人員後才顯示 */
+        position:fixed; top:0; left:0; right:0; bottom:0;
+        z-index:100; padding:0; overflow-y:auto;
+        background:linear-gradient(135deg,#f5f9f6 0%,#f0f5f5 30%,#faf5f3 60%,#fdf9f0 100%);
+    }
+    .main-panel.mobile-show { display:block; }
+    .main-panel-inner { padding:12px; }
+    .main-panel .hint-box { display:none; } /* 手機不顯示提示框，節省空間 */
+    .main-panel .permission-card, .main-panel .batch-card { max-width:100%; border-radius:0; box-shadow:none; }
+    .main-panel .permission-card .card-section, .main-panel .batch-card .batch-section { padding:14px; }
+
+    /* 返回導航列 */
+    .mobile-back-bar {
+        display:flex; align-items:center; gap:10px;
+        padding:12px 16px; background:var(--green-dark); color:white;
+        position:sticky; top:0; z-index:101;
+        box-shadow:0 2px 8px rgba(0,0,0,.15);
+    }
+    .mobile-back-bar .back-btn {
+        background:none; border:none; color:white; font-size:18px; cursor:pointer;
+        padding:4px 8px; border-radius:8px; font-family:inherit;
+    }
+    .mobile-back-bar .back-btn:active { background:rgba(255,255,255,.2); }
+    .mobile-back-bar .back-title { font-size:15px; font-weight:600; }
+    .mobile-back-bar .back-role { font-size:11px; opacity:.8; margin-left:auto; }
+
+    /* 手機版隱藏桌面 header 的 tab */
+    .header-bar .tab-bar { display:none; }
+    .header-bar { padding:10px 16px; }
+    .header-bar h1 { font-size:16px; }
+
+    /* 手機版 tab 放在 sidebar header */
+    .mobile-tabs { display:flex; gap:6px; padding:10px 14px; border-bottom:1px solid var(--gray-border); }
+    .mobile-tabs .tab-btn { background:var(--white); color:var(--text-secondary); border:1.5px solid var(--border); }
+    .mobile-tabs .tab-btn.active { background:var(--green); color:white; border-color:var(--green); }
+
+    /* 權限卡片內的模組網格在手機上 2 欄 */
+    .module-grid { grid-template-columns:1fr 1fr; }
+    .data-level-grid { grid-template-columns:1fr; }
+}
+@media (min-width: 769px) {
+    .mobile-tabs { display:none; }
 }
 </style>
 </head>
@@ -272,6 +316,10 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
 <div id="tab-permissions" class="layout">
     <!-- LEFT SIDEBAR -->
     <div class="sidebar">
+        <div class="mobile-tabs">
+            <button class="tab-btn active" onclick="switchTab('permissions',this)">🔐 權限管理</button>
+            <button class="tab-btn" onclick="switchTab('sync',this)">🔄 手動同步</button>
+        </div>
         <div class="sidebar-header">
             <div style="font-size:13px;font-weight:700;color:var(--green-dark);" id="topSub">載入中...</div>
             <div class="quick-stats" id="quickStats"></div>
@@ -280,11 +328,7 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
             <input type="text" placeholder="搜尋人員姓名..." id="searchInput" oninput="filterUsers()">
         </div>
         <div class="filter-bar" id="filterBar">
-            <span class="filter-chip active" onclick="setFilter(this,'all')">全部</span>
-            <span class="filter-chip" onclick="setFilter(this,'manager')">主管</span>
-            <span class="filter-chip" onclick="setFilter(this,'employee')">員工</span>
-            <span class="filter-chip" onclick="setFilter(this,'coach')">教練</span>
-            <span class="filter-chip" onclick="setFilter(this,'analyst')">分析師</span>
+            <!-- 動態生成，含教練子分類 -->
         </div>
         <div class="batch-bar">
             <label class="select-all-wrap">
@@ -297,10 +341,17 @@ body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,
         <div class="user-list" id="userList"></div>
     </div>
     <!-- RIGHT MAIN PANEL -->
-    <div class="main-panel">
-        <div class="hint-box">💡 super_admin 擁有全部權限。其他角色會先載入預設權限，你可以針對個別人員調整模組開關與資料存取等級。</div>
-        <div id="permContent">
-            <div class="empty-state"><div class="empty-icon">👈</div><p>請從左側選擇人員來設定權限</p></div>
+    <div class="main-panel" id="mainPanel">
+        <div class="mobile-back-bar" id="mobileBackBar">
+            <button class="back-btn" onclick="mobileBack()">← 返回</button>
+            <span class="back-title" id="mobileBackTitle">權限設定</span>
+            <span class="back-role" id="mobileBackRole"></span>
+        </div>
+        <div style="padding:20px;" class="main-panel-inner">
+            <div class="hint-box">💡 super_admin 擁有全部權限。其他角色會先載入預設權限，你可以針對個別人員調整模組開關與資料存取等級。</div>
+            <div id="permContent">
+                <div class="empty-state"><div class="empty-icon">👈</div><p>請從左側選擇人員來設定權限</p></div>
+            </div>
         </div>
     </div>
 </div>
@@ -488,14 +539,15 @@ async function initPermissions() {
             dbName = staff.nickname || staff.name || currentUser.name;
             dbDept = staff.department || '';
         } else if (coach) {
-            const coachDefault = (coach.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
-            dbRole = coach.role || coach.permission_level || coachDefault;
+            dbRole = coach.role || coach.permission_level || 'coach';
             dbName = coach.name || currentUser.name;
         }
         // 映射舊角色名
         if (dbRole === 'admin') dbRole = 'manager';
         if (dbRole === 'staff') dbRole = 'employee';
         if (dbRole === 'viewer') dbRole = 'analyst';
+        // coach_type === 'ai_analysis' 強制歸為 analyst
+        if (coach && coach.coach_type === 'ai_analysis' && (dbRole === 'coach' || dbRole === 'employee')) dbRole = 'analyst';
 
         // 覆寫前端資料為資料庫真實值
         currentUser.role = dbRole;
@@ -546,19 +598,26 @@ async function loadAllPeople() {
             };
         });
         const coachData = (result.coaches||[]).map(c => {
-            // coach_type === 'ai_analysis' 的教練預設歸為 analyst
-            const defaultRole = (c.coach_type === 'ai_analysis') ? 'analyst' : 'coach';
-            let role = c.role || c.permission_level || defaultRole;
+            let role = c.role || c.permission_level || 'coach';
             if (role === 'admin') role = 'manager';
             if (role === 'staff') role = 'employee';
             if (role === 'viewer') role = 'analyst';
+            // coach_type === 'ai_analysis' 強制歸為 analyst（除非已手動設為其他管理角色）
+            if (c.coach_type === 'ai_analysis' && (role === 'coach' || role === 'employee')) role = 'analyst';
+
+            // 教練課種分類
+            const specMap = {pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI分析'};
+            const coachTypeLabel = c.coach_type ? (specMap[c.coach_type] || c.coach_type) : '';
+            const specLabels = (c.specialties||[]).map(s => specMap[s]||s);
+            const deptLabel = coachTypeLabel || specLabels.join(',') || '教練';
+
             return {
                 ...c,
                 _table: 'coaches',
                 _label: c.name + (c.real_name && c.real_name !== c.name ? ' (' + c.real_name + ')' : ''),
                 _role: role,
-                _type: (c.specialties||[]).join(','),
-                _dept: (c.specialties||[]).map(s => ({pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI'}[s]||s)).join(',') || '教練',
+                _type: c.coach_type || (c.specialties||[]).join(','),
+                _dept: deptLabel,
                 _dataLevel: c.data_level || null,
                 _dataMode: c.data_mode || 'preset',
                 _modulesAdd: c.modules_add || [],
@@ -587,8 +646,42 @@ async function loadAllPeople() {
             '<div class="qs"><div class="qs-num">' + managerCount + '</div><div class="qs-label">🔑 主管</div></div>' +
             '<div class="qs"><div class="qs-num">' + allPeople.length + '</div><div class="qs-label">📊 全部</div></div>';
 
+        renderFilterBar();
         renderUserList();
     } catch(e) { showToast('❌ 載入失敗：' + e.message); }
+}
+
+// ====================================================================
+//  FILTER BAR — 動態生成（含教練課種子分類）
+// ====================================================================
+const COACH_TYPE_LABELS = { weight:'重訓', pilates:'皮拉提斯', stretch:'伸展', ai_analysis:'AI分析' };
+
+function renderFilterBar() {
+    const bar = document.getElementById('filterBar');
+    // 收集所有教練課種（排除 ai_analysis，因為 AI 歸類為分析師）
+    const coachTypes = new Set();
+    allPeople.forEach(p => {
+        if (p._role === 'coach' && p._table === 'coaches') {
+            const ct = p.coach_type || '';
+            if (ct && ct !== 'ai_analysis') coachTypes.add(ct);
+            (p.specialties || []).forEach(s => { if (s !== 'ai') coachTypes.add(s); });
+        }
+    });
+
+    let html = '<span class="filter-chip active" onclick="setFilter(this,\'all\')">全部</span>';
+    html += '<span class="filter-chip" onclick="setFilter(this,\'manager\')">主管</span>';
+    html += '<span class="filter-chip" onclick="setFilter(this,\'employee\')">員工</span>';
+    html += '<span class="filter-chip" onclick="setFilter(this,\'coach\')">教練（全部）</span>';
+
+    // 教練子分類
+    const sortedTypes = [...coachTypes].sort();
+    sortedTypes.forEach(t => {
+        const label = COACH_TYPE_LABELS[t] || t;
+        html += '<span class="filter-chip" onclick="setFilter(this,\'coach:' + t + '\')" style="font-size:11px;">┗ ' + label + '</span>';
+    });
+
+    html += '<span class="filter-chip" onclick="setFilter(this,\'analyst\')">分析師</span>';
+    bar.innerHTML = html;
 }
 
 // ====================================================================
@@ -601,6 +694,10 @@ function switchTab(tab, el) {
     const syncTab = document.getElementById('tab-sync');
     permTab.style.display = tab === 'permissions' ? 'flex' : 'none';
     syncTab.style.display = tab === 'sync' ? 'block' : 'none';
+    // 手機：切換 tab 時關閉權限面板
+    if (window.innerWidth <= 768) {
+        document.getElementById('mainPanel').classList.remove('mobile-show');
+    }
 }
 
 // ====================================================================
@@ -609,7 +706,16 @@ function switchTab(tab, el) {
 function getFilteredPeople() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     return allPeople.filter(p => {
-        if (currentFilter !== 'all' && p._role !== currentFilter) return false;
+        if (currentFilter !== 'all') {
+            if (currentFilter.startsWith('coach:')) {
+                // 教練子分類篩選：coach:weight, coach:pilates, etc.
+                const subType = currentFilter.split(':')[1];
+                if (p._role !== 'coach') return false;
+                if (!p._type.includes(subType) && p.coach_type !== subType) return false;
+            } else {
+                if (p._role !== currentFilter) return false;
+            }
+        }
         if (search && !(p._label||'').toLowerCase().includes(search) && !(p._dept||'').toLowerCase().includes(search)) return false;
         return true;
     });
@@ -764,6 +870,20 @@ function selectPerson(p) {
         </div>
     `;
     renderDataPanel();
+
+    // 手機模式：滑入權限面板
+    if (window.innerWidth <= 768) {
+        const panel = document.getElementById('mainPanel');
+        panel.classList.add('mobile-show');
+        document.getElementById('mobileBackTitle').textContent = p._label;
+        document.getElementById('mobileBackRole').textContent = ROLES[p._role] || p._role;
+        panel.scrollTop = 0;
+    }
+}
+
+function mobileBack() {
+    const panel = document.getElementById('mainPanel');
+    panel.classList.remove('mobile-show');
 }
 
 // ====================================================================
@@ -1015,13 +1135,22 @@ function showBatchPanel() {
 
             <!-- BATCH SAVE -->
             <div class="card-actions">
-                <button class="btn btn-secondary" onclick="checkedUsers.clear(); selectedPerson=null; renderUserList(); document.getElementById('permContent').innerHTML='<div class=\'empty-state\'><div class=\'empty-icon\'>👈</div><p>請從左側選擇人員來設定權限</p></div>';">取消選取</button>
+                <button class="btn btn-secondary" onclick="checkedUsers.clear(); selectedPerson=null; renderUserList(); document.getElementById('permContent').innerHTML='<div class=\'empty-state\'><div class=\'empty-icon\'>👈</div><p>請從左側選擇人員來設定權限</p></div>'; mobileBack();">取消選取</button>
                 <button class="btn btn-primary" onclick="saveBatchPermissions()">💾 批量儲存全部</button>
             </div>
         </div>
     `;
 
     MODULES.forEach(m => { batchModStates[m.id] = null; updateBatchModUI(m.id); });
+
+    // 手機模式：滑入批量面板
+    if (window.innerWidth <= 768) {
+        const panel = document.getElementById('mainPanel');
+        panel.classList.add('mobile-show');
+        document.getElementById('mobileBackTitle').textContent = '批量設定 ' + users.length + ' 人';
+        document.getElementById('mobileBackRole').textContent = '';
+        panel.scrollTop = 0;
+    }
     batchLevelSelected = null;
 }
 
