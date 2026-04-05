@@ -515,8 +515,12 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, ...params })
         });
-        if (!res.ok) throw new Error(`Edge Function error: ${res.status}`);
-        return res.json();
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            console.error('Edge Function error:', action, res.status, json);
+            throw new Error(json.error || `Edge Function error: ${res.status}`);
+        }
+        return json;
     }
 
     // ====================================================================
@@ -1767,29 +1771,24 @@
         const formEl = document.getElementById('profileFormFields');
         const fields = isCoach ? [
             { key: 'name', label: '教練本名', type: 'text', required: true },
-            { key: 'nickname', label: '教練名稱（顯示用）', type: 'text', required: false },
+            { key: 'nickname', label: '教練名稱（顯示用）', type: 'text', required: true },
             { key: 'coach_type', label: '教練類型', type: 'select', options: ['strength_training', 'pilates', 'stretch', 'ai'], optionLabels: ['重量訓練', '皮拉提斯', '伸展', 'AI體態'], required: true },
             { key: 'phone', label: '電話', type: 'tel', required: true },
             { key: 'gender', label: '性別', type: 'select', options: ['男', '女'], required: true },
             { key: 'birthday', label: '生日', type: 'date', required: true },
-            { key: 'email', label: '信箱', type: 'email', required: false },
-            { key: 'certifications', label: '證照紀錄', type: 'textarea', required: false },
-            { key: 'notes', label: '備註', type: 'textarea', required: false },
+            { key: 'email', label: '信箱', type: 'email', required: true },
             { key: 'emergency_contact', label: '緊急聯絡人', type: 'text', required: true },
             { key: 'emergency_phone', label: '緊急聯絡人電話', type: 'tel', required: true },
             { key: 'emergency_relation', label: '與緊急聯絡人關係', type: 'text', required: true },
         ] : [
             { key: 'name', label: '姓名', type: 'text', required: true },
-            { key: 'nickname', label: '暱稱', type: 'text', required: false },
-            { key: 'staff_type', label: '人員類型', type: 'text', required: false, placeholder: '例：行政、櫃檯' },
+            { key: 'nickname', label: '暱稱', type: 'text', required: true },
+            { key: 'staff_type', label: '人員類型', type: 'text', required: true, placeholder: '例：行政、櫃檯' },
             { key: 'phone', label: '電話', type: 'tel', required: true },
             { key: 'gender', label: '性別', type: 'select', options: ['男', '女'], required: true },
             { key: 'birthday', label: '生日', type: 'date', required: true },
-            { key: 'email', label: '信箱', type: 'email', required: false },
-            { key: 'address', label: '通訊地址', type: 'text', required: false },
-            { key: 'department', label: '部門', type: 'text', required: false },
-            { key: 'hire_date', label: '到職日', type: 'date', required: false },
-            { key: 'notes', label: '備註', type: 'textarea', required: false },
+            { key: 'email', label: '信箱', type: 'email', required: true },
+            { key: 'address', label: '通訊地址', type: 'text', required: true },
             { key: 'emergency_contact', label: '緊急聯絡人', type: 'text', required: true },
             { key: 'emergency_phone', label: '緊急聯絡人電話', type: 'tel', required: true },
             { key: 'emergency_relation', label: '與緊急聯絡人關係', type: 'text', required: true },
@@ -1870,7 +1869,7 @@
 
         } catch(e) {
             console.error('Profile save error:', e);
-            showToast('❌ 儲存失敗，請重試');
+            showToast('❌ ' + (e.message || '儲存失敗，請重試'));
         } finally {
             profileSubmitting = false;
             btn.disabled = false; btn.textContent = '完成送出';
