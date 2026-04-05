@@ -5,162 +5,274 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>權限設定</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-<!-- supabase-js CDN 已移除，改用 Edge Function -->
 <style>
-:root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--purple:#a78bca;--purple-light:#f3e8ff;--purple-dark:#7b5ea7;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;}
-.top-card{max-width:600px;margin:12px auto 0;padding:0 12px;}
-.top-inner{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-.top-main{display:flex;justify-content:space-between;align-items:flex-start;}
-.top-main h1{font-size:18px;font-weight:700;color:var(--green-dark);}
-.top-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
-.user-badge{display:flex;align-items:center;gap:6px;background:var(--green-light);padding:4px 10px 4px 6px;border-radius:20px;}
-.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
-.user-name{font-size:12px;font-weight:600;color:var(--green-dark);}
-.quick-stats{display:flex;gap:8px;margin-top:12px;}
-.qs{flex:1;background:#f8faf8;border-radius:10px;padding:8px 6px;text-align:center;}
-.qs-num{font-size:18px;font-weight:900;color:var(--green-dark);}
-.qs-label{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;}
-.container{max-width:600px;margin:0 auto;padding:12px;padding-bottom:100px;}
-.tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.tab-bar::-webkit-scrollbar{display:none;}
-.tab-btn{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:inherit;}
-.tab-btn.active{background:var(--green);color:white;border-color:var(--green);}
-.staff-selector{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
-.selector-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;}
-.selected-info{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.sel-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.sel-tabs::-webkit-scrollbar{display:none;}
-.sel-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
-.sel-tab.active{background:var(--green);color:white;border-color:var(--green);}
-.sel-tab .cnt{background:rgba(0,0,0,0.08);padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;}
-.sel-tab.active .cnt{background:rgba(255,255,255,0.3);}
-.sel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;}
-.sel-cell{text-align:center;padding:10px 4px;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;transition:all 0.15s;}
-.sel-cell:hover{border-color:var(--green);background:#f8faf8;}
-.sel-cell.selected{border-color:var(--green);background:var(--green-light);box-shadow:0 0 0 2px rgba(122,193,154,0.3);}
-.sel-cell .sel-avatar{width:38px;height:38px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
-.sel-cell .sel-avatar.staff{background:var(--blue-light);color:var(--blue-dark);}
-.sel-cell .sel-avatar.coach{background:var(--purple-light);color:var(--purple-dark);}
-.sel-cell .sel-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sel-cell .sel-role{font-size:8px;color:var(--text-muted);margin-top:1px;}
-.info-chip{padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;}
-.hint-box{background:var(--yellow);background:linear-gradient(135deg,#fff8e1,#fff3e0);border-radius:12px;padding:12px 14px;font-size:12px;color:#795548;margin-bottom:16px;line-height:1.6;}
-.section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
-.section-title{font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.section-desc{font-size:11px;color:var(--text-muted);margin-bottom:12px;}
-.reset-btn{background:var(--pink-light);color:var(--pink-dark);border:none;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto;font-family:inherit;}
-.perm-table{width:100%;border-collapse:collapse;font-size:12px;}
-.perm-table th{text-align:center;padding:8px 3px;color:var(--text-muted);font-weight:600;font-size:9px;letter-spacing:0.5px;border-bottom:2px solid var(--green-light);}
-.perm-table th:first-child{text-align:left;font-size:10px;}
-.perm-table td{padding:8px 3px;text-align:center;border-bottom:1px solid #f5f5f5;}
-.perm-table td:first-child{text-align:left;font-weight:500;font-size:12px;}
-.perm-table tr:last-child td{border-bottom:none;}
-.perm-table tr:hover{background:#f8faf8;}
-.perm-table input[type="checkbox"]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
-.mod-icon{margin-right:4px;}
-.field-module-title{font-size:13px;font-weight:700;color:var(--green-dark);margin:16px 0 8px;padding-bottom:6px;border-bottom:1.5px solid var(--green-light);}
-.field-module-title:first-child{margin-top:0;}
-.field-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;}
-.field-table th{text-align:center;padding:6px 4px;font-size:10px;font-weight:600;color:var(--text-muted);}
-.field-table th:first-child{text-align:left;}
-.field-table td{padding:6px 4px;text-align:center;border-bottom:1px solid #f8f8f8;}
-.field-table td:first-child{text-align:left;font-weight:500;}
-.field-table input[type="radio"]{accent-color:var(--green);cursor:pointer;}
-.status-show{color:var(--green-dark)!important;}.status-mask{color:var(--blue-dark)!important;}.status-hide{color:var(--pink-dark)!important;}
-.badge{padding:3px 10px;border-radius:8px;font-size:11px;font-weight:600;display:inline-block;}
-.badge-super{background:linear-gradient(135deg,#fff8e1,#ffe082);color:#e65100;}.badge-admin{background:var(--green-light);color:var(--green-dark);}
-.badge-staff{background:var(--blue-light);color:var(--blue-dark);}.badge-viewer{background:#f5f5f5;color:#999;}
-.badge-coach{background:var(--purple-light);color:var(--purple-dark);}
-.badge-active{background:var(--green-light);color:var(--green-dark);}.badge-inactive{background:#ffebee;color:#c62828;}
-.type-tag{background:#f5f5f5;color:var(--text-secondary);}
-.save-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 20px;display:none;gap:10px;justify-content:flex-end;z-index:100;}
-.save-bar.show{display:flex;}
-.btn{padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
-.btn:active{transform:scale(0.96);}
-.btn-primary{background:linear-gradient(135deg,var(--green-dark),var(--green));color:white;box-shadow:0 2px 8px rgba(122,193,154,0.3);}
-.btn-secondary{background:var(--blue-light);color:var(--blue-dark);}
-.sync-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;background:white;cursor:pointer;font-family:inherit;transition:all 0.2s;text-align:left;}
-.sync-btn:hover{border-color:var(--green);background:#f8faf8;}.sync-btn:active{transform:scale(0.98);}.sync-btn:disabled{opacity:0.5;cursor:not-allowed;}
-.sync-icon{font-size:24px;}.sync-info{flex:1;}.sync-name{font-size:14px;font-weight:600;color:var(--text);}.sync-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}.sync-arrow{font-size:16px;color:var(--text-muted);}
-.sync-result-item{padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:13px;}.sync-result-item:last-child{border-bottom:none;}.sync-result-item .label{color:var(--text-muted);font-size:11px;}.sync-result-item .value{font-weight:600;}
-.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}.empty-icon{font-size:48px;margin-bottom:12px;}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
-.vis-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #f5f5f5;transition:background 0.15s;}
-.vis-row:last-child{border-bottom:none;}
-.vis-row:hover{background:#f8faf8;}
-.vis-row label{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;font-size:13px;font-weight:500;}
-.vis-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--green);cursor:pointer;}
-.vis-icon{font-size:18px;width:28px;text-align:center;}
-.vis-name{flex:1;}
-.vis-desc{font-size:10px;color:var(--text-muted);}
+:root {
+    --white: #ffffff;
+    --gray: #808080;
+    --gray-light: #f0f2f5;
+    --gray-border: #e0e0e0;
+    --green: #7ac19a;
+    --green-light: #e2ede6;
+    --green-dark: #5f846f;
+    --pink: #f2ac98;
+    --pink-light: #faece8;
+    --pink-dark: #c67566;
+    --yellow: #ffe08b;
+    --yellow-light: #fcf4e3;
+    --yellow-dark: #ba9e60;
+    --blue: #9fcccc;
+    --blue-light: #daedec;
+    --blue-dark: #66888e;
+    --purple: #a78bca;
+    --purple-light: #f3eaff;
+    --purple-dark: #7b5ea7;
+    --card: #fff;
+    --text: #333;
+    --text-secondary: #666;
+    --text-muted: #999;
+    --border: #e5e5e5;
+    --danger: #e05252;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Noto Sans TC',sans-serif; background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%); background-attachment:fixed; color:var(--text); min-height:100vh; }
+
+/* === TOP CARD === */
+.top-card { max-width:600px; margin:12px auto 0; padding:0 12px; }
+.top-inner { background:white; border-radius:16px; padding:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+.top-main { display:flex; justify-content:space-between; align-items:flex-start; }
+.top-main h1 { font-size:18px; font-weight:700; color:var(--green-dark); }
+.top-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.user-badge { display:flex; align-items:center; gap:6px; background:var(--green-light); padding:4px 10px 4px 6px; border-radius:20px; }
+.user-avatar { width:24px; height:24px; border-radius:50%; background:var(--green); color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+.user-name-badge { font-size:12px; font-weight:600; color:var(--green-dark); }
+.quick-stats { display:flex; gap:8px; margin-top:12px; }
+.qs { flex:1; background:#f8faf8; border-radius:10px; padding:8px 6px; text-align:center; }
+.qs-num { font-size:18px; font-weight:900; color:var(--green-dark); }
+.qs-label { font-size:9px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+
+/* === CONTAINER === */
+.container { max-width:600px; margin:0 auto; padding:12px; padding-bottom:100px; }
+
+/* === SEARCH & FILTER === */
+.search-box { margin-bottom:12px; }
+.search-box input { width:100%; padding:10px 14px 10px 36px; border:1.5px solid var(--gray-border); border-radius:10px; font-size:14px; outline:none; background:var(--white); font-family:inherit; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23808080' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:12px center; }
+.search-box input:focus { border-color:var(--green); }
+
+.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+.filter-chip { padding:5px 12px; border-radius:14px; font-size:12px; cursor:pointer; border:1.5px solid var(--gray-border); background:var(--white); color:var(--gray); transition:all .2s; font-weight:500; }
+.filter-chip:hover { border-color:var(--green); color:var(--green-dark); }
+.filter-chip.active { background:var(--green); color:var(--white); border-color:var(--green); }
+
+/* === BATCH BAR === */
+.batch-bar { display:flex; align-items:center; gap:8px; margin-bottom:12px; padding:10px 14px; background:var(--white); border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.batch-bar .select-all-wrap { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gray); cursor:pointer; }
+.batch-bar .select-all-wrap input { width:16px; height:16px; accent-color:var(--green-dark); cursor:pointer; }
+.batch-bar .batch-count { margin-left:auto; font-size:12px; font-weight:600; color:var(--green-dark); }
+.batch-bar .batch-btn { padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; background:var(--green-dark); color:var(--white); border:none; cursor:pointer; transition:all .2s; font-family:inherit; }
+.batch-bar .batch-btn:disabled { background:#ccc; cursor:not-allowed; }
+
+/* === USER LIST === */
+.user-list { background:var(--white); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); overflow:hidden; margin-bottom:16px; max-height:280px; overflow-y:auto; }
+.user-item { padding:12px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; border-bottom:1px solid #f5f5f5; transition:all .15s; }
+.user-item:last-child { border-bottom:none; }
+.user-item:hover { background:var(--green-light); }
+.user-item.active { background:var(--green-light); border-left:3px solid var(--green-dark); }
+.user-item.checked { background:var(--blue-light); }
+.user-item.checked.active { background:var(--green-light); }
+.user-item .user-cb { width:16px; height:16px; accent-color:var(--green-dark); cursor:pointer; flex-shrink:0; }
+.user-avatar-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--white); font-weight:600; flex-shrink:0; }
+.user-info { flex:1; min-width:0; }
+.user-name { font-size:13px; font-weight:600; color:#333; }
+.user-dept { font-size:10px; color:var(--gray); margin-top:1px; }
+.role-badge { font-size:10px; padding:3px 8px; border-radius:10px; font-weight:600; white-space:nowrap; }
+.role-super_admin { background:var(--pink-light); color:var(--pink-dark); }
+.role-manager { background:var(--blue-light); color:var(--blue-dark); }
+.role-employee { background:var(--yellow-light); color:var(--yellow-dark); }
+.role-coach { background:var(--green-light); color:var(--green-dark); }
+.role-analyst { background:var(--purple-light); color:var(--purple-dark); }
+
+/* === HINT BOX === */
+.hint-box { background:var(--yellow-light); border-radius:12px; padding:12px 14px; font-size:12px; color:#795548; margin-bottom:16px; line-height:1.6; border-left:3px solid var(--yellow-dark); }
+
+/* === PERMISSION CARD === */
+.permission-card { background:var(--white); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06); overflow:hidden; }
+.card-header { padding:16px 18px; display:flex; align-items:center; gap:14px; border-bottom:1px solid #f0f0f0; background:linear-gradient(135deg,var(--green-light),var(--white)); }
+.card-avatar-big { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--white); font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.15); flex-shrink:0; }
+.card-info h2 { font-size:16px; color:#333; }
+.card-info p { font-size:12px; color:var(--gray); margin-top:2px; }
+
+.card-section { padding:16px 18px; border-bottom:1px solid #f0f0f0; }
+.card-section h3 { font-size:13px; font-weight:700; color:var(--green-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.card-section h3 .hint { font-weight:400; color:var(--gray); font-size:11px; }
+
+/* Role select */
+.role-select { display:flex; gap:6px; flex-wrap:wrap; }
+.role-option { padding:7px 14px; border-radius:10px; border:2px solid var(--gray-border); cursor:pointer; font-size:12px; transition:all .2s; font-weight:500; background:var(--white); }
+.role-option:hover { border-color:var(--green); background:var(--green-light); }
+.role-option.selected { border-color:var(--green-dark); background:var(--green-light); color:var(--green-dark); font-weight:600; }
+
+/* Module grid */
+.module-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:8px; }
+.module-toggle { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:10px; border:1.5px solid #eee; transition:all .2s; }
+.module-toggle.on { background:var(--green-light); border-color:var(--green); }
+.module-toggle.off { background:var(--white); opacity:.5; border-color:#eee; }
+.module-toggle .label { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; }
+.module-toggle .m-icon { font-size:16px; }
+.override-badge { font-size:8px; padding:1px 5px; border-radius:4px; background:var(--yellow-light); color:var(--yellow-dark); font-weight:600; margin-left:2px; }
+
+/* Toggle switch */
+.toggle { position:relative; width:40px; height:22px; cursor:pointer; flex-shrink:0; }
+.toggle input { display:none; }
+.toggle .slider { position:absolute; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:11px; transition:.3s; }
+.toggle .slider:before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:var(--white); border-radius:50%; transition:.3s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.toggle input:checked + .slider { background:var(--green); }
+.toggle input:checked + .slider:before { transform:translateX(18px); }
+
+/* === DATA LEVEL === */
+.data-mode-tabs { display:flex; gap:0; margin-bottom:14px; border-radius:10px; overflow:hidden; border:1.5px solid var(--gray-border); width:fit-content; }
+.data-mode-tab { padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; background:var(--white); color:var(--gray); transition:all .2s; border:none; font-family:inherit; }
+.data-mode-tab:not(:last-child) { border-right:1.5px solid var(--gray-border); }
+.data-mode-tab.active { background:var(--green-dark); color:var(--white); }
+.data-mode-tab:hover:not(.active) { background:var(--green-light); }
+
+.data-level-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.level-card { padding:12px; border-radius:12px; border:2px solid #eee; cursor:pointer; transition:all .25s; position:relative; overflow:hidden; }
+.level-card:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.06); }
+.level-card .level-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.level-card .level-emoji { font-size:18px; }
+.level-card .level-name { font-size:13px; font-weight:700; }
+.level-card .level-desc { font-size:10px; color:var(--gray); line-height:1.4; }
+.level-card .level-fields { margin-top:6px; font-size:10px; color:#555; line-height:1.5; }
+.level-card .level-fields strong { color:var(--green-dark); }
+.level-indicator { position:absolute; top:6px; right:6px; width:20px; height:20px; border-radius:50%; border:2px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:10px; transition:all .2s; }
+.level-card.selected .level-indicator { border-color:currentColor; }
+
+.level-card.level-public { border-color:#eee; background:var(--white); }
+.level-card.level-public.selected { border-color:var(--green); background:var(--green-light); }
+.level-card.level-public .level-name { color:var(--green-dark); }
+.level-card.level-general { border-color:#eee; background:var(--white); }
+.level-card.level-general.selected { border-color:var(--blue); background:var(--blue-light); }
+.level-card.level-general .level-name { color:var(--blue-dark); }
+.level-card.level-sensitive { border-color:#eee; background:var(--white); }
+.level-card.level-sensitive.selected { border-color:var(--yellow); background:var(--yellow-light); }
+.level-card.level-sensitive .level-name { color:var(--yellow-dark); }
+.level-card.level-confidential { border-color:#eee; background:var(--white); }
+.level-card.level-confidential.selected { border-color:var(--pink); background:var(--pink-light); }
+.level-card.level-confidential .level-name { color:var(--pink-dark); }
+
+/* === CUSTOM FIELD TOGGLES === */
+.custom-fields-hint { font-size:11px; color:var(--gray); margin-bottom:12px; padding:10px 12px; background:var(--yellow-light); border-radius:8px; border-left:3px solid var(--yellow-dark); line-height:1.5; }
+.field-category { margin-bottom:14px; }
+.field-category-title { font-size:12px; font-weight:700; color:var(--green-dark); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid #eee; display:flex; align-items:center; gap:6px; }
+.field-grid { display:grid; grid-template-columns:1fr; gap:6px; }
+.field-toggle { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-radius:8px; border:1.5px solid #eee; transition:all .2s; }
+.field-toggle.on { background:var(--green-light); border-color:var(--green); }
+.field-toggle.off { background:#fafafa; border-color:#eee; }
+.field-toggle .f-label { display:flex; align-items:center; gap:6px; font-size:12px; }
+.field-toggle .f-icon { font-size:14px; }
+.field-toggle .f-tag { font-size:8px; padding:1px 5px; border-radius:4px; font-weight:600; margin-left:2px; }
+.f-tag-personal { background:var(--blue-light); color:var(--blue-dark); }
+.f-tag-financial { background:var(--pink-light); color:var(--pink-dark); }
+.f-tag-custom { background:var(--yellow-light); color:var(--yellow-dark); }
+.field-toggle .f-desc { font-size:9px; color:var(--gray); margin-left:auto; margin-right:8px; white-space:nowrap; }
+
+/* === BATCH PANEL === */
+.batch-card { background:var(--white); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; }
+.batch-header { padding:16px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #f0f0f0; background:linear-gradient(135deg,var(--blue-light),var(--white)); }
+.batch-header h2 { font-size:16px; color:#333; }
+.batch-header p { font-size:12px; color:var(--gray); margin-top:2px; }
+.batch-avatars { display:flex; margin-left:auto; }
+.batch-avatars .mini-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--white); font-weight:600; border:2px solid var(--white); margin-left:-6px; }
+.batch-avatars .mini-avatar:first-child { margin-left:0; }
+.batch-select-info { padding:10px 18px; background:var(--yellow-light); font-size:11px; color:var(--yellow-dark); }
+.batch-apply-row { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+.batch-apply-btn { padding:6px 14px; border-radius:8px; font-size:11px; font-weight:600; background:var(--green); color:var(--white); border:none; cursor:pointer; transition:all .2s; font-family:inherit; }
+.batch-apply-btn:hover { background:var(--green-dark); }
+.batch-apply-btn.danger { background:var(--pink); }
+.batch-apply-btn.danger:hover { background:var(--pink-dark); }
+.batch-mod-state { font-size:11px; font-weight:600; }
+
+/* === ACTIONS === */
+.card-actions { padding:14px 18px; display:flex; gap:10px; justify-content:flex-end; background:#fafafa; }
+.btn { padding:10px 20px; border-radius:10px; font-size:13px; cursor:pointer; border:none; font-weight:600; transition:all .2s; font-family:inherit; }
+.btn:active { transform:scale(0.96); }
+.btn-primary { background:var(--green-dark); color:var(--white); box-shadow:0 2px 8px rgba(122,193,154,0.3); }
+.btn-primary:hover { background:#4a7360; }
+.btn-secondary { background:var(--white); color:var(--gray); border:1.5px solid var(--gray-border); }
+.btn-secondary:hover { background:var(--gray-light); }
+
+/* === SYNC === */
+.sync-btn { display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; border:1.5px solid var(--border); border-radius:12px; background:white; cursor:pointer; font-family:inherit; transition:all 0.2s; text-align:left; }
+.sync-btn:hover { border-color:var(--green); background:#f8faf8; }
+.sync-btn:active { transform:scale(0.98); }
+.sync-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.sync-icon { font-size:24px; }
+.sync-info { flex:1; }
+.sync-name { font-size:14px; font-weight:600; color:var(--text); }
+.sync-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.sync-arrow { font-size:16px; color:var(--text-muted); }
+.sync-result-item { padding:8px 0; border-bottom:1px solid #f5f5f5; font-size:13px; }
+.sync-result-item:last-child { border-bottom:none; }
+.sync-result-item .label { color:var(--text-muted); font-size:11px; }
+.sync-result-item .value { font-weight:600; }
+
+/* === EMPTY STATE === */
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+
+/* === TOAST === */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--green-dark); color:white; padding:10px 20px; border-radius:10px; font-size:13px; z-index:999; opacity:0; transition:opacity 0.3s; pointer-events:none; max-width:90%; text-align:center; }
+.toast.show { opacity:1; }
+
+/* === TAB BAR === */
+.tab-bar { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.tab-bar::-webkit-scrollbar { display:none; }
+.tab-btn { padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; border:1.5px solid var(--border); background:white; color:var(--text-secondary); cursor:pointer; white-space:nowrap; transition:all 0.2s; font-family:inherit; }
+.tab-btn.active { background:var(--green); color:white; border-color:var(--green); }
+
+.section { background:var(--card); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+.section-title { font-size:13px; font-weight:700; color:var(--green-dark); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.section-desc { font-size:11px; color:var(--text-muted); margin-bottom:12px; }
 </style>
 </head>
 <body>
 <div class="top-card"><div class="top-inner">
-    <div class="top-main"><div><h1>🔐 權限設定</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name" id="myName">-</span></div></div>
+    <div class="top-main"><div><h1>🔐 權限設定</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><span class="user-name-badge" id="myName">-</span></div></div>
     <div class="quick-stats" id="quickStats"></div>
 </div></div>
 <div class="container">
     <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('permissions')">👤 權限管理</button>
-        <button class="tab-btn" onclick="switchTab('visibility')">📦 模組顯示</button>
-        <button class="tab-btn" onclick="switchTab('sync')">🔄 手動同步</button>
+        <button class="tab-btn active" onclick="switchTab('permissions',this)">🔐 權限管理</button>
+        <button class="tab-btn" onclick="switchTab('sync',this)">🔄 手動同步</button>
     </div>
+
+    <!-- ===== 權限管理 Tab ===== -->
     <div id="tab-permissions">
-        <div class="hint-box">💡 super_admin 擁有全部權限，不需要設定。<br>其他角色會先載入預設權限，你在這裡做的調整會覆蓋預設值。</div>
-        <div class="staff-selector">
-            <div class="selector-label">選擇人員</div>
-            <div class="sel-tabs" id="selTabs"></div>
-            <div class="sel-grid" id="selGrid"></div>
-            <div class="selected-info" id="selectedInfo"></div>
+        <div class="hint-box">💡 super_admin 擁有全部權限。其他角色會先載入預設權限，你可以針對個別人員調整模組開關與資料存取等級。</div>
+
+        <div class="search-box">
+            <input type="text" placeholder="搜尋人員姓名..." id="searchInput" oninput="filterUsers()">
         </div>
-        <div id="permContent" style="display:none;">
-            <div class="section">
-                <div class="section-title">📦 模組權限 <button class="reset-btn" onclick="resetModulePerms()">重置為預設</button></div>
-                <div class="section-desc">控制此人員可以存取哪些模組，以及在模組內的操作權限</div>
-                <div style="overflow-x:auto;"><table class="perm-table" id="modulePermTable">
-                    <thead><tr><th>模組</th><th>查看</th><th>填寫</th><th>修改</th><th>新增</th><th>刪除</th><th>匯出</th></tr></thead>
-                    <tbody id="modulePermBody"></tbody>
-                </table></div>
-            </div>
-            <div class="section">
-                <div class="section-title">🔒 欄位權限 <button class="reset-btn" onclick="resetFieldPerms()">重置為預設</button></div>
-                <div class="section-desc">控制敏感欄位的顯示方式：顯示（完整）、遮罩（部分隱藏）、隱藏（不顯示）</div>
-                <div class="field-section" id="fieldPermSection"></div>
-            </div>
+        <div class="filter-bar" id="filterBar">
+            <span class="filter-chip active" onclick="setFilter(this,'all')">全部</span>
+            <span class="filter-chip" onclick="setFilter(this,'manager')">主管</span>
+            <span class="filter-chip" onclick="setFilter(this,'employee')">員工</span>
+            <span class="filter-chip" onclick="setFilter(this,'coach')">教練</span>
+            <span class="filter-chip" onclick="setFilter(this,'analyst')">分析師</span>
         </div>
-        <div id="noSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
+        <div class="batch-bar">
+            <label class="select-all-wrap">
+                <input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this.checked)">
+                <span>全選</span>
+            </label>
+            <span class="batch-count" id="batchCount"></span>
+            <button class="batch-btn" id="batchBtn" disabled onclick="showBatchPanel()">批量設定</button>
+        </div>
+        <div class="user-list" id="userList"></div>
+        <div id="permContent"></div>
     </div>
-    <div id="tab-visibility" style="display:none;">
-        <div class="hint-box">💡 設定每位人員在入口頁面可以看到哪些模組。<br>預設所有人看到所有模組，你可以在這裡針對個別人員隱藏特定模組。</div>
-        <div class="staff-selector">
-            <div class="selector-label">選擇人員</div>
-            <div class="sel-tabs" id="visSelTabs"></div>
-            <div class="sel-grid" id="visSelGrid"></div>
-            <div class="selected-info" id="visSelectedInfo"></div>
-        </div>
-        <div id="visContent" style="display:none;">
-            <div class="section">
-                <div class="section-title">⚡ 快速套用預設</div>
-                <div class="section-desc">點擊下方按鈕可快速勾選模組，套用後仍可手動微調</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <button class="btn btn-primary" onclick="applyVisPreset('all')" style="font-size:12px;padding:8px 14px;">✅ 全選</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('coach')" style="font-size:12px;padding:8px 14px;">👨‍🏫 教練預設</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('staff')" style="font-size:12px;padding:8px 14px;">👥 營運預設</button>
-                    <button class="btn btn-secondary" onclick="applyVisPreset('admin')" style="font-size:12px;padding:8px 14px;">🔑 管理預設</button>
-                    <button class="btn" onclick="applyVisPreset('none')" style="font-size:12px;padding:8px 14px;background:#ffebee;color:#c62828;">✕ 全不選</button>
-                </div>
-            </div>
-            <div class="section">
-                <div class="section-title">📦 模組顯示設定 <span id="visCount" style="font-size:11px;font-weight:500;color:var(--text-muted);"></span></div>
-                <div class="section-desc">打勾 = 該人員在入口頁面看得到此模組</div>
-                <div id="visModuleList"></div>
-            </div>
-        </div>
-        <div id="visNoSelection"><div class="empty-state"><div class="empty-icon">👆</div><p>請先選擇一位人員</p></div></div>
-    </div>
+
+    <!-- ===== 手動同步 Tab ===== -->
     <div id="tab-sync" style="display:none;">
         <div class="hint-box">💡 手動觸發同步：Google Sheet → MySQL → Supabase<br>正常情況下每天凌晨 3:00 會自動同步。</div>
         <div class="section">
@@ -175,321 +287,830 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
         <div class="section" id="syncResult" style="display:none;"><div class="section-title">📊 同步結果</div><div id="syncResultBody"></div></div>
     </div>
 </div>
-<div class="save-bar" id="saveBar"><button class="btn btn-secondary" onclick="cancelChanges()">取消</button><button class="btn btn-primary" onclick="savePermissionsV2()">💾 儲存權限</button></div>
 <div class="toast" id="toast"></div>
-<script>
-const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
-async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
-let currentUser=null,allPeople=[],selectedStaff=null,hasChanges=false;
-const ALL_MODULES=[{id:'member',icon:'👤',name:'學員管理'},{id:'coach',icon:'👨‍🏫',name:'教練管理'},{id:'staff-manage',icon:'👥',name:'營運人員'},{id:'substitute',icon:'📋',name:'代課管理'},{id:'schedule',icon:'🗓️',name:'行政排班'},{id:'punch',icon:'⏰',name:'上下班打卡'},{id:'report',icon:'📊',name:'報表統計'},{id:'settings',icon:'🔐',name:'權限設定'},{id:'moti-booking',icon:'📝',name:'預填Moti'},{id:'leave-manage',icon:'🏥',name:'學員請假'},{id:'personal-schedule',icon:'📅',name:'個人排班'},{id:'trial-schedule',icon:'🗓️',name:'體驗排程'},{id:'trial-feedback',icon:'💬',name:'體驗回報'},{id:'class-record',icon:'📋',name:'課表紀錄'},{id:'moti-analyze',icon:'🔬',name:'Moti檢測'}];
-const ACTIONS=['view','fill','edit','create','delete','export'];
-const ACTION_LABELS={view:'查看',fill:'填寫',edit:'修改',create:'新增',delete:'刪除',export:'匯出'};
-const FIELD_MODULES={member:{name:'學員管理',icon:'👤',fields:[{id:'phone',name:'電話'},{id:'email',name:'信箱'},{id:'birth_date',name:'生日'},{id:'medical_history',name:'疾病史'},{id:'fitness_goal',name:'健身目標'},{id:'line_uid',name:'LINE UID'}]},coach:{name:'教練管理',icon:'👨‍🏫',fields:[{id:'phone',name:'電話'},{id:'email',name:'信箱'},{id:'birthday',name:'生日'},{id:'line_uid',name:'衡點LINE'},{id:'line_id_edu',name:'教務LINE'}]},'staff-manage':{name:'營運人員',icon:'👥',fields:[{id:'phone',name:'電話'},{id:'email',name:'信箱'},{id:'birthday',name:'生日'},{id:'address',name:'地址'},{id:'emergency_contact',name:'緊急聯絡人'},{id:'emergency_phone',name:'緊急電話'},{id:'line_id',name:'衡點LINE'},{id:'line_id_edu',name:'教務LINE'}]}};
-const ROLE_DEFAULTS={admin:{member:{view:true,fill:true,edit:true,create:true,delete:false,export:true},coach:{view:true,fill:true,edit:true,create:true,delete:false,export:true},'staff-manage':{view:true,fill:true,edit:true,create:true,delete:false,export:true},substitute:{view:true,fill:true,edit:true,create:true,delete:false,export:true},schedule:{view:true,fill:true,edit:true,create:true,delete:false,export:true},punch:{view:true,fill:true,edit:true,create:false,delete:false,export:true},report:{view:true,fill:false,edit:false,create:false,delete:false,export:true},settings:{view:true,fill:false,edit:true,create:true,delete:false,export:false},'moti-booking':{view:true,fill:true,edit:true,create:true,delete:false,export:false},'leave-manage':{view:true,fill:true,edit:true,create:false,delete:false,export:false},'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false},'trial-schedule':{view:true,fill:true,edit:true,create:true,delete:false,export:false},'trial-feedback':{view:true,fill:true,edit:true,create:true,delete:false,export:true},'class-record':{view:true,fill:false,edit:false,create:false,delete:false,export:true},'moti-analyze':{view:true,fill:false,edit:false,create:false,delete:false,export:true}},coach:{substitute:{view:true,fill:true,edit:true,create:true,delete:false,export:false},'trial-schedule':{view:true,fill:true,edit:true,create:true,delete:false,export:false},'trial-feedback':{view:true,fill:true,edit:true,create:true,delete:false,export:true},'class-record':{view:true,fill:true,edit:true,create:true,delete:false,export:true}},staff:{member:{view:true,fill:true,edit:false,create:false,delete:false,export:false},coach:{view:true,fill:false,edit:false,create:false,delete:false,export:false},substitute:{view:true,fill:true,edit:true,create:false,delete:false,export:false},punch:{view:true,fill:true,edit:true,create:true,delete:false,export:false},'moti-booking':{view:true,fill:true,edit:true,create:true,delete:false,export:false},'leave-manage':{view:true,fill:true,edit:true,create:false,delete:false,export:false},'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false}},viewer:{member:{view:true,fill:false,edit:false,create:false,delete:false,export:false},coach:{view:true,fill:false,edit:false,create:false,delete:false,export:false},substitute:{view:true,fill:false,edit:false,create:false,delete:false,export:false},'personal-schedule':{view:true,fill:false,edit:false,create:false,delete:false,export:false}}};
-const TAG_EXTRAS={'行政':{schedule:{view:true},punch:{view:true,fill:true,edit:true,create:true},'leave-manage':{view:true,fill:true,edit:true},'moti-booking':{view:true,fill:true,edit:true,create:true},'personal-schedule':{view:true}},'教練':{substitute:{view:true,fill:true,edit:true,create:true},'trial-schedule':{view:true,fill:true,edit:true,create:true},'trial-feedback':{view:true,fill:true,edit:true,create:true,export:true},'class-record':{view:true,fill:true,edit:true,create:true,export:true}},'分析師':{'moti-analyze':{view:true,fill:true,edit:true,create:true,export:true}},'管理':{report:{view:true,export:true},schedule:{view:true,fill:true,edit:true,create:true},'staff-manage':{view:true,fill:true,edit:true,export:true}}};
-const FIELD_DEFAULTS={admin:{},coach:{},staff:{member:{phone:'masked',email:false,medical_history:false,line_uid:false},coach:{phone:'masked',email:false,line_uid:false,line_id_edu:false},'staff-manage':{phone:'masked',email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false}},viewer:{member:{phone:false,email:false,medical_history:false,line_uid:false,birth_date:false,fitness_goal:false},coach:{phone:false,email:false,line_uid:false,line_id_edu:false,birthday:false},'staff-manage':{phone:false,email:false,emergency_contact:false,emergency_phone:false,address:false,birthday:false,line_id:false,line_id_edu:false}}};
-const roleNames={super_admin:'超級管理員',admin:'管理員',staff:'營運人員',coach:'教練',viewer:'檢視者'};
-const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',coach:'badge-coach',viewer:'badge-viewer'};
 
-function initPermissions(){
-    try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}
-    if(!currentUser||currentUser.role!=='super_admin'){document.querySelector('.container').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>僅限超級管理員存取</p></div>';return false;}
-    document.getElementById('myName').textContent=currentUser.name;
-    document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
+<script>
+// ====================================================================
+//  CONFIG & EDGE FUNCTION
+// ====================================================================
+const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+async function callEdge(action, params = {}) {
+    const res = await fetch(EDGE_FUNCTION_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action, ...params }) });
+    if (!res.ok) throw new Error('Edge Function error: ' + res.status);
+    return res.json();
+}
+
+const AVATAR_COLORS = ['#5f846f','#c67566','#66888e','#ba9e60','#7ac19a','#f2ac98','#9fcccc','#5f846f'];
+
+// ====================================================================
+//  ROLE & MODULE DEFINITIONS
+// ====================================================================
+const ROLES = {
+    super_admin: '最高管理員',
+    manager: '部門主管',
+    employee: '一般員工',
+    coach: '教練',
+    analyst: '分析師'
+};
+
+const MODULES = [
+    { id:'member', name:'學員管理', icon:'👤' },
+    { id:'coach', name:'教練管理', icon:'👨‍🏫' },
+    { id:'staff-manage', name:'營運人員', icon:'👥' },
+    { id:'substitute', name:'代課管理', icon:'📋' },
+    { id:'substitute-coach', name:'代課協調', icon:'💬' },
+    { id:'schedule', name:'行政排班', icon:'🗓️' },
+    { id:'punch', name:'上下班打卡', icon:'⏰' },
+    { id:'report', name:'報表統計', icon:'📊' },
+    { id:'settings', name:'權限設定', icon:'🔐' },
+    { id:'moti-booking', name:'預填Moti', icon:'📝' },
+    { id:'leave-manage', name:'學員請假', icon:'🏥' },
+    { id:'personal-schedule', name:'個人排班', icon:'📅' },
+    { id:'trial-schedule', name:'體驗排程', icon:'🗓️' },
+    { id:'trial-feedback', name:'體驗回報', icon:'💬' },
+    { id:'class-record', name:'課表紀錄', icon:'📋' },
+    { id:'class-record-query', name:'課表查詢', icon:'🔍' },
+    { id:'moti-analyze', name:'Moti檢測', icon:'🔬' },
+    { id:'consultation', name:'諮詢單', icon:'📋' },
+];
+
+const ROLE_DEFAULTS = {
+    super_admin: MODULES.map(m => m.id),
+    manager: MODULES.filter(m => m.id !== 'settings').map(m => m.id),
+    employee: ['member','substitute','punch','moti-booking','leave-manage','personal-schedule','class-record-query','consultation'],
+    coach: ['substitute-coach','trial-schedule','trial-feedback','class-record'],
+    analyst: ['moti-analyze','moti-booking'],
+};
+
+// ====================================================================
+//  DATA LEVELS & FIELDS
+// ====================================================================
+const DATA_LEVELS = [
+    { id:'public', name:'公開', emoji:'🟢', color:'green',
+      desc:'可查看基本公開資訊與學員姓名，但無法存取電話、住址等聯絡資料。',
+      fields:'可見欄位：課表時間、模組名稱、學員姓名、公告資訊',
+      hidden:'無法看到：電話、住址、緊急聯絡人、帳務等敏感資料',
+      suitable:'適用對象：一般教練、外部合作人員' },
+    { id:'general', name:'一般', emoji:'🔵', color:'blue',
+      desc:'可查看業務聯繫所需資訊，包含電話與課程狀態，供日常工作使用。',
+      fields:'可見欄位：學員姓名、電話、課程狀態、出席紀錄',
+      hidden:'無法看到：住址、緊急聯絡人、帳務相關',
+      suitable:'適用對象：一般營運人員、分析師' },
+    { id:'sensitive', name:'敏感', emoji:'🟡', color:'yellow',
+      desc:'可查看完整個人資料，包含住址與緊急聯絡人，以及部門帳務摘要。',
+      fields:'可見欄位：完整個資（住址、緊急聯絡人）、部門帳務摘要',
+      hidden:'無法看到：完整帳務明細、薪資、合約細節',
+      suitable:'適用對象：部門主管' },
+    { id:'confidential', name:'機密', emoji:'🔴', color:'pink',
+      desc:'最高存取權限，可查看所有資料，包含完整帳務明細、薪資與合約。',
+      fields:'可見欄位：所有資料（含完整帳務、薪資明細、合約）',
+      hidden:'無限制',
+      suitable:'適用對象：最高管理員' },
+];
+
+const DEFAULT_DATA_LEVEL = { super_admin:'confidential', manager:'sensitive', employee:'general', coach:'public', analyst:'general' };
+
+const DATA_FIELDS = [
+    { category:'個人基本資料', icon:'👤', fields:[
+        { id:'name', name:'學員姓名', tag:'personal', desc:'姓名、暱稱', defaultLevel:'public' },
+        { id:'phone', name:'電話號碼', tag:'personal', desc:'手機、市話', defaultLevel:'general' },
+        { id:'email', name:'電子郵件', tag:'personal', desc:'Email', defaultLevel:'general' },
+        { id:'gender', name:'性別', tag:'personal', desc:'生理性別', defaultLevel:'public' },
+        { id:'birthday', name:'生日', tag:'personal', desc:'出生日期', defaultLevel:'general' },
+        { id:'address', name:'住址', tag:'personal', desc:'居住地址', defaultLevel:'sensitive' },
+    ]},
+    { category:'緊急聯絡與醫療', icon:'🏥', fields:[
+        { id:'emergency_contact', name:'緊急聯絡人', tag:'personal', desc:'姓名、關係', defaultLevel:'sensitive' },
+        { id:'emergency_phone', name:'緊急聯絡電話', tag:'personal', desc:'電話號碼', defaultLevel:'sensitive' },
+        { id:'medical', name:'醫療紀錄', tag:'personal', desc:'健康狀況', defaultLevel:'sensitive' },
+        { id:'id_number', name:'身分證字號', tag:'personal', desc:'身分證/居留證', defaultLevel:'confidential' },
+    ]},
+    { category:'課程與出席', icon:'📋', fields:[
+        { id:'course_status', name:'課程狀態', tag:'general', desc:'使用中/到期', defaultLevel:'general' },
+        { id:'attendance', name:'出席紀錄', tag:'general', desc:'上課出席率', defaultLevel:'general' },
+        { id:'class_record', name:'課堂紀錄', tag:'general', desc:'教學內容紀錄', defaultLevel:'public' },
+        { id:'moti_result', name:'Moti檢測結果', tag:'general', desc:'身體檢測數據', defaultLevel:'general' },
+    ]},
+    { category:'帳務與合約', icon:'💰', fields:[
+        { id:'contract', name:'合約資訊', tag:'financial', desc:'合約內容與期限', defaultLevel:'sensitive' },
+        { id:'payment', name:'付款紀錄', tag:'financial', desc:'繳費狀態與歷史', defaultLevel:'sensitive' },
+        { id:'salary', name:'薪資明細', tag:'financial', desc:'薪資、獎金、扣款', defaultLevel:'confidential' },
+        { id:'revenue', name:'營收報表', tag:'financial', desc:'營業額、利潤', defaultLevel:'confidential' },
+    ]},
+];
+
+const LEVEL_HIERARCHY = ['public','general','sensitive','confidential'];
+function levelIncludes(activeLevel, fieldLevel) {
+    return LEVEL_HIERARCHY.indexOf(activeLevel) >= LEVEL_HIERARCHY.indexOf(fieldLevel);
+}
+
+// ====================================================================
+//  STATE
+// ====================================================================
+let currentUser = null;        // 登入的管理員
+let allPeople = [];            // 所有可設定人員
+let selectedPerson = null;     // 當前選中的人
+let checkedUsers = new Set();  // 批量選取
+let currentFilter = 'all';
+let batchModStates = {};
+let batchLevelSelected = null;
+let isSaving = false;
+
+// ====================================================================
+//  INIT & AUTH
+// ====================================================================
+function initPermissions() {
+    try { currentUser = JSON.parse(sessionStorage.getItem('currentStaff')); } catch(e) {}
+    if (!currentUser) {
+        const p = new URLSearchParams(window.location.search);
+        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('role')||'staff' };
+    }
+    // 只有 super_admin 和 manager 可以進入權限設定
+    if (!currentUser || (currentUser.role !== 'super_admin' && currentUser.role !== 'admin' && currentUser.role !== 'manager')) {
+        document.querySelector('.container').innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>僅限管理員存取</p></div>';
+        return false;
+    }
+    document.getElementById('myName').textContent = currentUser.name;
+    document.getElementById('userAvatar').textContent = (currentUser.name||'?')[0];
     return true;
 }
 
-async function loadAllPeople(){
-    try{
-        const result=await callEdge('getAllPeople');const staffRes={data:result.staff,error:null};const coachRes={data:result.coaches,error:null};
-        const staffData=(staffRes.data||[]).map(s=>Object.assign(s,{_table:'staff',_label:(s.nickname||s.name),_role:s.permission_level||'staff',_type:s.staff_type||''}));
-        const coachData=(coachRes.data||[]).map(c=>Object.assign(c,{_table:'coaches',_label:c.name+(c.real_name&&c.real_name!==c.name?' ('+c.real_name+')':''),_role:c.permission_level||'coach',_type:(c.specialties||[]).join(',')}));
-        allPeople=[...staffData.filter(s=>s._role!=='super_admin'),...coachData.filter(c=>c._role!=='super_admin')];
+async function loadAllPeople() {
+    try {
+        const result = await callEdge('getAllPeople');
+        const staffData = (result.staff||[]).map(s => {
+            // 映射舊角色名到新角色名
+            let role = s.role || s.permission_level || 'employee';
+            if (role === 'admin') role = 'manager';
+            if (role === 'staff') role = 'employee';
+            if (role === 'viewer') role = 'analyst';
+            return {
+                ...s,
+                _table: 'staff',
+                _label: s.nickname || s.name,
+                _role: role,
+                _type: s.staff_type || '',
+                _dept: s.department || '',
+                // 權限 v2 欄位
+                _dataLevel: s.data_level || null,
+                _dataMode: s.data_mode || 'preset',
+                _modulesAdd: s.modules_add || [],
+                _modulesRemove: s.modules_remove || [],
+                _fieldOverrides: s.field_overrides || {},
+            };
+        });
+        const coachData = (result.coaches||[]).map(c => {
+            let role = c.role || c.permission_level || 'coach';
+            if (role === 'admin') role = 'manager';
+            if (role === 'staff') role = 'employee';
+            if (role === 'viewer') role = 'analyst';
+            return {
+                ...c,
+                _table: 'coaches',
+                _label: c.name + (c.real_name && c.real_name !== c.name ? ' (' + c.real_name + ')' : ''),
+                _role: role,
+                _type: (c.specialties||[]).join(','),
+                _dept: (c.specialties||[]).map(s => ({pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI'}[s]||s)).join(',') || '教練',
+                _dataLevel: c.data_level || null,
+                _dataMode: c.data_mode || 'preset',
+                _modulesAdd: c.modules_add || [],
+                _modulesRemove: c.modules_remove || [],
+                _fieldOverrides: c.field_overrides || {},
+            };
+        });
+
+        // super_admin 不顯示在可設定清單（manager 只能設定自己部門的人）
+        allPeople = [...staffData.filter(s => s._role !== 'super_admin'), ...coachData.filter(c => c._role !== 'super_admin')];
+
+        // 如果登入者是 manager，只顯示自己部門
+        if (currentUser.role === 'manager' || currentUser.role === 'admin') {
+            const myDept = currentUser.department || '';
+            // manager 可以看到所有人但不能改 super_admin/manager（已排除 super_admin）
+        }
+
         // Stats
-        const staffCount=staffData.filter(s=>s._role!=='super_admin').length;
-        const coachCount=coachData.filter(c=>c._role!=='super_admin').length;
-        document.getElementById('topSub').textContent='共 '+(staffCount+coachCount)+' 位可設定人員';
-        document.getElementById('quickStats').innerHTML=
-            '<div class="qs"><div class="qs-num">'+staffCount+'</div><div class="qs-label">👥 營運</div></div>'+
-            '<div class="qs"><div class="qs-num">'+coachCount+'</div><div class="qs-label">👨‍🏫 教練</div></div>'+
-            '<div class="qs"><div class="qs-num">'+staffData.filter(s=>s._role==='admin').length+'</div><div class="qs-label">管理員</div></div>'+
-            '<div class="qs"><div class="qs-num">'+staffData.filter(s=>s._role==='viewer').length+'</div><div class="qs-label">檢視者</div></div>';
-        // Build tabs
-        const specSet=new Set();coachData.forEach(c=>(c.specialties||[]).forEach(s=>specSet.add(s)));
-        let tabsH='<span class="sel-tab active" onclick="filterSel(\'all\',this)">全部<span class="cnt">'+allPeople.length+'</span></span>';
-        tabsH+='<span class="sel-tab" onclick="filterSel(\'staff\',this)">👥 營運<span class="cnt">'+staffCount+'</span></span>';
-        specSet.forEach(s=>{const icon={pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'';const nm={pilates:'皮拉提斯',weight:'重訓',stretch:'伸展',ai:'AI'}[s]||s;const cnt=coachData.filter(c=>(c.specialties||[]).includes(s)).length;tabsH+='<span class="sel-tab" onclick="filterSel(\'spec:'+s+'\',this)">'+icon+' '+nm+'<span class="cnt">'+cnt+'</span></span>';});
-        document.getElementById('selTabs').innerHTML=tabsH;
-        renderSelGrid('all');
-        renderVisSelGrid();
-    }catch(e){showToast('❌ 載入失敗：'+e.message);}
+        const staffCount = staffData.filter(s => s._role !== 'super_admin').length;
+        const coachCount = coachData.filter(c => c._role !== 'super_admin').length;
+        const managerCount = allPeople.filter(p => p._role === 'manager').length;
+        document.getElementById('topSub').textContent = '共 ' + allPeople.length + ' 位可設定人員';
+        document.getElementById('quickStats').innerHTML =
+            '<div class="qs"><div class="qs-num">' + staffCount + '</div><div class="qs-label">👥 營運</div></div>' +
+            '<div class="qs"><div class="qs-num">' + coachCount + '</div><div class="qs-label">👨‍🏫 教練</div></div>' +
+            '<div class="qs"><div class="qs-num">' + managerCount + '</div><div class="qs-label">🔑 主管</div></div>' +
+            '<div class="qs"><div class="qs-num">' + allPeople.length + '</div><div class="qs-label">📊 全部</div></div>';
+
+        renderUserList();
+    } catch(e) { showToast('❌ 載入失敗：' + e.message); }
 }
-var selFilter='all';
-function filterSel(f,el){selFilter=f;document.querySelectorAll('.sel-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderSelGrid(f);}
-function renderSelGrid(f){
-    const filtered=allPeople.filter(p=>{
-        if(f==='all')return true;
-        if(f==='staff')return p._table==='staff';
-        if(f.startsWith('spec:'))return p._table==='coaches'&&(p.specialties||[]).includes(f.substring(5));
+
+// ====================================================================
+//  TAB SWITCHING
+// ====================================================================
+function switchTab(tab, el) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-permissions').style.display = tab === 'permissions' ? '' : 'none';
+    document.getElementById('tab-sync').style.display = tab === 'sync' ? '' : 'none';
+}
+
+// ====================================================================
+//  FILTER & SEARCH
+// ====================================================================
+function getFilteredPeople() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    return allPeople.filter(p => {
+        if (currentFilter !== 'all' && p._role !== currentFilter) return false;
+        if (search && !(p._label||'').toLowerCase().includes(search) && !(p._dept||'').toLowerCase().includes(search)) return false;
         return true;
     });
-    const grid=document.getElementById('selGrid');
-    grid.innerHTML=filtered.map(p=>{
-        const init=(p._label||'?')[0];
-        const cls=p._table==='staff'?'staff':'coach';
-        const roleLabel=p._table==='staff'?({admin:'管理員',staff:'營運',viewer:'檢視'}[p._role]||p._role):(p.specialties||[]).map(s=>({pilates:'🧘',weight:'💪',stretch:'🤸',ai:'🤖'}[s]||'')).join('');
-        const sel=selectedStaff&&selectedStaff.id===p.id?' selected':'';
-        return '<div class="sel-cell'+sel+'" onclick="selectPerson(\''+escHtml(p.id)+'\')"><div class="sel-avatar '+cls+'">'+escHtml(init)+'</div><div class="sel-name">'+escHtml(p._label)+'</div><div class="sel-role">'+roleLabel+'</div></div>';
-    }).join('');
-}
-function selectPerson(id){
-    document.querySelectorAll('.sel-cell').forEach(c=>c.classList.remove('selected'));
-    const cell=event.currentTarget;cell.classList.add('selected');
-    selectedStaff=allPeople.find(s=>s.id===id);
-    if(!selectedStaff)return;
-    const role=selectedStaff._role;const tags=(selectedStaff._type||'').split(',').map(t=>t.trim()).filter(Boolean);
-    let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-    if(selectedStaff._table==='staff')info+='<span class="badge '+(selectedStaff.status==='active'?'badge-active':'badge-inactive')+'">'+(selectedStaff.status==='active'?'在職':'停用')+'</span>';
-    else info+='<span class="badge '+(selectedStaff.is_active!==false?'badge-active':'badge-inactive')+'">'+(selectedStaff.is_active!==false?'啟用':'停用')+'</span>';
-    tags.forEach(t=>{info+='<span class="badge type-tag">'+escHtml(t)+'</span>';});
-    document.getElementById('selectedInfo').innerHTML=info;
-    document.getElementById('noSelection').style.display='none';document.getElementById('permContent').style.display='block';
-    renderModulePerms();renderFieldPerms();hasChanges=false;document.getElementById('saveBar').classList.remove('show');
 }
 
-function switchTab(tab){
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.getElementById('tab-permissions').style.display=tab==='permissions'?'':'none';
-    document.getElementById('tab-visibility').style.display=tab==='visibility'?'':'none';
-    document.getElementById('tab-sync').style.display=tab==='sync'?'':'none';
-}
-
-function onStaffSelected(){}
-
-function getEffectiveModulePerms(person){
-    const role=person._role||'staff';const merged={};const rd=ROLE_DEFAULTS[role]||{};
-    for(const[m,p]of Object.entries(rd)){merged[m]={...p};}
-    const tags=(person._type||'').split(',').map(t=>t.trim()).filter(Boolean);
-    tags.forEach(tag=>{const ex=TAG_EXTRAS[tag]||{};for(const[m,p]of Object.entries(ex)){if(!merged[m])merged[m]={};for(const[a,v]of Object.entries(p)){if(v===true)merged[m][a]=true;}}});
-    return merged;
-}
-function getEffectiveFieldPerms(person){const role=person._role||'staff';return FIELD_DEFAULTS[role]||{};}
-
-function renderModulePerms(){
-    const tbody=document.getElementById('modulePermBody');tbody.innerHTML='';
-    const defaults=getEffectiveModulePerms(selectedStaff);const overrides=((selectedStaff.permissions||{}).modules)||{};
-    ALL_MODULES.forEach(mod=>{const dp=defaults[mod.id]||{};const op=overrides[mod.id]||{};const tr=document.createElement('tr');
-        let html='<td><span class="mod-icon">'+mod.icon+'</span>'+mod.name+'</td>';
-        ACTIONS.forEach(action=>{const defaultVal=dp[action]===true;const overrideVal=op[action];const checked=(overrideVal!==undefined)?overrideVal:defaultVal;const isOverridden=overrideVal!==undefined;
-            html+='<td><input type="checkbox" data-mod="'+mod.id+'" data-action="'+action+'" '+(checked?'checked':'')+' onchange="onModulePermChange()" '+(isOverridden?'style="outline:2px solid var(--green);"':'')+'></td>';});
-        tr.innerHTML=html;tbody.appendChild(tr);});
-}
-function onModulePermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}
-
-function renderFieldPerms(){
-    const section=document.getElementById('fieldPermSection');section.innerHTML='';
-    const defaults=getEffectiveFieldPerms(selectedStaff);const overrides=((selectedStaff.permissions||{}).fields)||{};
-    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){
-        let html='<div class="field-module-title">'+modDef.icon+' '+modDef.name+'</div>';
-        html+='<table class="field-table"><thead><tr><th>欄位</th><th class="status-show">顯示</th><th class="status-mask">遮罩</th><th class="status-hide">隱藏</th></tr></thead><tbody>';
-        const dFields=defaults[modId]||{};const oFields=overrides[modId]||{};
-        modDef.fields.forEach(field=>{const defaultVal=dFields[field.id];const overrideVal=oFields[field.id];const currentVal=(overrideVal!==undefined)?overrideVal:(defaultVal!==undefined?defaultVal:true);
-            const name='field_'+modId+'_'+field.id;const isShow=currentVal===true||currentVal===undefined;const isMask=currentVal==='masked';const isHide=currentVal===false;
-            html+='<tr><td>'+field.name+'</td><td><input type="radio" name="'+name+'" value="true" '+(isShow?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="masked" '+(isMask?'checked':'')+' onchange="onFieldPermChange()"></td><td><input type="radio" name="'+name+'" value="false" '+(isHide?'checked':'')+' onchange="onFieldPermChange()"></td></tr>';});
-        html+='</tbody></table>';section.innerHTML+=html;}
-}
-function onFieldPermChange(){hasChanges=true;document.getElementById('saveBar').classList.add('show');}
-
-function resetModulePerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;const perms=selectedStaff.permissions||{};delete perms.modules;selectedStaff.permissions=perms;renderModulePerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置模組權限');}
-function resetFieldPerms(){if(!selectedStaff)return;if(!confirm('重置為角色預設值？'))return;const perms=selectedStaff.permissions||{};delete perms.fields;selectedStaff.permissions=perms;renderFieldPerms();hasChanges=true;document.getElementById('saveBar').classList.add('show');showToast('已重置欄位權限');}
-
-async function savePermissions(){
-    if(!selectedStaff)return;
-    const modules={};const defaults=getEffectiveModulePerms(selectedStaff);
-    document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb=>{const mod=cb.dataset.mod;const action=cb.dataset.action;const checked=cb.checked;const defaultVal=(defaults[mod]&&defaults[mod][action]===true)||false;if(checked!==defaultVal){if(!modules[mod])modules[mod]={};modules[mod][action]=checked;}});
-    const fields={};const fieldDefaults=getEffectiveFieldPerms(selectedStaff);
-    for(const[modId,modDef]of Object.entries(FIELD_MODULES)){const dFields=fieldDefaults[modId]||{};modDef.fields.forEach(field=>{const name='field_'+modId+'_'+field.id;const radios=document.querySelectorAll('input[name="'+name+'"]');let val=true;radios.forEach(r=>{if(r.checked){if(r.value==='true')val=true;else if(r.value==='masked')val='masked';else val=false;}});const defaultVal=dFields[field.id]!==undefined?dFields[field.id]:true;if(val!==defaultVal){if(!fields[modId])fields[modId]={};fields[modId][field.id]=val;}});}
-    const perms={};if(Object.keys(modules).length>0)perms.modules=modules;if(Object.keys(fields).length>0)perms.fields=fields;
-    try{
-        const table=selectedStaff._table;
-        const{error}=await callEdge('savePermissions',{table,id:selectedStaff.id,permissions:perms}).then(()=>({error:null})).catch(e=>({error:e}));
-        if(error)throw error;
-        selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');
-    }catch(e){showToast('❌ 儲存失敗：'+e.message);}
-}
-function cancelChanges(){if(hasChanges&&!confirm('放棄未儲存的變更？'))return;hasChanges=false;document.getElementById('saveBar').classList.remove('show');if(selectedStaff)onStaffSelected();}
-
-async function runManualSync(target){
-    const targetNames={all:'全部',students:'學員',coaches:'教練',staff:'營運人員'};const btns=document.querySelectorAll('.sync-btn');btns.forEach(b=>b.disabled=true);
-    showToast('⏳ 正在同步'+targetNames[target]+'...');document.getElementById('syncResult').style.display='none';
-    // GAS sync has been replaced with Edge Function calls
-    try{const result=await callEdge('manualSync',{target:target});
-        if(!result.success){showToast('❌ 同步失敗：'+(result.error||''));btns.forEach(b=>b.disabled=false);return;}
-        let html='';const r=result.results||{};
-        if(r.students)html+='<div class="sync-result-item">👤 <span class="label">學員</span> <span class="value">更新 '+r.students.updated+' / 新增 '+r.students.inserted+' / 略過 '+r.students.skipped+'</span></div>';
-        if(r.coaches)html+='<div class="sync-result-item">👨‍🏫 <span class="label">教練</span> <span class="value">更新 '+(r.coaches.updated||0)+' / 新增 '+(r.coaches.inserted||0)+' / 略過 '+(r.coaches.skipped||0)+'</span></div>';
-        if(r.staff)html+='<div class="sync-result-item">👥 <span class="label">營運</span> <span class="value">'+r.staff+' 筆</span></div>';
-        if(!html)html='<div class="sync-result-item">✅ 同步完成</div>';
-        html+='<div class="sync-result-item" style="color:var(--text-muted);font-size:11px;">⏰ '+new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+'</div>';
-        document.getElementById('syncResultBody').innerHTML=html;document.getElementById('syncResult').style.display='';showToast('✅ 同步完成');
-    }catch(e){showToast('❌ 同步失敗：'+e.message);}
-    btns.forEach(b=>b.disabled=false);
-}
-
-function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.textContent=String(t);return d.innerHTML;}
-let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
-document.addEventListener('DOMContentLoaded',async()=>{if(initPermissions())await loadAllPeople();});
-
-// ====================================================================
-//  模組顯示管理
-// ====================================================================
-let visSelectedPerson=null;
-let visHasChanges=false;
-
-const VIS_MODULES=ALL_MODULES.filter(m=>m.id!=='settings');
-
-const VIS_PRESETS={
-    all:VIS_MODULES.map(m=>m.id),
-    coach:['substitute','trial-schedule','trial-feedback','class-record','moti-analyze','personal-schedule'],
-    staff:['member','coach','substitute','punch','moti-booking','leave-manage','personal-schedule'],
-    admin:VIS_MODULES.map(m=>m.id),
-    none:[]
-};
-
-const VIS_DESCS={
-    'member':'會員資料管理','coach':'教練名單管理','staff-manage':'營運人員管理',
-    'substitute':'代課管理','schedule':'行政排班管理','punch':'上下班打卡',
-    'report':'報表統計','moti-booking':'預填 Moti 名單','leave-manage':'學員請假管理',
-    'personal-schedule':'個人排班查看','trial-schedule':'體驗課排程',
-    'trial-feedback':'體驗課回報','class-record':'課表紀錄查詢','moti-analyze':'Moti 檢測紀錄'
-};
-
-function renderVisSelGrid(){
-    if(!allPeople.length)return;
-    const tabs=document.getElementById('visSelTabs');
-    const grid=document.getElementById('visSelGrid');
-    if(!tabs||!grid)return;
-    const staffCount=allPeople.filter(p=>p._table==='staff').length;
-    const coachCount=allPeople.filter(p=>p._table==='coaches').length;
-    tabs.innerHTML='<span class="sel-tab active" onclick="filterVisSel(\'all\',this)">全部<span class="cnt">'+allPeople.length+'</span></span>'+'<span class="sel-tab" onclick="filterVisSel(\'staff\',this)">👥 營運<span class="cnt">'+staffCount+'</span></span>'+'<span class="sel-tab" onclick="filterVisSel(\'coaches\',this)">👨‍🏫 教練<span class="cnt">'+coachCount+'</span></span>';
-    renderVisGridItems('all',grid);
-}
-
-var visFilter='all';
-function filterVisSel(f,el){
-    visFilter=f;
-    el.parentElement.querySelectorAll('.sel-tab').forEach(t=>t.classList.remove('active'));
+function setFilter(el, filter) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-    renderVisGridItems(f,document.getElementById('visSelGrid'));
+    currentFilter = filter;
+    renderUserList();
 }
 
-function renderVisGridItems(f,grid){
-    const filtered=allPeople.filter(p=>{if(f==='all')return true;return p._table===f;});
-    grid.innerHTML=filtered.map(p=>{
-        const init=(p._label||'?')[0];
-        const cls=p._table==='staff'?'staff':'coach';
-        const sel=visSelectedPerson&&visSelectedPerson.id===p.id?' selected':'';
-        return '<div class="sel-cell'+sel+'" onclick="selectVisPerson(\''+escHtml(p.id)+'\')"><div class="sel-avatar '+cls+'">'+escHtml(init)+'</div><div class="sel-name">'+escHtml(p._label)+'</div></div>';
-    }).join('');
-}
+function filterUsers() { renderUserList(); }
 
-function selectVisPerson(id){
-    if(visHasChanges&&!confirm('有未儲存的變更，確定要切換人員？'))return;
-    visSelectedPerson=allPeople.find(p=>p.id===id);
-    if(!visSelectedPerson)return;
-    document.querySelectorAll('#visSelGrid .sel-cell').forEach(c=>c.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    const role=visSelectedPerson._role;
-    let info='<span class="badge '+(roleBadge[role]||'badge-staff')+'">'+(roleNames[role]||role)+'</span>';
-    document.getElementById('visSelectedInfo').innerHTML=info;
-    document.getElementById('visNoSelection').style.display='none';
-    document.getElementById('visContent').style.display='block';
-    renderVisModules();
-    visHasChanges=false;
-    document.getElementById('saveBar').classList.remove('show');
-}
-
-function renderVisModules(){
-    const list=document.getElementById('visModuleList');
-    const perms=visSelectedPerson.permissions||{};
-    const hidden=perms.hidden_modules||[];
-    let html='';
-    VIS_MODULES.forEach(mod=>{
-        const checked=!hidden.includes(mod.id);
-        html+='<div class="vis-row"><label><input type="checkbox" data-mod="'+mod.id+'" '+(checked?'checked':'')+' onchange="onVisChange()"><span class="vis-icon">'+mod.icon+'</span><span class="vis-name">'+mod.name+'</span></label><span class="vis-desc">'+(VIS_DESCS[mod.id]||'')+'</span></div>';
+// ====================================================================
+//  USER LIST
+// ====================================================================
+function renderUserList() {
+    const filtered = getFilteredPeople();
+    const list = document.getElementById('userList');
+    list.innerHTML = '';
+    filtered.forEach(p => {
+        const isChecked = checkedUsers.has(p.id);
+        const isActive = selectedPerson && selectedPerson.id === p.id;
+        const colorIdx = Math.abs(hashCode(p.id)) % AVATAR_COLORS.length;
+        const div = document.createElement('div');
+        div.className = 'user-item' + (isActive ? ' active' : '') + (isChecked ? ' checked' : '');
+        div.innerHTML =
+            '<input type="checkbox" class="user-cb" ' + (isChecked ? 'checked' : '') + ' onclick="event.stopPropagation(); toggleCheck(\'' + escHtml(p.id) + '\', this.checked)">' +
+            '<div class="user-avatar-circle" style="background:' + AVATAR_COLORS[colorIdx] + '">' + escHtml((p._label||'?')[0]) + '</div>' +
+            '<div class="user-info"><div class="user-name">' + escHtml(p._label) + '</div><div class="user-dept">' + escHtml(p._dept || p._table) + '</div></div>' +
+            '<span class="role-badge role-' + p._role + '">' + (ROLES[p._role]||p._role) + '</span>';
+        div.onclick = (e) => { if (e.target.type !== 'checkbox') selectPerson(p); };
+        list.appendChild(div);
     });
-    list.innerHTML=html;
-    updateVisCount();
+    updateBatchBar();
 }
 
-function updateVisCount(){
-    const total=VIS_MODULES.length;
-    const checked=document.querySelectorAll('#visModuleList input[type="checkbox"]:checked').length;
-    document.getElementById('visCount').textContent='（'+checked+' / '+total+' 個模組顯示中）';
+function hashCode(s) { let h=0; for(let i=0;i<String(s).length;i++){h=((h<<5)-h)+String(s).charCodeAt(i);h|=0;} return h; }
+
+function toggleCheck(userId, checked) {
+    if (checked) checkedUsers.add(userId);
+    else checkedUsers.delete(userId);
+    renderUserList();
 }
 
-function onVisChange(){
-    visHasChanges=true;
-    document.getElementById('saveBar').classList.add('show');
-    updateVisCount();
+function toggleSelectAll(checked) {
+    const filtered = getFilteredPeople();
+    if (checked) filtered.forEach(p => checkedUsers.add(p.id));
+    else filtered.forEach(p => checkedUsers.delete(p.id));
+    renderUserList();
 }
 
-function applyVisPreset(preset){
-    const allowedIds=VIS_PRESETS[preset]||[];
-    document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb=>{
-        if(preset==='all'){cb.checked=true;}
-        else if(preset==='none'){cb.checked=false;}
-        else{cb.checked=allowedIds.includes(cb.dataset.mod);}
-    });
-    onVisChange();
-    const presetNames={all:'全選',coach:'教練預設',staff:'營運預設',admin:'管理預設',none:'全不選'};
-    showToast('已套用「'+presetNames[preset]+'」');
+function updateBatchBar() {
+    const count = checkedUsers.size;
+    document.getElementById('batchCount').textContent = count > 0 ? '已選 ' + count + ' 人' : '';
+    document.getElementById('batchBtn').disabled = count < 2;
+    const filtered = getFilteredPeople();
+    const allCb = document.getElementById('selectAllCb');
+    allCb.checked = filtered.length > 0 && filtered.every(p => checkedUsers.has(p.id));
+    allCb.indeterminate = !allCb.checked && filtered.some(p => checkedUsers.has(p.id));
 }
 
 // ====================================================================
-//  savePermissionsV2 — 統一儲存（權限 Tab + 模組顯示 Tab）
+//  COMPUTE MODULES
 // ====================================================================
-async function savePermissionsV2(){
-    const visTab=document.getElementById('tab-visibility');
-    const isVisTab=visTab&&visTab.style.display!=='none';
+function getPersonModules(p) {
+    const defaults = new Set(ROLE_DEFAULTS[p._role] || []);
+    (p._modulesAdd || []).forEach(m => defaults.add(m));
+    (p._modulesRemove || []).forEach(m => defaults.delete(m));
+    return defaults;
+}
 
-    if(isVisTab&&visSelectedPerson){
-        // ===== 儲存模組顯示設定 =====
-        const hiddenModules=[];
-        document.querySelectorAll('#visModuleList input[type="checkbox"]').forEach(cb=>{
-            if(!cb.checked)hiddenModules.push(cb.dataset.mod);
-        });
-        try{
-            const table=visSelectedPerson._table;
-            const existingPerms=visSelectedPerson.permissions||{};
-            if(hiddenModules.length>0){existingPerms.hidden_modules=hiddenModules;}
-            else{delete existingPerms.hidden_modules;}
-            const{error}=await callEdge('savePermissions',{table,id:visSelectedPerson.id,permissions:existingPerms}).then(()=>({error:null})).catch(e=>({error:e}));
-            if(error)throw error;
-            visSelectedPerson.permissions=existingPerms;
-            visHasChanges=false;
-            document.getElementById('saveBar').classList.remove('show');
-            showToast('✅ 模組顯示設定已儲存');
-        }catch(e){showToast('❌ 儲存失敗：'+e.message);}
-    }else if(selectedStaff){
-        // ===== 原有的權限儲存邏輯 =====
-        const modules={};const defaults=getEffectiveModulePerms(selectedStaff);
-        document.querySelectorAll('#modulePermBody input[type="checkbox"]').forEach(cb=>{const mod=cb.dataset.mod;const action=cb.dataset.action;const checked=cb.checked;const defaultVal=(defaults[mod]&&defaults[mod][action]===true)||false;if(checked!==defaultVal){if(!modules[mod])modules[mod]={};modules[mod][action]=checked;}});
-        const fields={};const fieldDefaults=getEffectiveFieldPerms(selectedStaff);
-        for(const[modId,modDef]of Object.entries(FIELD_MODULES)){const dFields=fieldDefaults[modId]||{};modDef.fields.forEach(field=>{const name='field_'+modId+'_'+field.id;const radios=document.querySelectorAll('input[name="'+name+'"]');let val=true;radios.forEach(r=>{if(r.checked){if(r.value==='true')val=true;else if(r.value==='masked')val='masked';else val=false;}});const defaultVal=dFields[field.id]!==undefined?dFields[field.id]:true;if(val!==defaultVal){if(!fields[modId])fields[modId]={};fields[modId][field.id]=val;}});}
-        const perms={};if(Object.keys(modules).length>0)perms.modules=modules;if(Object.keys(fields).length>0)perms.fields=fields;
-        const existingHidden=((selectedStaff.permissions||{}).hidden_modules);
-        if(existingHidden&&existingHidden.length>0)perms.hidden_modules=existingHidden;
-        try{
-            const table=selectedStaff._table;
-            const{error}=await callEdge('savePermissions',{table,id:selectedStaff.id,permissions:perms}).then(()=>({error:null})).catch(e=>({error:e}));
-            if(error)throw error;
-            selectedStaff.permissions=perms;hasChanges=false;document.getElementById('saveBar').classList.remove('show');showToast('✅ 權限已儲存');
-        }catch(e){showToast('❌ 儲存失敗：'+e.message);}
+function isOverride(p, moduleId) {
+    return (p._modulesAdd || []).includes(moduleId) || (p._modulesRemove || []).includes(moduleId);
+}
+
+function getActiveDataLevel(p) {
+    return p._dataLevel || DEFAULT_DATA_LEVEL[p._role] || 'public';
+}
+
+// ====================================================================
+//  SELECT PERSON → RENDER PERMISSION CARD
+// ====================================================================
+function selectPerson(p) {
+    selectedPerson = p;
+    renderUserList();
+    const container = document.getElementById('permContent');
+    const enabledModules = getPersonModules(p);
+    const activeLevel = getActiveDataLevel(p);
+    const enabledCount = enabledModules.size;
+    const overrideCount = (p._modulesAdd||[]).length + (p._modulesRemove||[]).length;
+    const colorIdx = Math.abs(hashCode(p.id)) % AVATAR_COLORS.length;
+
+    container.innerHTML = `
+        <div class="permission-card">
+            <div class="card-header">
+                <div class="card-avatar-big" style="background:${AVATAR_COLORS[colorIdx]}">${escHtml((p._label||'?')[0])}</div>
+                <div class="card-info">
+                    <h2>${escHtml(p._label)}</h2>
+                    <p>${escHtml(p._dept||p._table)} ｜ ${ROLES[p._role]||p._role}${overrideCount > 0 ? ' ｜ <span style="color:var(--yellow-dark)">' + overrideCount + ' 個覆蓋</span>' : ''}</p>
+                </div>
+            </div>
+
+            <!-- ROLE -->
+            <div class="card-section">
+                <h3>📌 基礎角色 <span class="hint">決定預設模組</span></h3>
+                <div class="role-select">
+                    ${Object.entries(ROLES).map(([k, v]) => `
+                        <div class="role-option${p._role === k ? ' selected' : ''}" onclick="changeRole('${k}')">${v}</div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- MODULES -->
+            <div class="card-section">
+                <h3>📦 模組權限 <span class="hint">已開 ${enabledCount}/${MODULES.length}</span></h3>
+                <div class="module-grid">
+                    ${MODULES.map(m => {
+                        const on = enabledModules.has(m.id);
+                        const ov = isOverride(p, m.id);
+                        return `
+                        <div class="module-toggle ${on ? 'on' : 'off'}">
+                            <span class="label">
+                                <span class="m-icon">${m.icon}</span>
+                                ${m.name}${ov ? '<span class="override-badge">覆蓋</span>' : ''}
+                            </span>
+                            <label class="toggle">
+                                <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleModule('${m.id}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- DATA LEVEL -->
+            <div class="card-section">
+                <h3>🔒 資料存取權限 <span class="hint">可查看的敏感資料範圍</span></h3>
+                <div class="data-mode-tabs">
+                    <button class="data-mode-tab${p._dataMode !== 'custom' ? ' active' : ''}" onclick="setDataMode('preset')">📋 快速等級</button>
+                    <button class="data-mode-tab${p._dataMode === 'custom' ? ' active' : ''}" onclick="setDataMode('custom')">🔧 逐欄自訂</button>
+                </div>
+                <div id="dataPanel"></div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="card-actions">
+                <button class="btn btn-secondary" onclick="resetPermissions()">↺ 重設為預設</button>
+                <button class="btn btn-primary" onclick="savePermissions()">💾 儲存變更</button>
+            </div>
+        </div>
+    `;
+    renderDataPanel();
+}
+
+// ====================================================================
+//  DATA PANEL (PRESET & CUSTOM)
+// ====================================================================
+function renderDataPanel() {
+    const p = selectedPerson;
+    if (!p) return;
+    const panel = document.getElementById('dataPanel');
+    if (!panel) return;
+    const activeLevel = getActiveDataLevel(p);
+
+    if (p._dataMode !== 'custom') {
+        panel.innerHTML = `
+            <div class="data-level-grid">
+                ${DATA_LEVELS.map(l => `
+                    <div class="level-card level-${l.id}${activeLevel === l.id ? ' selected' : ''}" onclick="setDataLevel('${l.id}')">
+                        <div class="level-indicator">${activeLevel === l.id ? '✓' : ''}</div>
+                        <div class="level-header">
+                            <span class="level-emoji">${l.emoji}</span>
+                            <span class="level-name">${l.name}</span>
+                        </div>
+                        <div class="level-desc">${l.desc}</div>
+                        <div class="level-fields">
+                            <strong>✓</strong> ${l.fields}<br>
+                            <strong>✗</strong> ${l.hidden}<br>
+                            <strong>◎</strong> ${l.suitable}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        const customCount = Object.keys(p._fieldOverrides || {}).length;
+        panel.innerHTML = `
+            <div class="custom-fields-panel">
+                <div class="custom-fields-hint">
+                    💡 自訂模式：以「<strong>${DATA_LEVELS.find(l=>l.id===activeLevel)?.name||'公開'}</strong>」等級為基準，可額外開啟或關閉欄位。
+                    ${customCount > 0 ? '<br>🔸 已自訂 <strong>' + customCount + '</strong> 個覆蓋' : ''}
+                </div>
+                ${DATA_FIELDS.map(cat => `
+                    <div class="field-category">
+                        <div class="field-category-title">${cat.icon} ${cat.category}</div>
+                        <div class="field-grid">
+                            ${cat.fields.map(f => {
+                                const defaultOn = levelIncludes(activeLevel, f.defaultLevel);
+                                const isOv = p._fieldOverrides && p._fieldOverrides[f.id] !== undefined;
+                                const on = isOv ? p._fieldOverrides[f.id] : defaultOn;
+                                const tagClass = f.tag === 'financial' ? 'f-tag-financial' : f.tag === 'personal' ? 'f-tag-personal' : 'f-tag-custom';
+                                const tagLabel = f.tag === 'financial' ? '帳務' : f.tag === 'personal' ? '個資' : '一般';
+                                return `
+                                <div class="field-toggle ${on ? 'on' : 'off'}">
+                                    <span class="f-label">
+                                        <span class="f-icon">${on ? '✅' : '⬜'}</span>
+                                        ${f.name}
+                                        <span class="f-tag ${tagClass}">${tagLabel}</span>
+                                        ${isOv ? '<span class="override-badge">自訂</span>' : ''}
+                                    </span>
+                                    <span class="f-desc">${f.desc}</span>
+                                    <label class="toggle">
+                                        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleField('${f.id}', this.checked, ${defaultOn})">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 }
+
+// ====================================================================
+//  PERMISSION ACTIONS
+// ====================================================================
+function changeRole(role) {
+    if (!selectedPerson) return;
+    selectedPerson._role = role;
+    selectedPerson._modulesAdd = [];
+    selectedPerson._modulesRemove = [];
+    selectedPerson._dataLevel = null;
+    selectedPerson._fieldOverrides = {};
+    selectPerson(selectedPerson);
+}
+
+function toggleModule(id, checked) {
+    if (!selectedPerson) return;
+    const p = selectedPerson;
+    const defaults = new Set(ROLE_DEFAULTS[p._role] || []);
+    p._modulesAdd = (p._modulesAdd||[]).filter(m => m !== id);
+    p._modulesRemove = (p._modulesRemove||[]).filter(m => m !== id);
+    if (checked && !defaults.has(id)) p._modulesAdd.push(id);
+    if (!checked && defaults.has(id)) p._modulesRemove.push(id);
+    selectPerson(p);
+}
+
+function setDataLevel(level) {
+    if (!selectedPerson) return;
+    selectedPerson._dataLevel = level;
+    selectPerson(selectedPerson);
+}
+
+function setDataMode(mode) {
+    if (!selectedPerson) return;
+    selectedPerson._dataMode = mode;
+    selectPerson(selectedPerson);
+}
+
+function toggleField(fieldId, checked, defaultOn) {
+    if (!selectedPerson) return;
+    if (!selectedPerson._fieldOverrides) selectedPerson._fieldOverrides = {};
+    if (checked === defaultOn) {
+        delete selectedPerson._fieldOverrides[fieldId];
+    } else {
+        selectedPerson._fieldOverrides[fieldId] = checked;
+    }
+    renderDataPanel();
+}
+
+function resetPermissions() {
+    if (!selectedPerson) return;
+    selectedPerson._modulesAdd = [];
+    selectedPerson._modulesRemove = [];
+    selectedPerson._dataLevel = null;
+    selectedPerson._dataMode = 'preset';
+    selectedPerson._fieldOverrides = {};
+    selectPerson(selectedPerson);
+    showToast('✓ 已重設為角色預設值');
+}
+
+async function savePermissions() {
+    if (!selectedPerson || isSaving) return;
+    isSaving = true;
+    const p = selectedPerson;
+    try {
+        // 建構要儲存到 DB 的欄位
+        const updateData = {
+            role: p._role,
+            data_level: p._dataLevel || null,
+            data_mode: p._dataMode || 'preset',
+            modules_add: p._modulesAdd || [],
+            modules_remove: p._modulesRemove || [],
+            field_overrides: p._fieldOverrides || {},
+        };
+
+        // 同時更新舊的 permission_level 保持向下相容
+        const roleMap = { super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
+        updateData.permission_level = roleMap[p._role] || p._role;
+
+        // 同時更新 permissions JSONB 以保持舊系統相容
+        // 生成 hidden_modules（modules_remove 就是被隱藏的模組）
+        const enabledModules = getPersonModules(p);
+        const hiddenModules = MODULES.filter(m => !enabledModules.has(m.id)).map(m => m.id);
+        const oldPermissions = p.permissions || {};
+        oldPermissions.hidden_modules = hiddenModules.length > 0 ? hiddenModules : undefined;
+        if (oldPermissions.hidden_modules === undefined) delete oldPermissions.hidden_modules;
+        updateData.permissions = oldPermissions;
+
+        await callEdge('updateStaffPermissions', {
+            table: p._table,
+            id: p.id,
+            updates: updateData
+        });
+
+        showToast('✅ ' + p._label + ' 的權限已儲存');
+    } catch(e) {
+        showToast('❌ 儲存失敗：' + e.message);
+    }
+    isSaving = false;
+}
+
+// ====================================================================
+//  BATCH PANEL
+// ====================================================================
+function showBatchPanel() {
+    if (checkedUsers.size < 2) return;
+    selectedPerson = null;
+    renderUserList();
+    const users = allPeople.filter(p => checkedUsers.has(p.id));
+    const container = document.getElementById('permContent');
+
+    container.innerHTML = `
+        <div class="batch-card">
+            <div class="batch-header">
+                <span style="font-size:28px">👥</span>
+                <div>
+                    <h2>批量設定權限</h2>
+                    <p>同時設定 ${users.length} 位人員</p>
+                </div>
+                <div class="batch-avatars">
+                    ${users.slice(0,5).map(u => {
+                        const ci = Math.abs(hashCode(u.id)) % AVATAR_COLORS.length;
+                        return '<div class="mini-avatar" style="background:' + AVATAR_COLORS[ci] + '" title="' + escHtml(u._label) + '">' + escHtml((u._label||'?')[0]) + '</div>';
+                    }).join('')}
+                    ${users.length > 5 ? '<div class="mini-avatar" style="background:var(--gray)">+' + (users.length-5) + '</div>' : ''}
+                </div>
+            </div>
+            <div class="batch-select-info">
+                ⚠️ 套用到：${users.map(u => '<strong>' + escHtml(u._label) + '</strong>').join('、')}
+            </div>
+
+            <!-- BATCH ROLE -->
+            <div class="card-section">
+                <h3>📌 批量變更角色</h3>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                    <select id="batchRole" style="padding:7px 12px;border:1.5px solid var(--gray-border);border-radius:8px;font-size:12px;font-family:inherit">
+                        <option value="">-- 不變更 --</option>
+                        ${Object.entries(ROLES).map(([k,v]) => '<option value="' + k + '">' + v + '</option>').join('')}
+                    </select>
+                    <button class="batch-apply-btn" onclick="applyBatchRole()">套用角色</button>
+                </div>
+            </div>
+
+            <!-- BATCH MODULES -->
+            <div class="card-section">
+                <h3>📦 批量開關模組 <span class="hint">點擊切換：不變 → 開啟 → 關閉</span></h3>
+                <div class="module-grid">
+                    ${MODULES.map(m => `
+                        <div class="module-toggle on" id="batch-mod-${m.id}" onclick="toggleBatchMod('${m.id}')" style="cursor:pointer">
+                            <span class="label"><span class="m-icon">${m.icon}</span>${m.name}</span>
+                            <span class="batch-mod-state" id="batch-mod-state-${m.id}" style="font-size:11px;font-weight:600;color:var(--gray)">—</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="batch-apply-row">
+                    <button class="batch-apply-btn" onclick="applyBatchModules()">套用模組</button>
+                    <button class="batch-apply-btn" style="background:var(--blue)" onclick="setBatchModAll(true)">全開</button>
+                    <button class="batch-apply-btn danger" onclick="setBatchModAll(false)">全關</button>
+                </div>
+            </div>
+
+            <!-- BATCH DATA LEVEL -->
+            <div class="card-section">
+                <h3>🔒 批量設定資料等級</h3>
+                <div class="data-level-grid">
+                    ${DATA_LEVELS.map(l => `
+                        <div class="level-card level-${l.id}" id="batch-level-${l.id}" onclick="selectBatchLevel('${l.id}')" style="cursor:pointer">
+                            <div class="level-indicator" id="batch-level-ind-${l.id}"></div>
+                            <div class="level-header"><span class="level-emoji">${l.emoji}</span><span class="level-name">${l.name}</span></div>
+                            <div class="level-desc">${l.desc}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="batch-apply-row">
+                    <button class="batch-apply-btn" onclick="applyBatchLevel()">套用資料等級</button>
+                </div>
+            </div>
+
+            <!-- BATCH SAVE -->
+            <div class="card-actions">
+                <button class="btn btn-secondary" onclick="checkedUsers.clear(); renderUserList(); document.getElementById('permContent').innerHTML='';">取消選取</button>
+                <button class="btn btn-primary" onclick="saveBatchPermissions()">💾 批量儲存全部</button>
+            </div>
+        </div>
+    `;
+
+    MODULES.forEach(m => { batchModStates[m.id] = null; updateBatchModUI(m.id); });
+    batchLevelSelected = null;
+}
+
+function toggleBatchMod(id) {
+    const cycle = [null, true, false];
+    const idx = cycle.indexOf(batchModStates[id]);
+    batchModStates[id] = cycle[(idx + 1) % 3];
+    updateBatchModUI(id);
+}
+
+function updateBatchModUI(id) {
+    const state = batchModStates[id];
+    const el = document.getElementById('batch-mod-' + id);
+    const stateEl = document.getElementById('batch-mod-state-' + id);
+    if (!el || !stateEl) return;
+    if (state === true) {
+        el.className = 'module-toggle on';
+        stateEl.textContent = '✓ 開啟';
+        stateEl.style.color = 'var(--green-dark)';
+    } else if (state === false) {
+        el.className = 'module-toggle off';
+        stateEl.textContent = '✗ 關閉';
+        stateEl.style.color = 'var(--pink-dark)';
+    } else {
+        el.className = 'module-toggle on';
+        el.style.opacity = '.6';
+        stateEl.textContent = '— 不變';
+        stateEl.style.color = 'var(--gray)';
+    }
+}
+
+function setBatchModAll(on) {
+    MODULES.forEach(m => { batchModStates[m.id] = on; updateBatchModUI(m.id); });
+}
+
+function selectBatchLevel(id) {
+    batchLevelSelected = batchLevelSelected === id ? null : id;
+    DATA_LEVELS.forEach(l => {
+        const card = document.getElementById('batch-level-' + l.id);
+        const ind = document.getElementById('batch-level-ind-' + l.id);
+        if (card && ind) {
+            if (l.id === batchLevelSelected) { card.classList.add('selected'); ind.textContent = '✓'; }
+            else { card.classList.remove('selected'); ind.textContent = ''; }
+        }
+    });
+}
+
+function applyBatchRole() {
+    const role = document.getElementById('batchRole').value;
+    if (!role) { showToast('⚠️ 請先選擇角色'); return; }
+    const users = allPeople.filter(p => checkedUsers.has(p.id));
+    users.forEach(p => {
+        p._role = role;
+        p._modulesAdd = [];
+        p._modulesRemove = [];
+        p._dataLevel = null;
+        p._fieldOverrides = {};
+    });
+    showToast('✓ 已將 ' + users.length + ' 人角色設為「' + ROLES[role] + '」');
+    renderUserList();
+}
+
+function applyBatchModules() {
+    const users = allPeople.filter(p => checkedUsers.has(p.id));
+    let changeCount = 0;
+    users.forEach(p => {
+        const defaults = new Set(ROLE_DEFAULTS[p._role] || []);
+        if (!p._modulesAdd) p._modulesAdd = [];
+        if (!p._modulesRemove) p._modulesRemove = [];
+        MODULES.forEach(m => {
+            const state = batchModStates[m.id];
+            if (state === null) return;
+            changeCount++;
+            p._modulesAdd = p._modulesAdd.filter(x => x !== m.id);
+            p._modulesRemove = p._modulesRemove.filter(x => x !== m.id);
+            if (state === true && !defaults.has(m.id)) p._modulesAdd.push(m.id);
+            if (state === false && defaults.has(m.id)) p._modulesRemove.push(m.id);
+        });
+    });
+    if (changeCount === 0) { showToast('⚠️ 未選擇任何模組變更'); return; }
+    showToast('✓ 已套用模組設定到 ' + users.length + ' 人');
+}
+
+function applyBatchLevel() {
+    if (!batchLevelSelected) { showToast('⚠️ 請先選擇資料等級'); return; }
+    const users = allPeople.filter(p => checkedUsers.has(p.id));
+    users.forEach(p => { p._dataLevel = batchLevelSelected; p._dataMode = 'preset'; p._fieldOverrides = {}; });
+    showToast('✓ 已將 ' + users.length + ' 人的資料等級設為「' + DATA_LEVELS.find(l => l.id === batchLevelSelected)?.name + '」');
+}
+
+async function saveBatchPermissions() {
+    if (isSaving) return;
+    isSaving = true;
+    const users = allPeople.filter(p => checkedUsers.has(p.id));
+    if (users.length === 0) { isSaving = false; return; }
+
+    showToast('⏳ 正在儲存 ' + users.length + ' 人的權限...');
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const p of users) {
+        try {
+            const roleMap = { super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
+            const enabledModules = getPersonModules(p);
+            const hiddenModules = MODULES.filter(m => !enabledModules.has(m.id)).map(m => m.id);
+            const oldPermissions = p.permissions || {};
+            if (hiddenModules.length > 0) oldPermissions.hidden_modules = hiddenModules;
+            else delete oldPermissions.hidden_modules;
+
+            await callEdge('updateStaffPermissions', {
+                table: p._table,
+                id: p.id,
+                updates: {
+                    role: p._role,
+                    permission_level: roleMap[p._role] || p._role,
+                    data_level: p._dataLevel || null,
+                    data_mode: p._dataMode || 'preset',
+                    modules_add: p._modulesAdd || [],
+                    modules_remove: p._modulesRemove || [],
+                    field_overrides: p._fieldOverrides || {},
+                    permissions: oldPermissions,
+                }
+            });
+            successCount++;
+        } catch(e) { failCount++; }
+    }
+
+    if (failCount === 0) showToast('✅ 已儲存 ' + successCount + ' 人的權限');
+    else showToast('⚠️ 成功 ' + successCount + '，失敗 ' + failCount);
+    isSaving = false;
+}
+
+// ====================================================================
+//  MANUAL SYNC
+// ====================================================================
+async function runManualSync(target) {
+    const targetNames = { all:'全部', students:'學員', coaches:'教練', staff:'營運人員' };
+    const btns = document.querySelectorAll('.sync-btn');
+    btns.forEach(b => b.disabled = true);
+    showToast('⏳ 正在同步' + targetNames[target] + '...');
+    document.getElementById('syncResult').style.display = 'none';
+
+    try {
+        const result = await callEdge('manualSync', { target });
+        if (!result.success) { showToast('❌ 同步失敗：' + (result.error || '')); btns.forEach(b => b.disabled = false); return; }
+        let html = '';
+        const r = result.results || {};
+        if (r.students) html += '<div class="sync-result-item">👤 <span class="label">學員</span> <span class="value">更新 ' + r.students.updated + ' / 新增 ' + r.students.inserted + ' / 略過 ' + r.students.skipped + '</span></div>';
+        if (r.coaches) html += '<div class="sync-result-item">👨‍🏫 <span class="label">教練</span> <span class="value">更新 ' + (r.coaches.updated||0) + ' / 新增 ' + (r.coaches.inserted||0) + ' / 略過 ' + (r.coaches.skipped||0) + '</span></div>';
+        if (r.staff) html += '<div class="sync-result-item">👥 <span class="label">營運</span> <span class="value">' + r.staff + ' 筆</span></div>';
+        if (!html) html = '<div class="sync-result-item">✅ 同步完成</div>';
+        html += '<div class="sync-result-item" style="color:var(--text-muted);font-size:11px;">⏰ ' + new Date().toLocaleString('zh-TW', { timeZone:'Asia/Taipei' }) + '</div>';
+        document.getElementById('syncResultBody').innerHTML = html;
+        document.getElementById('syncResult').style.display = '';
+        showToast('✅ 同步完成');
+    } catch(e) { showToast('❌ 同步失敗：' + e.message); }
+    btns.forEach(b => b.disabled = false);
+}
+
+// ====================================================================
+//  HELPERS
+// ====================================================================
+function escHtml(t) { if (t == null) return ''; const d = document.createElement('div'); d.textContent = String(t); return d.innerHTML; }
+
+let toastTimer = null;
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ====================================================================
+//  BOOTSTRAP
+// ====================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    if (initPermissions()) await loadAllPeople();
+});
 </script>
 </body>
 </html>
