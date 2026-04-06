@@ -1245,7 +1245,6 @@
 
         renderModules();
         renderUtilities();
-        showLineBindBannerIfNeeded();
     }
 
     function getOrderedModules() {
@@ -2265,42 +2264,6 @@
         window.location.href = bindUrl;
     }
 
-    function showLineBindBannerIfNeeded() {
-        // 移除舊的 banner
-        const old = document.getElementById('lineBindBanner');
-        if (old) old.remove();
-
-        if (!HENGDIAN_LIFF_ID || !currentUser) return;
-        if (sessionStorage.getItem('lineBindDismissed')) return;
-        const raw = currentUser.source === 'staff' ? currentUser.staff_data : currentUser.coach_data;
-        if (!raw || raw.line_id) return; // 已綁定，不需顯示
-
-        const banner = document.createElement('div');
-        banner.id = 'lineBindBanner';
-        banner.style.cssText = 'background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:12px;padding:14px 18px;margin:0 16px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.08);';
-        banner.innerHTML = `
-            <div style="flex:1">
-                <div style="font-weight:600;font-size:14px;color:#2e7d32;">🔗 綁定 LINE 帳號</div>
-                <div style="font-size:12px;color:#666;margin-top:2px;">綁定後可接收排班通知與訊息推播</div>
-            </div>
-            <button onclick="doLineBindRedirect()" style="background:#06C755;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">前往綁定</button>
-            <button onclick="dismissLineBind()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px 8px;margin-left:4px;">✕</button>
-        `;
-        const grid = document.getElementById('moduleGrid');
-        grid.parentNode.insertBefore(banner, grid);
-    }
-
-    function doLineBindRedirect() {
-        const raw = currentUser.source === 'staff' ? currentUser.staff_data : currentUser.coach_data;
-        const bindUrl = `https://liff.line.me/${HENGDIAN_LIFF_ID}?action=bind&table=${currentUser.source === 'staff' ? 'staff' : 'coaches'}&id=${raw.id}`;
-        window.location.href = bindUrl;
-    }
-
-    function dismissLineBind() {
-        const banner = document.getElementById('lineBindBanner');
-        if (banner) banner.remove();
-        sessionStorage.setItem('lineBindDismissed', '1');
-    }
     </script>
 </body>
 </html>
