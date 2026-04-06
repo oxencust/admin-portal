@@ -1114,8 +1114,8 @@
 
             if (staff) {
                 // ---- 有 staff 身分（不論 status）----
-                // 優先使用新 role 欄位，再 fallback 到舊 permission_level
-                role = staff.role || staff.permission_level || 'employee';
+                // 優先使用 permission_level，再 fallback 到 role
+                role = staff.permission_level || staff.role || 'employee';
                 // 映射舊角色名到新角色名
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
@@ -1132,7 +1132,8 @@
                 }
             } else {
                 // ---- 純教練（不在 staff 表）----
-                role = coach.role || coach.permission_level || 'coach';
+                // 優先使用 permission_level，再 fallback 到 role
+                role = coach.permission_level || coach.role || 'coach';
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
                 if (role === 'viewer') role = 'analyst';
