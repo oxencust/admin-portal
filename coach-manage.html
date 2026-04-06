@@ -123,7 +123,7 @@ const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','�
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('role')||'staff'};}
+    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('permission_level')||p.get('role')||'employee'};}
     if(!currentUser){document.getElementById('coachList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
@@ -179,7 +179,7 @@ function applyFilter(){
         if(statusFilter==='active'&&c.is_active===false)return false;
         if(statusFilter==='archived'&&c.is_active!==false)return false;
         if(currentFilter!=='all'&&!(c.specialties||[]).includes(currentFilter))return false;
-        if(searchTerm&&!((c.name||'').includes(searchTerm)||(c.real_name||'').includes(searchTerm)||(c.coach_code||'').includes(searchTerm)))return false;
+        if(searchTerm&&!((c.name||'').includes(searchTerm)||(c.real_name||'').includes(searchTerm)||(c.id||'').includes(searchTerm)))return false;
         return true;
     });
     renderCoaches();
@@ -201,7 +201,7 @@ function renderCoachCard(co){
         let tags='';specs.forEach(s=>{tags+='<span class="a-tag '+(specClass[s]||'')+'">'+specIcons[s]+' '+(specNames[s]||s)+'</span>';});
         tags+='<span class="a-tag '+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'啟用':'停用')+'</span>';
         let grid='';
-        if(co.coach_code)grid+=af('編號',escHtml(co.coach_code));
+        if(co.id)grid+=af('編號',escHtml(co.id));
         if(isVis('phone')&&co.phone)grid+=af('電話',getFD('phone',co.phone,'phone'));
         if(co.real_name&&co.real_name!==co.name)grid+=af('本名',escHtml(co.real_name));
         if(genderNames[co.gender])grid+=af('性別',genderNames[co.gender]);
@@ -218,7 +218,7 @@ function renderCoachCard(co){
         if(co.line_group_id)exp+=aff('教務群組ID','<span style="font-size:10px;">'+escHtml(co.line_group_id)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
         if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
-        return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(co.name)+(co.real_name&&co.real_name!==co.name?' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(co.real_name)+')</span>':'')+'</div><div class="a-meta"><span>'+(co.coach_code||co.id.substring(0,8))+'</span>'+specs.map(s=>'<span>'+(specNames[s]||s)+'</span>').join('')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
+        return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(co.name)+(co.real_name&&co.real_name!==co.name?' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(co.real_name)+')</span>':'')+'</div><div class="a-meta"><span>'+co.id+'</span>'+specs.map(s=>'<span>'+(specNames[s]||s)+'</span>').join('')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
 }
 function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'</span><span class="a-field-value">'+v+'</span></div>';}
 function aff(l,v){return '<div class="a-field full"><span class="a-field-label">'+l+'</span><span class="a-field-value" style="white-space:normal;">'+v+'</span></div>';}
@@ -228,7 +228,7 @@ function viewDetail(id){
     const co=allCoaches.find(x=>x.id===id);if(!co)return;
     document.getElementById('detailTitle').textContent=co.name;
     let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
-    h+=ddf('編號',escHtml(co.coach_code||co.id));h+=ddf('教練名稱',escHtml(co.name));
+    h+=ddf('編號',escHtml(co.id));h+=ddf('教練名稱',escHtml(co.name));
     if(co.real_name)h+=ddf('本名',escHtml(co.real_name));h+=ddf('性別',genderNames[co.gender]||'-');
     if(isVis('birthday'))h+=ddf('生日',getFD('birthday',co.birthday));
     h+=ddf('狀態',co.is_active!==false?'啟用':'停用');
@@ -261,7 +261,7 @@ function editCoach(id){
     document.getElementById('editTitle').textContent='編輯：'+co.name;
     function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
     let h='';
-    h+=fg('教練編號','text','e_code',co.coach_code||co.id,true);
+    h+=fg('教練編號','text','e_code',co.id,true);
     h+=fg('教練名稱','text','e_name',co.name,true);
     h+=fg('本名','text','e_rname',co.real_name,ro(co.real_name));
     h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(co.gender),ro(co.gender));
@@ -282,15 +282,10 @@ function editCoach(id){
     h+=fta('備註','e_notes',co.notes,ro(co.notes));
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
 }
-async function generateCoachCode(primarySpec){
-    const prefixMap={pilates:'HDP',weight:'HDT',stretch:'HDF',ai:'HDM'};
-    const prefix=prefixMap[primarySpec];
-    if(!prefix)return null;
-    const yr=String(new Date().getFullYear()).slice(-2);
-    const full=prefix+yr;
-    const{data}=await callEdge('generateCoachCode',{prefix:full});
-    if(data&&data.length>0){const last=parseInt(data[0].coach_code.slice(5))||0;return full+String(last+1).padStart(5,'0');}
-    return full+'00001';
+async function generatePersonId(){
+    const result=await callEdge('generatePersonId',{});
+    if(result&&result.success){return result.nextId;}
+    return null;
 }
 async function saveCoach(){
     const isCreate=!editingCoach;
@@ -301,19 +296,19 @@ async function saveCoach(){
         if(specs.length===0){showToast('請至少選擇一種課程類型');return;}
         try{
             showToast('⏳ 新增中...');
-            const primarySpec=specs[0];
-            const coachCode=await generateCoachCode(primarySpec);
-            const newCoach={name:name,real_name:val('e_rname')||null,
+            const personId=await generatePersonId();
+            if(!personId){showToast('❌ 無法生成ID');return;}
+            const newCoach={id:personId,name:name,real_name:val('e_rname')||null,
                 gender:val('e_gender')||null,phone:val('e_phone')||null,email:val('e_email')||null,
                 birthday:val('e_bday')||null,specialties:specs,is_active:val('e_active')!=='false',
                 certifications:val('e_cert')||null,notes:val('e_notes')||null,
                 emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
                 emergency_relation:val('e_er')||null,
-                coach_code:coachCode,permission_level:'coach',
+                permission_level:'coach',
                 created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
             const{data:inserted,error}=await callEdge('addCoach',{coach:newCoach}).then(r=>({data:r.data,error:null})).catch(e=>({data:null,error:e}));
             if(error)throw error;
-            showToast('✅ 已新增（編號：'+coachCode+'）');closeModal('editModal');
+            showToast('✅ 已新增（編號：'+personId+'）');closeModal('editModal');
             await loadCoaches();
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
     }else{
