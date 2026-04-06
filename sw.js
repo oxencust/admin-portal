@@ -21,6 +21,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // 只處理 GET 請求（Cache API 不支援 POST）
+  if (event.request.method !== 'GET') return;
+
   // API 呼叫不快取
   if (url.pathname.includes('/functions/') || url.hostname.includes('supabase')) {
     return;
