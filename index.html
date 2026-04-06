@@ -997,7 +997,7 @@
         const staffFields = {
             phone:'phone', email:'email', birthday:'birthday', address:'address',
             emergency_contact:'emergency_contact', emergency_phone:'emergency_phone',
-            line_id:'id_number', line_id_edu:'id_number'
+            line_uid:'id_number', line_id_edu:'id_number'
         };
         const staffResult = {};
         for (const [dbField, v2Field] of Object.entries(staffFields)) {
@@ -1115,7 +1115,7 @@
             if (staff) {
                 // ---- 有 staff 身分（不論 status）----
                 // 優先使用 permission_level，再 fallback 到 role
-                role = staff.permission_level || staff.role || 'employee';
+                role = staff.permission_level || 'employee';
                 // 映射舊角色名到新角色名
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
@@ -1133,7 +1133,7 @@
             } else {
                 // ---- 純教練（不在 staff 表）----
                 // 優先使用 permission_level，再 fallback 到 role
-                role = coach.permission_level || coach.role || 'coach';
+                role = coach.permission_level || 'coach';
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
                 if (role === 'viewer') role = 'analyst';
@@ -1142,7 +1142,7 @@
                 staffType = '';
                 dbPerms = coach.permissions || {};
                 userName = coach.name || displayName;
-                userId = coach.coach_code || coach.id;
+                userId = coach.id;
                 if (coach.modules_add || coach.modules_remove) {
                     hiddenModules = computeHiddenModulesV2(role, coach.modules_add || [], coach.modules_remove || []);
                 } else {
@@ -1548,7 +1548,7 @@
         // 教練專屬參數
         if (useCoachIdentity) {
             baseParams.coach_name = coachData.name;
-            baseParams.coach_id = coachData.coach_code || coachData.id;
+            baseParams.coach_id = coachData.id;
             if (coachData.coach_type) baseParams.coach_type = coachData.coach_type;
             if (coachData.line_id_edu) baseParams.line_id_edu = coachData.line_id_edu;
         }
@@ -1563,7 +1563,7 @@
                     .replace('{uid}', currentUser.lineUid)
                     .replace('{role}', currentUser.role)
                     .replace('{type}', resolvedType || '');
-                if (key === 'teacher') replaced = replaced.toLowerCase();
+                // 不再強制小寫，保持原始大小寫以匹配 DB
                 baseParams[key] = replaced;
             }
         }
@@ -2249,7 +2249,7 @@
     function tryBindHengdianLineId() {
         if (!HENGDIAN_LIFF_ID) return;
         const raw = currentUser.source === 'staff' ? currentUser.staff_data : currentUser.coach_data;
-        if (raw && raw.line_id) return; // 已綁定
+        if (raw && raw.line_uid) return; // 已綁定
 
         // 只在 LINE 環境內（LIFF 瀏覽器或 LINE 內建瀏覽器）才自動跳轉綁定
         // 外部瀏覽器（電腦、手機 Safari/Chrome）不跳轉，避免 404
