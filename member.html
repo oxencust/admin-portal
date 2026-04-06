@@ -162,7 +162,7 @@ const expNames={'pilates':'皮拉提斯','weight':'重量訓練','stretch':'伸�
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'使用者',role:p.get('role')||'staff'};}
+    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'使用者',role:p.get('permission_level')||p.get('role')||'employee'};}
     if(!currentUser){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
@@ -325,10 +325,13 @@ async function saveStudent(){
 
             // ── 2. 主寫入：Edge Function（含 GAS 回寫 Google Sheet）──
             const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,updated_at:new Date().toISOString()};
-            const{error}=await callEdge('addStudent',{student});
-            if(error){showToast('❌ 新增失敗：'+error);return;}
+            const result=await callEdge('addStudent',{student});
+            if(result.error){showToast('❌ 新增失敗：'+result.error);return;}
 
-            showToast('✅ 已新增：' + newId);
+            // 顯示 GAS 診斷結果（除錯用，之後可移除）
+            console.log('GAS debug:', result.gasDebug);
+            const gasInfo = result.gasDebug ? '\n[GAS: '+result.gasDebug+']' : '';
+            showToast('✅ 已新增：' + newId + gasInfo, 5000);
             closeModal('editModal');
             await loadStudents();
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
