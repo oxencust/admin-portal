@@ -348,7 +348,7 @@ async function loadAll() {
             submittedAt: r.submitted_at || '',
             closed: r.closed || false,
             name: r.member_name || '',
-            lineId: r.line_id || '',
+            lineId: r.line_uid || '',
             displayName: r.display_name || '',
             phone: r.member_phone || '',
             birthday: r.birthday || '',
@@ -863,7 +863,7 @@ async function confirmSave() {
         const updateData = {
             member_name: ch.name,
             member_phone: ch.phone,
-            line_id: ch.lineId,
+            line_uid: ch.lineId,
             display_name: ch.displayName,
             gender: ch.gender,
             birthday: ch.birthday,
