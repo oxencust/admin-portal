@@ -2113,8 +2113,8 @@
         // 動態產生表單欄位
         const formEl = document.getElementById('profileFormFields');
         const fields = isCoach ? [
-            { key: 'name', label: '教練本名', type: 'text', required: true },
-            { key: 'nickname', label: '教練名稱（顯示用）', type: 'text', required: true },
+            { key: 'real_name', label: '教練本名', type: 'text', required: true },
+            { key: 'name', label: '教練名稱（顯示用）', type: 'text', required: true },
             { key: 'coach_type', label: '教練類型', type: 'select', options: ['strength_training', 'pilates', 'stretch', 'ai'], optionLabels: ['重量訓練', '皮拉提斯', '伸展', 'AI體態'], required: true },
             { key: 'phone', label: '電話', type: 'tel', required: true },
             { key: 'gender', label: '性別', type: 'select', options: ['男', '女'], required: true },
@@ -2200,7 +2200,7 @@
             const otherData = src === 'staff' ? currentUser.coach_data : currentUser.staff_data;
             if (otherData) {
                 const sharedFields = {};
-                ['name', 'nickname', 'phone', 'gender', 'birthday', 'email',
+                ['name', 'real_name', 'phone', 'gender', 'birthday', 'email',
                  'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
                     if (profileData[key]) sharedFields[key] = profileData[key];
                 });
@@ -2219,7 +2219,7 @@
             }
             if (currentUser.coach_data) {
                 const sharedUpdate = {};
-                ['name', 'nickname', 'phone', 'gender', 'birthday', 'email',
+                ['name', 'real_name', 'phone', 'gender', 'birthday', 'email',
                  'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
                     if (profileData[key]) sharedUpdate[key] = profileData[key];
                 });
