@@ -509,7 +509,7 @@ async function initPermissions() {
     try { currentUser = JSON.parse(sessionStorage.getItem('currentStaff')); } catch(e) {}
     if (!currentUser) {
         const p = new URLSearchParams(window.location.search);
-        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('role')||'staff', lineUid: p.get('uid') };
+        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('permission_level')||p.get('role')||'employee', lineUid: p.get('uid') };
     }
     if (!currentUser) {
         showBlockedScreen('🔒', '無法識別身份，請從入口頁面登入');
@@ -535,11 +535,11 @@ async function initPermissions() {
         let dbName = currentUser.name;
         let dbDept = '';
         if (staff) {
-            dbRole = staff.role || staff.permission_level || 'employee';
+            dbRole = staff.permission_level || 'employee';
             dbName = staff.nickname || staff.name || currentUser.name;
             dbDept = staff.department || '';
         } else if (coach) {
-            dbRole = coach.role || coach.permission_level || 'coach';
+            dbRole = coach.permission_level || 'coach';
             dbName = coach.name || currentUser.name;
         }
         // 映射舊角色名
@@ -578,7 +578,7 @@ async function loadAllPeople() {
         const result = await callEdge('getAllPeople');
         const staffData = (result.staff||[]).map(s => {
             // 映射舊角色名到新角色名
-            let role = s.role || s.permission_level || 'employee';
+            let role = s.permission_level || 'employee';
             if (role === 'admin') role = 'manager';
             if (role === 'staff') role = 'employee';
             if (role === 'viewer') role = 'analyst';
@@ -598,7 +598,7 @@ async function loadAllPeople() {
             };
         });
         const coachData = (result.coaches||[]).map(c => {
-            let role = c.role || c.permission_level || 'coach';
+            let role = c.permission_level || 'coach';
             if (role === 'admin') role = 'manager';
             if (role === 'staff') role = 'employee';
             if (role === 'viewer') role = 'analyst';
