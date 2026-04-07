@@ -17,54 +17,7 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <!-- supabase-js CDN 已移除，改用 Edge Function -->
     <style>
-        /* ── PWA Install Banner ── */
-        .pwa-install-banner {
-            display: none;
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            z-index: 9999;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid rgba(0,0,0,0.08);
-            padding: 12px 16px;
-            box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
-            animation: slideUpBanner 0.35s ease-out;
-        }
-        @keyframes slideUpBanner {
-            from { transform: translateY(100%); opacity: 0; }
-            to   { transform: translateY(0);    opacity: 1; }
-        }
-        .pwa-install-banner.show { display: flex; align-items: center; gap: 12px; }
-        .pwa-install-banner .banner-icon {
-            width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
-        }
-        .pwa-install-banner .banner-text {
-            flex: 1; min-width: 0;
-        }
-        .pwa-install-banner .banner-title {
-            font-size: 14px; font-weight: 600; color: #2d3436;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .pwa-install-banner .banner-desc {
-            font-size: 11px; color: #888; margin-top: 2px;
-        }
-        .pwa-install-banner .banner-install-btn {
-            flex-shrink: 0;
-            padding: 8px 18px;
-            background: var(--green-dark);
-            color: #fff;
-            border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600;
-            cursor: pointer;
-        }
-        .pwa-install-banner .banner-close-btn {
-            flex-shrink: 0;
-            background: none; border: none;
-            font-size: 20px; color: #aaa;
-            cursor: pointer; padding: 4px;
-            line-height: 1;
-        }
+        /* PWA Install Banner — 已移除 */
         /* iOS 提示底部小箭頭 */
         .ios-share-icon {
             display: inline-block; width: 18px; height: 18px; vertical-align: middle;
@@ -1791,74 +1744,7 @@
         document.getElementById('loginScreen').classList.add('show');
     }
 
-    // PWA standalone 模式：手機號碼登入
-    function showPwaPhoneLogin() {
-        document.getElementById('loadingScreen').classList.add('hide');
-        document.getElementById('mainApp').style.display = 'block';
-        document.querySelector('.main').innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;text-align:center;padding:20px;">
-                <img src="icon-192.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;" alt="衡點">
-                <h2 style="color:var(--green-dark);margin-bottom:4px;">衡點行政管理</h2>
-                <p style="color:#888;margin-bottom:24px;font-size:13px;">請輸入手機號碼登入</p>
-                <input id="pwaPhoneInput" type="tel" placeholder="例：0912345678"
-                    style="width:240px;padding:14px 16px;border:2px solid #ddd;border-radius:12px;font-size:16px;text-align:center;outline:none;transition:border .2s;"
-                    onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='#ddd'"
-                    maxlength="10">
-                <button id="pwaPhoneBtn" onclick="pwaPhoneLogin()"
-                    style="margin-top:16px;width:240px;padding:14px;background:var(--green-dark);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;">
-                    登入
-                </button>
-                <p id="pwaPhoneError" style="color:var(--danger);margin-top:12px;font-size:13px;display:none;"></p>
-                <p style="color:#bbb;margin-top:24px;font-size:11px;">首次使用前請先透過 LINE 完成身份綁定</p>
-            </div>`;
-        // Enter 鍵觸發登入
-        document.getElementById('pwaPhoneInput').addEventListener('keydown', e => {
-            if (e.key === 'Enter') pwaPhoneLogin();
-        });
-        setTimeout(() => document.getElementById('pwaPhoneInput').focus(), 300);
-    }
-
-    async function pwaPhoneLogin() {
-        const input = document.getElementById('pwaPhoneInput');
-        const btn = document.getElementById('pwaPhoneBtn');
-        const errEl = document.getElementById('pwaPhoneError');
-        const phone = (input.value || '').trim();
-
-        if (!phone || phone.length < 8) {
-            errEl.textContent = '請輸入正確的手機號碼';
-            errEl.style.display = 'block';
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = '驗證中...';
-        errEl.style.display = 'none';
-
-        try {
-            const result = await callEdge('verifyUserByPhone', { phone });
-            const staff = result.staff || null;
-            const coach = result.coach || null;
-
-            if (!staff && !coach) {
-                errEl.textContent = '找不到此手機號碼的員工資料';
-                errEl.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = '登入';
-                return;
-            }
-
-            // 取得 lineUid（用於子頁面傳參）
-            const lineUid = (staff && staff.line_id_edu) || (coach && coach.line_id_edu) || '';
-
-            // 用與 authenticateWithStaff 相同的邏輯建立 currentUser
-            await authenticateWithStaff(lineUid, staff?.nickname || staff?.name || coach?.name || '');
-        } catch(e) {
-            errEl.textContent = e.message || '登入失敗，請稍後再試';
-            errEl.style.display = 'block';
-            btn.disabled = false;
-            btn.textContent = '登入';
-        }
-    }
+    // showPwaPhoneLogin / pwaPhoneLogin — 已移除（dead code）
 
     // ====================================================================
     //  邀請碼註冊畫面
@@ -2384,91 +2270,10 @@
         window.location.href = bindUrl;
     }
 
-    // ====================================================================
-    //  PWA Install Banner（類似 FitBook 安裝提示）
-    // ====================================================================
-    let _deferredInstallPrompt = null;
-
-    // Android / Chrome: 攔截 beforeinstallprompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        _deferredInstallPrompt = e;
-        showPwaInstallBanner('android');
-    });
-
-    // iOS Safari: 偵測未安裝 → 顯示引導
-    function checkIosInstallBanner() {
-        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        const isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        const dismissed = localStorage.getItem('pwa_install_dismissed');
-
-        if (isIos && isSafari && !isStandalone && !dismissed) {
-            showPwaInstallBanner('ios');
-        }
-    }
-
-    function showPwaInstallBanner(platform) {
-        // 已關閉過就不再顯示（24 小時內）
-        const dismissed = localStorage.getItem('pwa_install_dismissed');
-        if (dismissed && Date.now() - parseInt(dismissed) < 86400000) return;
-
-        const banner = document.getElementById('pwaInstallBanner');
-        const btn = document.getElementById('pwaInstallBtn');
-        const desc = document.getElementById('pwaInstallDesc');
-
-        if (platform === 'ios') {
-            const shareIcon = '<svg class="ios-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><rect x="4" y="13" width="16" height="8" rx="2"/></svg>';
-            desc.innerHTML = '點擊下方 ' + shareIcon + ' 分享 → <b>加入主畫面</b>';
-            btn.textContent = '了解';
-            btn.onclick = () => {
-                alert('步驟：\n1. 點擊 Safari 底部的 分享按鈕（方框+箭頭圖示）\n2. 向下滑找到「加入主畫面」\n3. 點擊「新增」即可完成安裝');
-            };
-        } else {
-            desc.textContent = '安裝到桌面，快速開啟';
-            btn.textContent = '安裝';
-            btn.onclick = async () => {
-                if (_deferredInstallPrompt) {
-                    _deferredInstallPrompt.prompt();
-                    const { outcome } = await _deferredInstallPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        banner.classList.remove('show');
-                    }
-                    _deferredInstallPrompt = null;
-                }
-            };
-        }
-
-        banner.classList.add('show');
-    }
-
-    function dismissInstallBanner() {
-        document.getElementById('pwaInstallBanner').classList.remove('show');
-        localStorage.setItem('pwa_install_dismissed', String(Date.now()));
-    }
-
-    // 已安裝後自動隱藏
-    window.addEventListener('appinstalled', () => {
-        document.getElementById('pwaInstallBanner').classList.remove('show');
-        localStorage.setItem('pwa_install_dismissed', String(Date.now()));
-    });
-
-    // 頁面載入後延遲顯示 iOS banner（等登入完成）
-    window.addEventListener('load', () => {
-        setTimeout(checkIosInstallBanner, 3000);
-    });
+    // PWA Install Banner — 已移除
 
     </script>
 
-    <!-- PWA Install Banner HTML -->
-    <div id="pwaInstallBanner" class="pwa-install-banner">
-        <img src="icon-192.png" alt="衡點" class="banner-icon">
-        <div class="banner-text">
-            <div class="banner-title">衡點 Dash</div>
-            <div class="banner-desc" id="pwaInstallDesc">安裝應用到桌面，快速開啟</div>
-        </div>
-        <button class="banner-install-btn" id="pwaInstallBtn">安裝</button>
-        <button class="banner-close-btn" onclick="dismissInstallBanner()" aria-label="關閉">&times;</button>
-    </div>
+    <!-- PWA Install Banner — 已移除 -->
 </body>
 </html>
