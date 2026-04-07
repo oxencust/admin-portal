@@ -1036,7 +1036,7 @@
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
 
-            // PWA 獨立模式：嘗試從 localStorage / sessionStorage 復原登入狀態
+            // PWA 獨立模式：嘗試從 localStorage 復原登入狀態
             if (isStandalone) {
                 const cached = sessionStorage.getItem('currentStaff') || localStorage.getItem('pwa_currentStaff');
                 if (cached) {
@@ -1054,9 +1054,8 @@
                         localStorage.removeItem('pwa_currentStaff');
                     }
                 }
-                // 沒有快取 → 顯示手動跳轉按鈕（不自動跳轉，避免循環）
-                showPwaLoginPrompt();
-                return;
+                // 沒有快取 → 不 return，繼續往下跑 LIFF OAuth 流程
+                // LIFF OAuth 在 PWA 的瀏覽器內完成，localStorage 可正常保存
             }
 
             // 偵測從 LINE 綁定回來的 ?bind=success
