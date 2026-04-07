@@ -1568,9 +1568,21 @@
         const coachData = currentUser.coach_data;
         const useCoachIdentity = coachData && COACH_MODULES.includes(mod.id);
 
-        // 如果是體驗排程 + 教練有多個專長 → 先讓教練選
-        if (mod.id === 'trial-schedule' && useCoachIdentity && coachData.specialties && coachData.specialties.length > 1) {
-            showSpecialtyPicker(coachData.specialties, function(selectedType) {
+        // 體驗排程：直接用 coachId 進入，不再需要選類型（前端會從 API 取得 coach_type）
+        if (mod.id === 'trial-schedule' && useCoachIdentity) {
+            doNavigate(mod, '');
+            return;
+        }
+
+        // 解析 specialties（可能是陣列或 PostgreSQL 字串 "{a,b}"）
+        let specArr = coachData?.specialties || [];
+        if (typeof specArr === 'string') {
+            specArr = specArr.replace(/^\{|\}$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        // 其他模組：如果有多個專長 → 先讓教練選
+        if (useCoachIdentity && specArr.length > 1) {
+            showSpecialtyPicker(specArr, function(selectedType) {
                 doNavigate(mod, selectedType);
             });
             return;
@@ -1578,8 +1590,12 @@
 
         // 自動解析 type（單一專長或非教練）
         let autoType = '';
-        if (useCoachIdentity && coachData.specialties && coachData.specialties.length === 1) {
-            autoType = SPEC_TYPE_NAMES[coachData.specialties[0]] || '';
+        if (useCoachIdentity && specArr.length === 1) {
+            autoType = SPEC_TYPE_NAMES[specArr[0]] || '';
+        }
+        // fallback: 如果 specialties 沒有值，用 coach_type
+        if (!autoType && useCoachIdentity && coachData.coach_type) {
+            autoType = SPEC_TYPE_NAMES[coachData.coach_type] || '';
         }
         doNavigate(mod, autoType);
     }
@@ -1764,7 +1780,7 @@
     }
 
     function getRoleDisplay(r) {
-        return { super_admin:'超級管理員', admin:'管理員', staff:'營運人員', coach:'教練', viewer:'檢視者' }[r] || r;
+        return { super_admin:'超級管理員', admin:'管理員', manager:'部門主管', staff:'營運人員', employee:'一般員工', coach:'教練', viewer:'檢視者', analyst:'分析師' }[r] || r;
     }
 
     function updateLoadingText(t) { const e = document.querySelector('.loading-text'); if(e) e.textContent = t; }
