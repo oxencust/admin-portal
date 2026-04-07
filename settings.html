@@ -631,8 +631,51 @@ async function loadAllPeople() {
             };
         });
 
-        // super_admin 不顯示在可設定清單（manager 只能設定自己部門的人）
-        allPeople = [...staffData.filter(s => s._role !== 'super_admin'), ...coachData.filter(c => c._role !== 'super_admin')];
+        // ── 合併雙重身份：同一個 line_id_edu 出現在 staff + coaches 的人，合併為一筆 ──
+        const staffFiltered = staffData.filter(s => s._role !== 'super_admin');
+        const coachFiltered = coachData.filter(c => c._role !== 'super_admin');
+
+        // 建立 line_id_edu → coach 的對照表
+        const coachByLineId = {};
+        coachFiltered.forEach(c => {
+            if (c.line_id_edu) coachByLineId[c.line_id_edu] = c;
+        });
+
+        const mergedPeople = [];
+        const mergedCoachIds = new Set(); // 記錄已被合併的 coach id
+
+        staffFiltered.forEach(s => {
+            if (s.line_id_edu && coachByLineId[s.line_id_edu]) {
+                // 雙重身份：合併
+                const c = coachByLineId[s.line_id_edu];
+                mergedCoachIds.add(c.id);
+                // 角色取較高的（super_admin > manager > employee > coach > analyst）
+                const ROLE_PRIORITY = { super_admin:5, manager:4, employee:3, coach:2, analyst:1 };
+                const mainRole = (ROLE_PRIORITY[s._role]||0) >= (ROLE_PRIORITY[c._role]||0) ? s._role : c._role;
+                mergedPeople.push({
+                    ...s,
+                    _role: mainRole,
+                    _isDual: true,
+                    _staffData: s,
+                    _coachData: c,
+                    _label: (s.nickname || s.name) + (c.name && c.name !== s.name && c.name !== s.nickname ? ' (' + c.name + ')' : ''),
+                    _dept: (s.department || s._dept || '') + (c._dept ? ' + ' + c._dept : ''),
+                    _dualLabel: '員工 + 教練',
+                    // 模組：合併兩邊的 add/remove（聯集）
+                    _modulesAdd: [...new Set([...(s._modulesAdd||[]), ...(c._modulesAdd||[])])],
+                    _modulesRemove: [...new Set([...(s._modulesRemove||[]), ...(c._modulesRemove||[])])],
+                });
+            } else {
+                mergedPeople.push(s);
+            }
+        });
+
+        // 加入未被合併的純教練
+        coachFiltered.forEach(c => {
+            if (!mergedCoachIds.has(c.id)) mergedPeople.push(c);
+        });
+
+        allPeople = mergedPeople;
 
         // 如果登入者是 manager，只顯示自己部門
         if (currentUser.role === 'manager' || currentUser.role === 'admin') {
@@ -641,10 +684,11 @@ async function loadAllPeople() {
         }
 
         // Stats
-        const staffCount = staffData.filter(s => s._role !== 'super_admin').length;
-        const coachCount = coachData.filter(c => c._role !== 'super_admin').length;
+        const staffCount = staffFiltered.length;
+        const coachCount = coachFiltered.length;
+        const dualCount = mergedCoachIds.size;
         const managerCount = allPeople.filter(p => p._role === 'manager').length;
-        document.getElementById('topSub').textContent = '共 ' + allPeople.length + ' 位可設定人員';
+        document.getElementById('topSub').textContent = '共 ' + allPeople.length + ' 位可設定人員' + (dualCount > 0 ? '（含 ' + dualCount + ' 位雙重身份）' : '');
         document.getElementById('quickStats').innerHTML =
             '<div class="qs"><div class="qs-num">' + staffCount + '</div><div class="qs-label">👥 營運</div></div>' +
             '<div class="qs"><div class="qs-num">' + coachCount + '</div><div class="qs-label">👨‍🏫 教練</div></div>' +
@@ -724,12 +768,20 @@ function getFilteredPeople() {
             if (currentFilter.startsWith('coach:')) {
                 // 教練子分類篩選：coach:strength_training, coach:pilates, etc.
                 const subType = currentFilter.split(':')[1];
-                // 同義鍵映射（DB 值可能不同寫法）
                 const synonyms = {weight:['weight','strength_training'],strength_training:['weight','strength_training'],stretch:['stretch','stretching'],stretching:['stretch','stretching']};
                 const matchKeys = synonyms[subType] || [subType];
-                if (p._role !== 'coach') return false;
-                const typeMatch = matchKeys.some(k => (p._type||'').includes(k) || p.coach_type === k);
+                // 純教練 or 雙重身份（有 _coachData）
+                const isCoachLike = p._role === 'coach' || p._isDual;
+                if (!isCoachLike) return false;
+                const coachRef = p._isDual ? p._coachData : p;
+                const typeMatch = matchKeys.some(k => (coachRef._type||'').includes(k) || coachRef.coach_type === k);
                 if (!typeMatch) return false;
+            } else if (currentFilter === 'coach') {
+                // 篩選教練：純教練 or 雙重身份都應顯示
+                if (p._role !== 'coach' && !p._isDual) return false;
+            } else if (currentFilter === 'employee') {
+                // 篩選員工：雙重身份的主角色如果是 manager/employee 也顯示
+                if (p._role !== currentFilter && !(p._isDual && p._table === 'staff')) return false;
             } else {
                 if (p._role !== currentFilter) return false;
             }
@@ -761,10 +813,11 @@ function renderUserList() {
         const colorIdx = Math.abs(hashCode(p.id)) % AVATAR_COLORS.length;
         const div = document.createElement('div');
         div.className = 'user-item' + (isActive ? ' active' : '') + (isChecked ? ' checked' : '');
+        const dualBadge = p._isDual ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;background:linear-gradient(135deg,var(--blue-light),var(--pink-light));color:var(--blue-dark);border-radius:8px;margin-left:4px;font-weight:600;">⚡ 雙重身份</span>' : '';
         div.innerHTML =
             '<input type="checkbox" class="user-cb" ' + (isChecked ? 'checked' : '') + ' onclick="event.stopPropagation(); toggleCheck(\'' + escHtml(p.id) + '\', this.checked)">' +
             '<div class="user-avatar-circle" style="background:' + AVATAR_COLORS[colorIdx] + '">' + escHtml((p._label||'?')[0]) + '</div>' +
-            '<div class="user-info"><div class="user-name">' + escHtml(p._label) + '</div><div class="user-dept">' + escHtml(p._dept || p._table) + '</div></div>' +
+            '<div class="user-info"><div class="user-name">' + escHtml(p._label) + dualBadge + '</div><div class="user-dept">' + escHtml(p._dept || p._table) + '</div></div>' +
             '<span class="role-badge role-' + p._role + '">' + (ROLES[p._role]||p._role) + '</span>';
         div.onclick = (e) => { if (e.target.type !== 'checkbox') selectPerson(p); };
         list.appendChild(div);
@@ -833,8 +886,9 @@ function selectPerson(p) {
             <div class="card-header">
                 <div class="card-avatar-big" style="background:${AVATAR_COLORS[colorIdx]}">${escHtml((p._label||'?')[0])}</div>
                 <div class="card-info">
-                    <h2>${escHtml(p._label)}</h2>
+                    <h2>${escHtml(p._label)}${p._isDual ? ' <span style="font-size:12px;padding:2px 8px;background:linear-gradient(135deg,var(--blue-light),var(--pink-light));color:var(--blue-dark);border-radius:8px;font-weight:600;">⚡ 員工 + 教練</span>' : ''}</h2>
                     <p>${escHtml(p._dept||p._table)} ｜ ${ROLES[p._role]||p._role}${overrideCount > 0 ? ' ｜ <span style="color:var(--yellow-dark)">' + overrideCount + ' 個覆蓋</span>' : ''}</p>
+                    ${p._isDual ? '<p style="font-size:11px;color:var(--blue-dark);margin-top:2px;">儲存時將同步更新 staff 與 coaches 兩張表</p>' : ''}
                 </div>
             </div>
 
@@ -1061,13 +1115,25 @@ async function savePermissions() {
         if (oldPermissions.hidden_modules === undefined) delete oldPermissions.hidden_modules;
         updateData.permissions = oldPermissions;
 
+        // 儲存到主表（staff 或 coaches）
         await callEdge('updateStaffPermissions', {
             table: p._table,
             id: p.id,
             updates: updateData
         });
 
-        showToast('✅ ' + p._label + ' 的權限已儲存');
+        // ── 雙重身份：同步寫入另一張表 ──
+        if (p._isDual && p._staffData && p._coachData) {
+            const otherTable = p._table === 'staff' ? 'coaches' : 'staff';
+            const otherId = p._table === 'staff' ? p._coachData.id : p._staffData.id;
+            await callEdge('updateStaffPermissions', {
+                table: otherTable,
+                id: otherId,
+                updates: updateData
+            });
+        }
+
+        showToast('✅ ' + p._label + ' 的權限已儲存' + (p._isDual ? '（已同步兩張表）' : ''));
     } catch(e) {
         showToast('❌ 儲存失敗：' + e.message);
     }
@@ -1278,10 +1344,7 @@ async function saveBatchPermissions() {
             if (hiddenModules.length > 0) oldPermissions.hidden_modules = hiddenModules;
             else delete oldPermissions.hidden_modules;
 
-            await callEdge('updateStaffPermissions', {
-                table: p._table,
-                id: p.id,
-                updates: {
+            const batchUpdateData = {
                     role: p._role,
                     permission_level: roleMap[p._role] || p._role,
                     data_level: p._dataLevel || null,
@@ -1290,8 +1353,18 @@ async function saveBatchPermissions() {
                     modules_remove: p._modulesRemove || [],
                     field_overrides: p._fieldOverrides || {},
                     permissions: oldPermissions,
-                }
+            };
+            await callEdge('updateStaffPermissions', {
+                table: p._table,
+                id: p.id,
+                updates: batchUpdateData
             });
+            // 雙重身份：同步寫入另一張表
+            if (p._isDual && p._staffData && p._coachData) {
+                const otherTable = p._table === 'staff' ? 'coaches' : 'staff';
+                const otherId = p._table === 'staff' ? p._coachData.id : p._staffData.id;
+                await callEdge('updateStaffPermissions', { table: otherTable, id: otherId, updates: batchUpdateData });
+            }
             successCount++;
         } catch(e) { failCount++; }
     }
