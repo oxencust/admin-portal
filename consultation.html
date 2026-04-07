@@ -863,7 +863,7 @@ async function confirmSave() {
         const updateData = {
             member_name: ch.name,
             member_phone: ch.phone,
-            line_uid: ch.lineId,
+            line_id: ch.lineId,
             display_name: ch.displayName,
             gender: ch.gender,
             birthday: ch.birthday,
@@ -893,8 +893,8 @@ async function confirmSave() {
         };
 
         const res = await callEdge('update', {
-            recordId: REC._row,
-            ...updateData
+            id: REC._row,
+            updateData: updateData
         });
 
         if (res.error) {
