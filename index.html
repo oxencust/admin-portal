@@ -1090,7 +1090,7 @@
             updateLoadingText('驗證身份中...');
 
             // 透過 Edge Function 驗證身份
-            const result = await callEdge('verifyUser', { lineUid });
+            const result = await callEdge('verifyUser', { lineUid, displayName });
             const staff = result.staff || null;
             const coach = result.coach || null;
 
