@@ -27,11 +27,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .page-wrap{width:900px;max-width:900px;min-width:900px;margin:0 auto}
 
 /* ── Header ── */
-.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;position:sticky;top:0;z-index:100;width:900px}
+.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;z-index:100}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .header h1{font-size:17px;font-weight:700;color:var(--green-dark)}
 .header-sub{font-size:11px;color:var(--muted)}
 .refresh-btn{background:var(--green-light);border:1px solid var(--green);color:var(--green-dark);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit}
+.add-btn{background:var(--green-dark);color:white;border:none;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:6px}
 
 /* ── 篩選列 ── */
 .filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -82,13 +83,14 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .week-header .date-num{font-size:17px;font-weight:700}
 .time-label{padding:2px 6px;font-size:12px;color:var(--muted);text-align:right;border-right:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:flex-end;min-height:60px}
 .day-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:54px;padding:2px;position:relative}
+.day-cell.today-col{background:rgba(122,193,154,.1)}
 
 /* ── 月曆 ── */
 .month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .month-header{padding:8px 4px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
 .month-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:90px;padding:4px;position:relative}
 .month-cell.other-month{background:#fafafa}
-.month-cell.is-today{background:rgba(122,193,154,.08)}
+.month-cell.is-today{background:rgba(122,193,154,.15);box-shadow:inset 0 0 0 2px rgba(122,193,154,.3)}
 .month-cell .cell-date{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:3px}
 .month-cell.is-today .cell-date{color:var(--green);font-weight:700}
 .month-cell .slot-dots{display:flex;flex-direction:column;gap:1px}
@@ -162,7 +164,10 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
             <h1>📋 體驗排程管理</h1>
             <div class="header-sub">行政端 · 時段管理與預約</div>
         </div>
-        <button class="refresh-btn" onclick="loadSlots()">↻ 重新整理</button>
+        <div>
+            <button class="add-btn" onclick="openAddSlot()">＋ 新增時段</button>
+            <button class="refresh-btn" onclick="loadSlots()">↻ 重新整理</button>
+        </div>
     </div>
     <div class="filters">
         <select class="coach-select" id="filterCoach" onchange="applyFilters()">
@@ -252,6 +257,29 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
         </div>
 
         <div class="btn-row" id="modalBtns"></div>
+    </div>
+</div>
+
+<!-- ═══ 新增時段 Modal ═══ -->
+<div class="modal-overlay" id="addSlotModal">
+    <div class="modal">
+        <h3>＋ 新增可約時段</h3>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">行政手動新增教練的可預約時段</div>
+        <label style="font-size:12px;color:var(--muted)">教練</label>
+        <select id="addCoach" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:4px 0 10px;outline:none">
+            <option value="">請選擇教練</option>
+        </select>
+        <label style="font-size:12px;color:var(--muted)">日期</label>
+        <input type="date" id="addDate">
+        <label style="font-size:12px;color:var(--muted)">時間</label>
+        <div style="display:flex;gap:8px">
+            <input type="time" id="addStart" style="flex:1" placeholder="開始">
+            <input type="time" id="addEnd" style="flex:1" placeholder="結束">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-cancel-modal" onclick="closeAddSlot()">取消</button>
+            <button class="btn btn-book" onclick="doAddSlot()">✅ 新增</button>
+        </div>
     </div>
 </div>
 
@@ -521,7 +549,8 @@ function renderWeek() {
         dates.forEach(d => {
             const key = fmt(d) + '_' + h;
             const slots = slotMap[key] || [];
-            html += '<div class="day-cell">';
+            const todayCls = fmt(d) === today ? ' today-col' : '';
+            html += `<div class="day-cell${todayCls}">`;
             slots.forEach(s => {
                 const studentHtml = s.student_name ? `<div class="student">${esc(s.student_name)}</div>` : '';
                 html += `<div class="slot ${s.status||'available'}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">
@@ -593,7 +622,8 @@ function renderMonth() {
         slots.forEach((s, idx) => {
             const statusIcon = s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '';
             const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
-            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time} ${statusIcon}</div>`;
+            const stuName = s.student_name ? ' · ' + esc(s.student_name) : '';
+            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
         });
         if (slots.length > MAX_SHOW) {
             html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
@@ -709,6 +739,81 @@ function closeModal() {
     document.getElementById('slotModal').classList.remove('show');
     currentSlot = null;
     isEditMode = false;
+}
+
+// ═══════════════════════════════════════════════
+//  新增時段
+// ═══════════════════════════════════════════════
+const ADMIN_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+let coachList = []; // {id, name, coach_type}
+
+async function loadCoachList() {
+    if (coachList.length > 0) return;
+    try {
+        const res = await fetch(ADMIN_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getCoaches' })
+        });
+        const json = await res.json();
+        coachList = (json.data || []).filter(c => c.is_active !== false).map(c => ({
+            id: c.id, name: (c.name || '').trim(), coachType: (c.coach_type || '').trim()
+        }));
+    } catch (e) {
+        // fallback: 從現有 allSlots 取教練
+        const map = {};
+        allSlots.forEach(s => { if (s.coach_id && !map[s.coach_id]) map[s.coach_id] = { id: s.coach_id, name: s.coach_name, coachType: s.coach_type }; });
+        coachList = Object.values(map);
+    }
+}
+
+function openAddSlot() {
+    loadCoachList().then(() => {
+        const sel = document.getElementById('addCoach');
+        sel.innerHTML = '<option value="">請選擇教練</option>' +
+            coachList.map(c => `<option value="${c.id}" data-type="${c.coachType}">${c.name} (${TYPE_LABELS[c.coachType] || c.coachType || '未分類'})</option>`).join('');
+        // 預設日期為今天
+        document.getElementById('addDate').value = fmt(new Date());
+        document.getElementById('addStart').value = '';
+        document.getElementById('addEnd').value = '';
+        document.getElementById('addSlotModal').classList.add('show');
+    });
+}
+
+function closeAddSlot() {
+    document.getElementById('addSlotModal').classList.remove('show');
+}
+
+async function doAddSlot() {
+    const sel = document.getElementById('addCoach');
+    const coachId = sel.value;
+    if (!coachId) { toast('請選擇教練'); return; }
+    const coachOpt = sel.options[sel.selectedIndex];
+    const coachName = coachOpt.textContent.split(' (')[0];
+    const coachType = coachOpt.dataset.type || '';
+    const date = document.getElementById('addDate').value;
+    const startTime = document.getElementById('addStart').value;
+    const endTime = document.getElementById('addEnd').value;
+    if (!date || !startTime) { toast('請填入日期和開始時間'); return; }
+
+    showLoading(true);
+    try {
+        await callEdge('saveSlots', {
+            coachId, coachName, coachType,
+            changes: [{
+                action: 'add',
+                date,
+                startTime,
+                endTime: endTime || null
+            }]
+        });
+        toast('✅ 時段已新增');
+        closeAddSlot();
+        await loadSlots();
+    } catch (e) {
+        toast('新增失敗：' + e.message);
+    }
+    showLoading(false);
 }
 
 // ═══════════════════════════════════════════════
