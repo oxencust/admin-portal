@@ -23,9 +23,11 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 100%);min-height:100vh;color:var(--text)}
+/* ── 固定寬度容器 ── */
+.page-wrap{width:900px;max-width:900px;min-width:900px;margin:0 auto}
 
 /* ── Header ── */
-.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;position:sticky;top:0;z-index:100}
+.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;position:sticky;top:0;z-index:100;width:900px}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .header h1{font-size:17px;font-weight:700;color:var(--green-dark)}
 .header-sub{font-size:11px;color:var(--muted)}
@@ -39,7 +41,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;font-size:12px;font-family:inherit;background:white;outline:none}
 
 /* ── 課種標籤（可點擊篩選）── */
-.type-tags{display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap;align-items:center}
+.type-tags{display:flex;gap:8px;padding:8px 0 0;flex-wrap:wrap;align-items:center}
 .type-tag{display:flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;border:2px solid transparent;opacity:.6}
 .type-tag:hover{opacity:.9}
 .type-tag.active{opacity:1;border-color:currentColor;box-shadow:0 2px 8px rgba(0,0,0,.1)}
@@ -51,7 +53,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .type-tag[data-type="stretch"]{background:var(--c-stretch-bg);color:var(--c-stretch)}
 
 /* 選中課種時顯示的教練列表 */
-.coach-chips{display:none;gap:6px;padding:0 16px 6px;flex-wrap:wrap}
+.coach-chips{display:none;gap:6px;padding:6px 0 0;flex-wrap:wrap}
 .coach-chips.show{display:flex}
 .coach-chip{padding:3px 10px;border-radius:14px;font-size:11px;background:white;border:1px solid #ddd;cursor:pointer;transition:.2s}
 .coach-chip.active{background:var(--green-dark);color:white;border-color:var(--green-dark)}
@@ -152,6 +154,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 </style>
 </head>
 <body>
+<div class="page-wrap">
 
 <div class="header">
     <div class="header-top">
@@ -170,33 +173,31 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
         <div class="filter-chip" data-f="booked" onclick="setStatusFilter('booked',this)">🟠 已預約</div>
         <div class="filter-chip" data-f="reserved" onclick="setStatusFilter('reserved',this)">🟡 保留中</div>
     </div>
+    <!-- 課種標籤（移入 header，隨捲動黏著） -->
+    <div class="type-tags" id="typeTags">
+        <div class="type-tag active" data-type="" onclick="setTypeFilter('',this)">
+            <span style="font-size:11px">全部課種</span>
+        </div>
+        <div class="type-tag" data-type="ai_analysis" onclick="setTypeFilter('ai_analysis',this)">
+            <div class="tag-dot" style="background:var(--c-ai)"></div>
+            AI分析 <span class="tag-count" id="countAi">0</span>
+        </div>
+        <div class="type-tag" data-type="pilates" onclick="setTypeFilter('pilates',this)">
+            <div class="tag-dot" style="background:var(--c-pilates)"></div>
+            皮拉提斯 <span class="tag-count" id="countPilates">0</span>
+        </div>
+        <div class="type-tag" data-type="strength_training" onclick="setTypeFilter('strength_training',this)">
+            <div class="tag-dot" style="background:var(--c-strength)"></div>
+            肌力訓練 <span class="tag-count" id="countStrength">0</span>
+        </div>
+        <div class="type-tag" data-type="stretch" onclick="setTypeFilter('stretch',this)">
+            <div class="tag-dot" style="background:var(--c-stretch)"></div>
+            伸展放鬆 <span class="tag-count" id="countStretch">0</span>
+        </div>
+    </div>
+    <!-- 選中課種後，顯示該課種的教練列表 -->
+    <div class="coach-chips" id="coachChips"></div>
 </div>
-
-<!-- 課種標籤（可點擊） -->
-<div class="type-tags" id="typeTags">
-    <div class="type-tag active" data-type="" onclick="setTypeFilter('',this)">
-        <span style="font-size:11px">全部課種</span>
-    </div>
-    <div class="type-tag" data-type="ai_analysis" onclick="setTypeFilter('ai_analysis',this)">
-        <div class="tag-dot" style="background:var(--c-ai)"></div>
-        AI分析 <span class="tag-count" id="countAi">0</span>
-    </div>
-    <div class="type-tag" data-type="pilates" onclick="setTypeFilter('pilates',this)">
-        <div class="tag-dot" style="background:var(--c-pilates)"></div>
-        皮拉提斯 <span class="tag-count" id="countPilates">0</span>
-    </div>
-    <div class="type-tag" data-type="strength_training" onclick="setTypeFilter('strength_training',this)">
-        <div class="tag-dot" style="background:var(--c-strength)"></div>
-        肌力訓練 <span class="tag-count" id="countStrength">0</span>
-    </div>
-    <div class="type-tag" data-type="stretch" onclick="setTypeFilter('stretch',this)">
-        <div class="tag-dot" style="background:var(--c-stretch)"></div>
-        伸展放鬆 <span class="tag-count" id="countStretch">0</span>
-    </div>
-</div>
-
-<!-- 選中課種後，顯示該課種的教練列表 -->
-<div class="coach-chips" id="coachChips"></div>
 
 <!-- 統計 -->
 <div class="stats-bar">
@@ -258,6 +259,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 <div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+</div><!-- /page-wrap -->
 
 <script>
 // ═══════════════════════════════════════════════
