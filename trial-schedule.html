@@ -1022,7 +1022,7 @@
             <div class="user-profile">
                 <div class="avatar" id="userAvatar">👤</div>
                 <div class="user-info">
-                    <div style="font-size: 10px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">教練排程系統 v2.3 去重修復版</div>
+                    <div style="font-size: 10px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">教練體驗課排程系統</div>
                     <h1 id="userName">教練姓名</h1>
                     <p id="userType">教練類型</p>
                 </div>
@@ -1219,8 +1219,6 @@
         }, { passive: false });
 
         const TEST_MODE = false;
-        const WEBHOOK_URL = 'https://hook.us2.make.com/ykptxvohkcxrbjf91s8uqggh2pfhtmr5';
-        const CALENDAR_LOAD_URL = WEBHOOK_URL; // 舊版：Make.com 讀取 Google 日曆（過渡期用）
         const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
         const PRELOAD_WEEKS = 10;
 
@@ -1369,39 +1367,10 @@
                 pendingChanges = {};
                 resetStats();
 
-                // ── 過渡期：同時從 Google 日曆（舊）+ trial_slots（新）讀取，合併顯示 ──
-                let allEvents = [];
-
-                // 來源 1：Make.com → Google 日曆（舊資料）
+                // ── 從 Supabase trial_slots 讀取 ──
+                let uniqueEvents = [];
                 try {
-                    console.log('📅 [舊] 從 Google 日曆載入...');
-                    const gcalRes = await fetch(CALENDAR_LOAD_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'load',
-                            userId: currentTeacher,
-                            coachType: currentTeacherType,
-                            startDate: formatDate(startDate),
-                            endDate: formatDate(endDate)
-                        })
-                    });
-                    if (gcalRes.ok) {
-                        const text = await gcalRes.text();
-                        if (text && text !== 'Accepted' && text !== 'OK' && text.trim() !== '') {
-                            const gcalData = JSON.parse(text);
-                            const gcalEvents = gcalData?.events || gcalData?.schedules || [];
-                            console.log(`📅 [舊] Google 日曆: ${gcalEvents.length} 筆`);
-                            allEvents.push(...gcalEvents);
-                        }
-                    }
-                } catch (e) {
-                    console.warn('⚠️ [舊] Google 日曆載入失敗（忽略）:', e.message);
-                }
-
-                // 來源 2：booking-api → trial_slots（新資料）
-                try {
-                    console.log('📅 [新] 從 Supabase trial_slots 載入...');
+                    console.log('📅 從 Supabase trial_slots 載入...');
                     const queryParams = currentCoachId
                         ? { coachId: currentCoachId }
                         : { userId: currentTeacher, coachType: currentTeacherType };
@@ -1412,27 +1381,16 @@
                     });
                     if (dbData) {
                         const dbEvents = dbData?.events || dbData?.schedules || dbData?.slots || [];
-                        // 如果是 trial_slots 原始格式，轉換欄位
-                        const mapped = dbEvents.map(s => s.slot_date && !s.date
+                        uniqueEvents = dbEvents.map(s => s.slot_date && !s.date
                             ? { ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }
                             : s
                         );
-                        console.log(`📅 [新] trial_slots: ${mapped.length} 筆`);
-                        allEvents.push(...mapped);
+                        console.log(`📅 trial_slots: ${uniqueEvents.length} 筆`);
                     }
                 } catch (e) {
-                    console.warn('⚠️ [新] trial_slots 載入失敗（忽略）:', e.message);
+                    console.error('❌ trial_slots 載入失敗:', e.message);
+                    showToast('❌ 載入失敗，請稍後重試', 4000);
                 }
-
-                // 合併去重（同日期 + 同開始時間 + 同結束時間 → 只保留一筆）
-                const seen = new Set();
-                const uniqueEvents = allEvents.filter(ev => {
-                    if (!ev || !ev.date || !ev.startTime) return false;
-                    const key = `${ev.date}_${ev.startTime}_${ev.endTime || ''}`;
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
 
                 if (uniqueEvents.length === 0) {
                     console.log('✅ 載入完成 (無資料)');
@@ -2215,39 +2173,16 @@
                     };
                 });
 
-                // ── 雙寫：同時寫 Google Calendar（Make.com）+ trial_slots（booking-api）──
-                const [gcalRes, slotsRes] = await Promise.allSettled([
-                    // 1. Make.com → Google Calendar（原有邏輯）
-                    fetch(WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'save',
-                            coachId: currentCoachId,
-                            userId: currentTeacher,
-                            userName: currentTeacher,
-                            coachType: currentTeacherType,
-                            timestamp: new Date().toISOString(),
-                            changes: mappedChanges
-                        })
-                    }),
-                    // 2. booking-api → trial_slots（新增）
-                    callEdge('saveSlots', {
-                        coachId: currentCoachId,
-                        coachName: currentTeacher,
-                        coachType: currentTeacherType,
-                        changes: mappedChanges
-                    })
-                ]);
+                // ── 寫入 Supabase trial_slots ──
+                const result = await callEdge('saveSlots', {
+                    coachId: currentCoachId,
+                    coachName: currentTeacher,
+                    coachType: currentTeacherType,
+                    changes: mappedChanges
+                });
 
-                // 檢查結果
-                const gcalOk = gcalRes.status === 'fulfilled' && gcalRes.value?.ok;
-                const slotsOk = slotsRes.status === 'fulfilled' && slotsRes.value?.success;
-
-                if (gcalOk || slotsOk) {
-                    console.log(`✅ 送出完成 — 日曆:${gcalOk ? '成功' : '失敗'}, trial_slots:${slotsOk ? '成功' : '失敗'}`);
-                    if (!gcalOk) console.warn('⚠️ Google 日曆寫入失敗（trial_slots 已成功）');
-                    if (!slotsOk) console.warn('⚠️ trial_slots 寫入失敗（Google 日曆已成功）');
+                if (result?.success) {
+                    console.log('✅ trial_slots 寫入成功');
 
                     pendingChanges = {};
                     await loadFromCalendar();
@@ -2262,7 +2197,7 @@
                     }, 2000);
 
                 } else {
-                    throw new Error('兩邊都寫入失敗');
+                    throw new Error(result?.error || '寫入失敗');
                 }
 
             } catch (error) {
