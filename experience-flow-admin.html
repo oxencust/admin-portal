@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>體驗排程管理</title>
+<title>體驗課排程管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -75,26 +75,28 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 
 /* ── 週曆 ── */
 .week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.week-header{padding:8px 2px;text-align:center;font-size:11px;font-weight:600;background:var(--green-dark);color:white}
+.week-header{padding:8px 2px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
 .week-header.today{background:var(--green)}
-.week-header .date-num{font-size:15px;font-weight:700}
-.time-label{padding:2px 6px;font-size:10px;color:var(--muted);text-align:right;border-right:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:flex-end;min-height:54px}
+.week-header .date-num{font-size:17px;font-weight:700}
+.time-label{padding:2px 6px;font-size:12px;color:var(--muted);text-align:right;border-right:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:flex-end;min-height:60px}
 .day-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:54px;padding:2px;position:relative}
 
 /* ── 月曆 ── */
 .month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.month-header{padding:8px 4px;text-align:center;font-size:12px;font-weight:600;background:var(--green-dark);color:white}
+.month-header{padding:8px 4px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
 .month-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:90px;padding:4px;position:relative}
 .month-cell.other-month{background:#fafafa}
 .month-cell.is-today{background:rgba(122,193,154,.08)}
-.month-cell .cell-date{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
+.month-cell .cell-date{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:3px}
 .month-cell.is-today .cell-date{color:var(--green);font-weight:700}
-.month-cell .slot-dots{display:flex;flex-wrap:wrap;gap:2px}
-.month-cell .dot-slot{padding:2px 4px;border-radius:4px;font-size:9px;line-height:1.2;cursor:pointer;margin-bottom:1px;border-left:2px solid transparent;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.month-cell .more-link{font-size:9px;color:var(--green-dark);cursor:pointer;text-decoration:underline;margin-top:2px}
+.month-cell .slot-dots{display:flex;flex-direction:column;gap:1px}
+.month-cell .dot-slot{padding:3px 5px;border-radius:4px;font-size:11px;line-height:1.3;cursor:pointer;border-left:2px solid transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.month-cell .more-link{font-size:11px;color:var(--green-dark);cursor:pointer;text-decoration:underline;margin-top:2px;text-align:center}
+.month-cell .hidden-slot{display:none}
+.month-cell.expanded .hidden-slot{display:block}
 
 /* ── 時段方塊 ── */
-.slot{padding:3px 5px;border-radius:6px;font-size:10px;margin:1px 0;cursor:pointer;line-height:1.25;transition:.15s;border-left:3px solid transparent}
+.slot{padding:4px 6px;border-radius:6px;font-size:12px;margin:1px 0;cursor:pointer;line-height:1.3;transition:.15s;border-left:3px solid transparent}
 /* 課種顏色 */
 .slot[data-type="ai_analysis"], .dot-slot[data-type="ai_analysis"]{background:var(--c-ai-bg);color:var(--c-ai);border-left-color:var(--c-ai)}
 .slot[data-type="pilates"], .dot-slot[data-type="pilates"]{background:var(--c-pilates-bg);color:var(--c-pilates-text);border-left-color:var(--c-pilates)}
@@ -108,9 +110,9 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .slot.cancelled{opacity:.5;text-decoration:line-through}
 
 .slot:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.slot .coach-name{font-weight:600;font-size:10px}
-.slot .slot-time{font-size:9px;opacity:.7}
-.slot .student{font-size:9px;font-weight:600}
+.slot .coach-name{font-weight:600;font-size:12px}
+.slot .slot-time{font-size:11px;opacity:.7}
+.slot .student{font-size:11px;font-weight:600}
 
 /* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;justify-content:center;align-items:center}
@@ -235,7 +237,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 
         <div id="studentSection">
             <input type="text" placeholder="學員姓名" id="mStudentName">
-            <input type="text" placeholder="學員電話（選填）" id="mStudentPhone">
+            <input type="hidden" id="mStudentPhone">
             <textarea placeholder="備註（選填）" id="mNote"></textarea>
         </div>
 
@@ -491,10 +493,10 @@ function renderWeek() {
 
     const filtered = getFilteredSlots();
 
-    // 收集出現的小時
+    // 只顯示有資料的小時（不再固定 09-21）
     const hourSet = new Set();
     filtered.forEach(s => { const h = parseInt(s.start_time.split(':')[0], 10); hourSet.add(h); });
-    for (let h = 9; h <= 21; h++) hourSet.add(h);
+    if (hourSet.size === 0) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">本週沒有可顯示的時段</div>'; return; }
     const hours = [...hourSet].sort((a,b) => a - b);
 
     // slot lookup
@@ -582,15 +584,17 @@ function renderMonth() {
         const slots = dayMap[dateStr] || [];
         const MAX_SHOW = 3;
 
-        html += `<div class="month-cell${isThisMonth?'':' other-month'}${isToday?' is-today':''}">`;
+        const cellId = 'mc_' + dateStr.replace(/-/g,'');
+        html += `<div class="month-cell${isThisMonth?'':' other-month'}${isToday?' is-today':''}" id="${cellId}">`;
         html += `<div class="cell-date">${cursor.getDate()}</div>`;
         html += '<div class="slot-dots">';
-        slots.slice(0, MAX_SHOW).forEach(s => {
+        slots.forEach((s, idx) => {
             const statusIcon = s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '';
-            html += `<div class="dot-slot" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time} ${statusIcon}</div>`;
+            const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
+            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time} ${statusIcon}</div>`;
         });
         if (slots.length > MAX_SHOW) {
-            html += `<div class="more-link" onclick="jumpToWeek('${dateStr}')">+${slots.length - MAX_SHOW} 更多</div>`;
+            html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
         }
         html += '</div></div>';
         cursor.setDate(cursor.getDate() + 1);
@@ -599,13 +603,15 @@ function renderMonth() {
     grid.innerHTML = html;
 }
 
-function jumpToWeek(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
-    setView('week');
-    loadSlots();
+function toggleExpand(cellId, linkEl, extraCount) {
+    const cell = document.getElementById(cellId);
+    if (!cell) return;
+    const isExpanded = cell.classList.toggle('expanded');
+    if (isExpanded) {
+        linkEl.textContent = '收合';
+    } else {
+        linkEl.textContent = '+' + extraCount + ' 更多';
+    }
 }
 
 // ═══════════════════════════════════════════════
