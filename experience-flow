@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>教練體驗課排程系統</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --green: #7ac19a;
+            --green-light: #e2ede6;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --pink-light: #faece8;
+            --pink-dark: #c67566;
+            --yellow: #ffe08b;
+            --yellow-light: #fcf4e3;
+            --yellow-dark: #ba9e60;
+            --blue: #9fcccc;
+            --blue-light: #daedec;
+            --blue-dark: #66888e;
+            --white: #ffffff;
+            --gray: #808080;
+            --bg: #f8f9fa;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+            --orange: #ff9800;
+            --orange-light: #fff3e0;
+            --purple: #9966cc;
+            --purple-light: #f0e6ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-x pan-y;
+        }
+        
+        button, a, .slot-cell, .week-btn, .action-btn, .stat-card {
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding-bottom: 20px;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--green-light), var(--pink-light));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-screen.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--green-light);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .main-content {
+            display: none;
+        }
+
+        .main-content.show {
+            display: block;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--green-light), var(--pink-light), var(--yellow-light));
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--green), var(--pink));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            flex-shrink: 0;
+        }
+
+        .user-info h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 3px;
+        }
+
+        .user-info p {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 1px;
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 90px;
+            background: var(--white);
+            border-radius: 8px;
+            padding: 12px 8px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .stat-card.green::before { background: var(--green); }
+        .stat-card.orange::before { background: var(--orange); }
+        .stat-card.pink::before { background: var(--pink); }
+        .stat-card.yellow::before { background: var(--yellow); }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card:active {
+            transform: translateY(0);
+        }
+
+        .stat-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .stat-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .detail-modal.hidden {
+            display: none;
+        }
+
+        .detail-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .detail-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--green-light);
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .detail-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .detail-modal-body {
+            padding: 20px;
+        }
+
+        .detail-slot-group {
+            margin-bottom: 16px;
+        }
+
+        .detail-slot-date {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .detail-slot-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-left: 12px;
+        }
+
+        .detail-slot-item {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detail-slot-item.confirmed {
+            background: var(--green-light);
+            color: var(--green-dark);
+            border: 1px solid var(--green);
+        }
+
+        .detail-slot-item.pending {
+            background: var(--orange-light);
+            color: var(--orange);
+            border: 1px dashed var(--orange);
+        }
+
+        .detail-slot-item.booked {
+            background: var(--pink-light);
+            color: var(--pink-dark);
+            border: 1px solid var(--pink);
+        }
+
+        .detail-slot-item.reserved {
+            background: var(--yellow-light);
+            color: var(--yellow-dark);
+            border: 1px solid var(--yellow);
+        }
+
+        .detail-slot-item.optimistic {
+            position: relative;
+            animation: pulse-optimistic 2s infinite;
+        }
+
+        .detail-slot-item.optimistic::after {
+            content: '待送出';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 9px;
+            background: var(--orange);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        @keyframes pulse-optimistic {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .detail-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .detail-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .detail-modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--green-light);
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .detail-close-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .detail-close-btn:hover {
+            background: var(--green-dark);
+        }
+
+        .week-selector {
+            background: var(--white);
+            border-radius: 12px 12px 0 0;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 12px;
+        }
+        
+        .week-selector > div:first-child {
+            flex-shrink: 0;
+            min-width: 120px;
+            order: 0 !important;
+        }
+        
+        .week-nav {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            order: 1 !important;
+        }
+        
+        @media (max-width: 480px) {
+            .week-selector {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            
+            .week-selector > div:first-child {
+                order: 2 !important;
+                margin-top: 12px !important;
+            }
+            
+            .week-nav {
+                order: 1 !important;
+            }
+        }
+
+        .week-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--green-light);
+            color: var(--green-dark);
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .week-btn:hover {
+            background: var(--green);
+            color: white;
+        }
+
+        .week-display {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .week-display:hover {
+            background: var(--green-light);
+        }
+
+        .week-date {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .week-range {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .schedule-grid {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            min-height: 400px;
+        }
+
+        .day-header {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 8px;
+            padding: 16px;
+            background: #ffffff;
+            z-index: 50;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .schedule-header-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg);
+            margin-bottom: 16px;
+        }
+        
+        .schedule-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .day-label {
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-dark);
+            padding: 8px 4px;
+        }
+
+        .day-label.today {
+            color: var(--purple);
+            font-weight: 700;
+            background: linear-gradient(135deg, #f8f4ff, var(--purple-light));
+            border-radius: 8px;
+            position: relative;
+            border: 2px solid #c299ff;
+            box-shadow: 0 0 12px rgba(153, 102, 204, 0.25);
+        }
+
+        .day-label.today::before {
+            content: '📍';
+            position: absolute;
+            top: -10px;
+            right: 0px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        @keyframes highlight {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 20px rgba(122, 193, 154, 0.8); transform: scale(1.05); }
+        }
+
+        .day-label.today .day-date {
+            color: var(--purple);
+            font-weight: 700;
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .time-label {
+            font-size: 13px;
+            color: var(--text-light);
+            padding: 12px 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .slot-cell {
+            min-height: 70px;
+            border: 2px solid var(--green-light);
+            border-radius: 8px;
+            cursor: pointer;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .slot-time {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d0d0d0;
+        }
+
+        .slot-cell:hover {
+            border-color: var(--green);
+            background: var(--green-light);
+        }
+
+        .slot-cell.confirmed {
+            background: var(--green-light);
+            border-color: var(--green);
+        }
+
+        .slot-cell.confirmed.optimistic {
+            position: relative;
+            animation: pulse-optimistic 2s infinite;
+        }
+
+        .slot-cell.confirmed.optimistic::before {
+            content: '待送出';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 9px;
+            background: var(--orange);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            z-index: 1;
+        }
+
+        .slot-cell.pending {
+            background: var(--orange-light);
+            border-color: var(--orange);
+            border-style: dashed;
+        }
+
+        .slot-cell.pending::after {
+            content: '📝';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+        }
+
+        .slot-cell.booked {
+            background: var(--pink-light);
+            border-color: var(--pink);
+            cursor: not-allowed;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slot-cell.booked::after {
+            content: '';
+        }
+
+        .slot-cell.booked .slot-time {
+            color: var(--pink-dark);
+        }
+
+        .slot-cell.booked .student-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--pink-dark);
+        }
+
+        .slot-cell.reserved {
+            background: var(--yellow-light);
+            border-color: var(--yellow);
+            cursor: not-allowed;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slot-cell.reserved::after {
+            content: '⏱';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+        }
+
+        .slot-cell.reserved .slot-time {
+            color: var(--yellow-dark);
+        }
+
+        .slot-cell.reserved .student-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--yellow-dark);
+        }
+
+        .legend {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .legend-box.confirmed {
+            background: var(--green-light);
+            border: 2px solid var(--green);
+        }
+
+        .legend-box.pending {
+            background: var(--orange-light);
+            border: 2px dashed var(--orange);
+        }
+
+        .legend-box.booked {
+            background: var(--pink-light);
+            border: 2px solid var(--pink);
+        }
+
+        .legend-box.reserved {
+            background: var(--yellow-light);
+            border: 2px solid var(--yellow);
+        }
+
+        .legend-text {
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .action-buttons .btn-primary {
+            grid-column: 1 / -1;
+        }
+
+        .action-btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--green-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 2px solid var(--green-light);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--green);
+            background: var(--green-light);
+        }
+
+        .btn-danger {
+            background: var(--white);
+            color: var(--pink-dark);
+            border: 2px solid var(--pink-light);
+        }
+
+        .btn-danger:hover {
+            border-color: var(--pink);
+            background: var(--pink-light);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--green-light);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .modal-stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .modal-stat-number.add { color: var(--green); }
+        .modal-stat-number.delete { color: var(--pink); }
+        .modal-stat-number.total { color: var(--text-dark); }
+
+        .modal-stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .modal-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .schedule-item.add {
+            background: var(--green-light);
+            border-left: 3px solid var(--green);
+        }
+
+        .schedule-item.delete {
+            background: var(--pink-light);
+            border-left: 3px solid var(--pink);
+        }
+
+        .schedule-date {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .schedule-time {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--green-light);
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-cancel {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 2px solid var(--green-light);
+        }
+
+        .modal-btn-cancel:hover {
+            border-color: var(--green);
+        }
+
+        .modal-btn-confirm {
+            background: var(--green);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: var(--green-dark);
+        }
+
+        .modal-btn-confirm:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+
+            .schedule-grid {
+                padding: 8px;
+            }
+
+            .slot-cell {
+                min-height: 55px;
+                font-size: 13px;
+            }
+
+            .time-label {
+                font-size: 11px;
+            }
+
+            .day-label {
+                font-size: 12px;
+            }
+            
+            .day-header {
+                gap: 4px;
+                padding: 8px;
+                grid-template-columns: 50px repeat(7, 1fr);
+            }
+            
+            .time-row {
+                grid-template-columns: 50px repeat(7, 1fr);
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">載入排程資料中...</div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="navbar">
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div style="font-size: 10px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">教練排程系統 v2.3 去重修復版</div>
+                    <h1 id="userName">教練姓名</h1>
+                    <p id="userType">教練類型</p>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="schedule-container">
+                <div class="schedule-header-sticky">
+                    <div class="week-selector">
+                        <div style="display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
+                            <button class="action-btn btn-secondary" onclick="toggleViewMode()" id="viewModeBtn">
+                                🎯 詳細模式
+                            </button>
+                            <div style="text-align: center; font-size: 10px; color: var(--text-light); line-height: 1.2;" id="viewModeDesc">
+                                切換可選15/30/45分
+                            </div>
+                        </div>
+                        <div class="week-nav">
+                            <button class="week-btn" onclick="previousWeek()">◀</button>
+                            <div class="week-display" onclick="showWeekJumpModal()">
+                                <div class="week-date" id="weekDisplay">第 1 週</div>
+                                <div class="week-range" id="weekRange">2024/01/01 - 2024/01/07</div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">點擊快速跳轉</div>
+                            </div>
+                            <button class="week-btn" onclick="nextWeek()">▶</button>
+                        </div>
+                    </div>
+                    <div class="day-header" id="dayHeader"></div>
+                </div>
+
+                <div class="schedule-grid">
+                    <div class="time-table" id="timeTable"></div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-card green" onclick="showSlotDetails('confirmed')">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-number" id="statConfirmed">0</div>
+                    <div class="stat-label">已確認</div>
+                </div>
+                <div class="stat-card orange" onclick="showSlotDetails('pending')">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-number" id="statPending">0</div>
+                    <div class="stat-label">待送出</div>
+                </div>
+                <div class="stat-card pink" onclick="showSlotDetails('booked')">
+                    <div class="stat-icon">🔒</div>
+                    <div class="stat-number" id="statBooked">0</div>
+                    <div class="stat-label">已預約</div>
+                </div>
+                <div class="stat-card yellow" onclick="showSlotDetails('reserved')">
+                    <div class="stat-icon">⏱</div>
+                    <div class="stat-number" id="statReserved">0</div>
+                    <div class="stat-label">保留中</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn btn-primary" onclick="showSaveModal()" id="saveBtn">
+                    ✔️ 送出排程
+                </button>
+                <button class="action-btn btn-secondary" onclick="reloadFromCalendar()">
+                    🔄 重新載入
+                </button>
+                <button class="action-btn btn-secondary" onclick="copyLastWeek()">
+                    📋 複製上週
+                </button>
+                <button class="action-btn btn-danger" onclick="clearCurrentWeek()">
+                    🗑️ 清除本週
+                </button>
+                <button class="action-btn btn-danger" onclick="clearAllWeeks()">
+                    🗑️ 清除全部
+                </button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">📋 時段狀態說明</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-box confirmed"></div>
+                        <span class="legend-text">已確認</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box pending"></div>
+                        <span class="legend-text">待送出</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box booked"></div>
+                        <span class="legend-text">已預約</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box reserved"></div>
+                        <span class="legend-text">保留中</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 16px; padding: 12px; background: var(--purple-light); border-radius: 8px; border-left: 4px solid var(--purple);">
+                    <div style="font-weight: 600; margin-bottom: 4px;">💡 使用提示</div>
+                    <div style="font-size: 13px; color: var(--text-dark);">
+                        • 點擊統計卡片可查看詳細時段列表<br>
+                        • 點擊日曆格子可新增/刪除時段<br>
+                        • <span style="color: var(--orange); font-weight: 600;">帶「待送出」標記的時段尚未同步到日曆</span><br>
+                        • 記得送出變更才會儲存到日曆
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 詳細時段彈窗 -->
+    <div class="detail-modal hidden" id="detailModal">
+        <div class="detail-modal-content">
+            <div class="detail-modal-header">
+                <div class="detail-modal-title">
+                    <span id="detailModalIcon">✅</span>
+                    <span id="detailModalTitle">已確認時段</span>
+                </div>
+                <div class="detail-modal-subtitle" id="detailModalSubtitle">共 0 個時段</div>
+            </div>
+            <div class="detail-modal-body" id="detailModalBody"></div>
+            <div class="detail-modal-footer">
+                <button class="detail-close-btn" onclick="hideSlotDetails()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認送出彈窗 -->
+    <div class="modal-overlay hidden" id="saveModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">確認送出排程</div>
+                <div class="modal-subtitle">請確認以下變更內容</div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-stats">
+                    <div class="modal-stat">
+                        <div class="modal-stat-number add" id="modalAddCount">0</div>
+                        <div class="modal-stat-label">新增時段</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-number delete" id="modalDeleteCount">0</div>
+                        <div class="modal-stat-label">刪除時段</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-number total" id="modalTotalCount">0</div>
+                        <div class="modal-stat-label">總計時段</div>
+                    </div>
+                </div>
+                <div class="modal-list" id="confirmScheduleList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="hideSaveModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmSave()" id="confirmSaveBtn">確認送出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速跳轉週次彈窗 -->
+    <div class="modal-overlay hidden" id="weekJumpModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🗓️ 快速跳轉週次</div>
+                <div class="modal-subtitle">選擇要跳轉的日期</div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">選擇日期</label>
+                    <input type="date" id="jumpToDate" style="width: 100%; padding: 12px; border: 2px solid var(--green-light); border-radius: 8px; font-size: 16px;"/>
+                </div>
+                <div style="background: var(--green-light); padding: 12px; border-radius: 8px; font-size: 13px;">
+                    💡 系統會自動跳轉到選擇日期所在的週次(週一開始)
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="hideWeekJumpModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmWeekJump()">確認跳轉</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) event.preventDefault();
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) event.preventDefault();
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        const TEST_MODE = false;
+        const WEBHOOK_URL = 'https://hook.us2.make.com/ykptxvohkcxrbjf91s8uqggh2pfhtmr5';
+        const CALENDAR_LOAD_URL = WEBHOOK_URL; // 舊版：Make.com 讀取 Google 日曆（過渡期用）
+        const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
+        const PRELOAD_WEEKS = 10;
+
+        // Edge Function helper
+        async function callEdge(action, payload) {
+            try {
+                const response = await fetch(EDGE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action,
+                        ...payload
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                if (!text || text === 'Accepted' || text === 'OK' || text.trim() === '') {
+                    return null;
+                }
+
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    return null;
+                }
+            } catch (error) {
+                console.error(`callEdge(${action}) error:`, error);
+                throw error;
+            }
+        }
+        
+        let currentTeacher = '';
+        let currentTeacherType = '';
+        let currentCoachId = '';        // 教練編號（HD26xxxxx）
+        let currentCoachNickname = '';   // 教練顯示名稱（從 API 取得）
+        let currentWeekStart = new Date();
+        let currentWeekEnd = new Date();
+        let calendarData = {};
+        let pendingChanges = {};
+        let viewMode = 'simple';
+        let baseWeekStart = null;
+        let isSaving = false;
+        let isToggling = false;  // ✅ 新增：防止快速點擊
+        
+        const timeSlotsSimple = ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+        const timeSlotsDetail = ['06:00', '06:15', '06:30', '06:45', '07:00', '07:15', '07:30', '07:45', '08:00', '08:15', '08:30', '08:45', '09:00', '09:15', '09:30', '09:45', '10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30', '11:45', '12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15', '17:30', '17:45', '18:00', '18:15', '18:30', '18:45', '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45', '21:00', '21:15', '21:30', '21:45', '22:00', '22:15', '22:30', '22:45', '23:00', '23:15', '23:30', '23:45'];
+        const dayLabels = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+        function calculateEndTimeAndDate(dateStr, startTime, durationMinutes = 60) {
+            const startDateTime = new Date(`${dateStr}T${startTime}:00`);
+            const endDateTime = new Date(startDateTime);
+            endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+            
+            const endYear = endDateTime.getFullYear();
+            const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+            const endDay = String(endDateTime.getDate()).padStart(2, '0');
+            const endDate = `${endYear}-${endMonth}-${endDay}`;
+            
+            const endHour = String(endDateTime.getHours()).padStart(2, '0');
+            const endMinute = String(endDateTime.getMinutes()).padStart(2, '0');
+            const endTime = `${endHour}:${endMinute}`;
+            
+            return {
+                endDate,
+                endTime,
+                endDateTime: `${endDate} ${endTime}`,
+                isCrossDay: dateStr !== endDate
+            };
+        }
+
+        function updateSaveStatus() {
+            const saveBtn = document.getElementById('saveBtn');
+            
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) {
+                    totalPending += pendingChanges[weekKey].length;
+                }
+            });
+            
+            if (totalPending > 0) {
+                saveBtn.disabled = false;
+            } else {
+                saveBtn.disabled = true;
+            }
+        }
+
+        async function init() {
+            try {
+                console.log('🚀 系統初始化 v2.3 去重修復版');
+                resetStats();
+                await getUserInfo();
+                setCurrentWeek();
+                updateWeekDisplay();
+                
+                calendarData = {};
+                pendingChanges = {};
+                
+                await loadFromCalendar();
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('show');
+                console.log('✅ 初始化完成');
+            } catch (error) {
+                console.error('❌ 初始化失敗:', error);
+                showToast('❌ 載入失敗');
+            }
+        }
+
+        function resetStats() {
+            console.log('🔄 重置統計數字為 0');
+            document.getElementById('statConfirmed').textContent = '0';
+            document.getElementById('statPending').textContent = '0';
+            document.getElementById('statBooked').textContent = '0';
+            document.getElementById('statReserved').textContent = '0';
+        }
+
+        async function loadFromCalendar(startDate = null, endDate = null) {
+            try {
+                if (!startDate) startDate = new Date(currentWeekStart);
+                if (!endDate) {
+                    endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + (PRELOAD_WEEKS * 7));
+                }
+                
+                console.log(`📅 載入: ${formatDate(startDate)} ~ ${formatDate(endDate)}`);
+                showToast(`📥 載入 ${PRELOAD_WEEKS} 週資料...`);
+                
+                if (TEST_MODE) {
+                    calendarData = {};
+                    pendingChanges = {};
+                    showToast('✅ 測試模式');
+                    return;
+                }
+
+                console.log('🗑️ 清空所有資料');
+                calendarData = {};
+                pendingChanges = {};
+                resetStats();
+
+                // ── 過渡期：同時從 Google 日曆（舊）+ trial_slots（新）讀取，合併顯示 ──
+                let allEvents = [];
+
+                // 來源 1：Make.com → Google 日曆（舊資料）
+                try {
+                    console.log('📅 [舊] 從 Google 日曆載入...');
+                    const gcalRes = await fetch(CALENDAR_LOAD_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'load',
+                            userId: currentTeacher,
+                            coachType: currentTeacherType,
+                            startDate: formatDate(startDate),
+                            endDate: formatDate(endDate)
+                        })
+                    });
+                    if (gcalRes.ok) {
+                        const text = await gcalRes.text();
+                        if (text && text !== 'Accepted' && text !== 'OK' && text.trim() !== '') {
+                            const gcalData = JSON.parse(text);
+                            const gcalEvents = gcalData?.events || gcalData?.schedules || [];
+                            console.log(`📅 [舊] Google 日曆: ${gcalEvents.length} 筆`);
+                            allEvents.push(...gcalEvents);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ [舊] Google 日曆載入失敗（忽略）:', e.message);
+                }
+
+                // 來源 2：booking-api → trial_slots（新資料）
+                try {
+                    console.log('📅 [新] 從 Supabase trial_slots 載入...');
+                    const queryParams = currentCoachId
+                        ? { coachId: currentCoachId }
+                        : { userId: currentTeacher, coachType: currentTeacherType };
+                    const dbData = await callEdge('getCoachSchedule', {
+                        ...queryParams,
+                        startDate: formatDate(startDate),
+                        endDate: formatDate(endDate)
+                    });
+                    if (dbData) {
+                        const dbEvents = dbData?.events || dbData?.schedules || dbData?.slots || [];
+                        // 如果是 trial_slots 原始格式，轉換欄位
+                        const mapped = dbEvents.map(s => s.slot_date && !s.date
+                            ? { ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }
+                            : s
+                        );
+                        console.log(`📅 [新] trial_slots: ${mapped.length} 筆`);
+                        allEvents.push(...mapped);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ [新] trial_slots 載入失敗（忽略）:', e.message);
+                }
+
+                // 合併去重（同日期 + 同開始時間 + 同結束時間 → 只保留一筆）
+                const seen = new Set();
+                const uniqueEvents = allEvents.filter(ev => {
+                    if (!ev || !ev.date || !ev.startTime) return false;
+                    const key = `${ev.date}_${ev.startTime}_${ev.endTime || ''}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+                if (uniqueEvents.length === 0) {
+                    console.log('✅ 載入完成 (無資料)');
+                    showToast('✅ 載入完成 (目前無排程)');
+                    return;
+                }
+
+                const newData = processCalendarData({ events: uniqueEvents });
+                Object.keys(newData).forEach(weekKey => {
+                    calendarData[weekKey] = newData[weekKey];
+                });
+
+                const totalEvents = Object.values(calendarData).reduce((sum, arr) => sum + arr.length, 0);
+                console.log(`✅ 載入 ${totalEvents} 個時段（舊+新合併）`);
+                showToast(`✅ 載入 ${totalEvents} 個時段`);
+            } catch (error) {
+                console.error('❌ 載入失敗:', error);
+                calendarData = {};
+                pendingChanges = {};
+                resetStats();
+                showToast('❌ 載入失敗');
+            }
+        }
+
+        function processCalendarData(data) {
+            const processed = {};
+            // 相容 events / schedules / slots（booking-api 回傳 slots）
+            let eventList = data?.events || data?.schedules || data?.slots || [];
+            // 如果是 trial_slots 原始格式（slot_date/start_time），自動轉換
+            if (eventList.length > 0 && eventList[0].slot_date && !eventList[0].date) {
+                eventList = eventList.map(s => ({ ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }));
+            }
+            
+            console.log(`📋 原始資料: ${eventList.length} 個事件`);
+            
+            // ✅ 新增：用於去重的 Set
+            const seenKeys = new Set();
+            
+            if (eventList && eventList.length > 0) {
+                eventList.forEach((event, index) => {
+                    if (!event || typeof event !== 'object') {
+                        console.warn(`⚠️ 跳過無效事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    if (!event.date || !event.startTime || !event.endTime) {
+                        console.warn(`⚠️ 跳過不完整事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    if (typeof event.date !== 'string' || 
+                        typeof event.startTime !== 'string' || 
+                        typeof event.endTime !== 'string') {
+                        console.warn(`⚠️ 跳過型別錯誤事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    let eventDate = event.date;
+                    if (eventDate.includes('/')) {
+                        eventDate = eventDate.replace(/\//g, '-');
+                    }
+                    
+                    // ✅ 先標準化時間格式（只取 HH:MM）
+                    const normalizedStartTime = event.startTime.substring(0, 5);
+                    const normalizedEndTime = event.endTime.substring(0, 5);
+                    
+                    // ✅ 用標準化後的格式去重
+                    const uniqueKey = `${eventDate}_${normalizedStartTime}_${normalizedEndTime}`;
+                    if (seenKeys.has(uniqueKey)) {
+                        console.warn(`⚠️ 跳過重複事件: ${uniqueKey}`);
+                        return;
+                    }
+                    seenKeys.add(uniqueKey);
+                    
+                    let studentName = event.studentName || event.memberName || '';
+                    if (studentName && typeof studentName === 'string') {
+                        studentName = studentName
+                            .replace(/\)/g, '')
+                            .replace(/\(/g, '')
+                            .replace(/\[/g, '')
+                            .replace(/\]/g, '')
+                            .trim();
+                        
+                        if (studentName === 'null' || studentName === 'undefined') {
+                            studentName = '';
+                        }
+                    }
+                    
+                    const weekKey = getWeekKeyFromDate(eventDate);
+                    if (!processed[weekKey]) processed[weekKey] = [];
+                    
+                    processed[weekKey].push({
+                        date: eventDate,
+                        startTime: normalizedStartTime,
+                        endTime: normalizedEndTime,
+                        status: event.status || 'available',
+                        eventId: event.eventId || event.id,
+                        studentName: studentName,
+                        optimistic: false
+                    });
+                });
+            }
+            
+            const validCount = Object.values(processed).reduce((sum, arr) => sum + arr.length, 0);
+            console.log(`✅ 處理完成: ${validCount} 個有效時段 (去重後)`);
+            
+            return processed;
+        }
+
+        function updateStats() {
+            let confirmed = 0, pending = 0, booked = 0, reserved = 0;
+            
+            console.log('📊 開始統計 (v2.3 去重修復版)');
+            
+            const toBeDeleted = new Set();
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) {
+                    pendingChanges[weekKey].forEach(change => {
+                        if (change.action === 'delete') {
+                            toBeDeleted.add(`${change.date}_${change.startTime}_${change.endTime}`);
+                        }
+                        pending++;
+                    });
+                }
+            });
+            
+            if (calendarData && typeof calendarData === 'object') {
+                Object.keys(calendarData).forEach(weekKey => {
+                    const weekData = calendarData[weekKey];
+                    
+                    if (!weekData || !Array.isArray(weekData) || weekData.length === 0) {
+                        return;
+                    }
+                    
+                    weekData.forEach(e => {
+                        if (!e || typeof e !== 'object' || !e.status || typeof e.status !== 'string') {
+                            console.warn('⚠️ 跳過無效時段:', e);
+                            return;
+                        }
+                        
+                        if (!e.date || !e.startTime || !e.endTime) {
+                            console.warn('⚠️ 跳過不完整時段:', e);
+                            return;
+                        }
+                        
+                        const key = `${e.date}_${e.startTime}_${e.endTime}`;
+                        
+                        if (e.status === 'available' && !e.optimistic && !toBeDeleted.has(key)) {
+                            confirmed++;
+                        } else if (e.status === 'booked') {
+                            booked++;
+                        } else if (e.status === 'reserved') {
+                            reserved++;
+                        }
+                    });
+                });
+            }
+            
+            console.log('📊 統計結果:', { confirmed, pending, booked, reserved });
+            
+            document.getElementById('statConfirmed').textContent = confirmed.toString();
+            document.getElementById('statPending').textContent = pending.toString();
+            document.getElementById('statBooked').textContent = booked.toString();
+            document.getElementById('statReserved').textContent = reserved.toString();
+            
+            console.log('✅ 統計更新完成');
+        }
+
+        function showSlotDetails(type) {
+            const typeConfig = {
+                confirmed: { title: '已確認時段', icon: '✅', class: 'confirmed', status: 'available' },
+                pending: { title: '待送出時段', icon: '📝', class: 'pending', isPending: true },
+                booked: { title: '已預約時段', icon: '🔒', class: 'booked', status: 'booked' },
+                reserved: { title: '保留中時段', icon: '⏱', class: 'reserved', status: 'reserved' }
+            };
+            
+            const config = typeConfig[type];
+            const slots = [];
+            
+            if (config.isPending) {
+                const slotKeys = new Set();
+                
+                Object.keys(pendingChanges).forEach(weekKey => {
+                    if (pendingChanges[weekKey] && Array.isArray(pendingChanges[weekKey])) {
+                        pendingChanges[weekKey].forEach(change => {
+                            if (change && change.date && change.startTime && change.endTime) {
+                                const key = `${change.date}_${change.startTime}_${change.endTime}`;
+                                
+                                if (!slotKeys.has(key)) {
+                                    slotKeys.add(key);
+                                    
+                                    slots.push({
+                                        date: change.date,
+                                        startTime: change.startTime,
+                                        endTime: change.endTime,
+                                        action: change.action,
+                                        optimistic: change.action === 'add' && calendarData[weekKey]?.some(e =>
+                                            e.date === change.date &&
+                                            e.startTime === change.startTime &&
+                                            e.endTime === change.endTime &&
+                                            e.optimistic
+                                        )
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            } else {
+                Object.keys(calendarData).forEach(weekKey => {
+                    if (calendarData[weekKey] && Array.isArray(calendarData[weekKey])) {
+                        calendarData[weekKey].forEach(event => {
+                            if (event && 
+                                typeof event === 'object' && 
+                                event.status === config.status &&
+                                event.date &&
+                                event.startTime &&
+                                event.endTime &&
+                                !event.optimistic) {
+                                slots.push({
+                                    date: event.date,
+                                    startTime: event.startTime,
+                                    endTime: event.endTime,
+                                    studentName: event.studentName || event.memberName || ''
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+            
+            document.getElementById('detailModalIcon').textContent = config.icon;
+            document.getElementById('detailModalTitle').textContent = config.title;
+            document.getElementById('detailModalSubtitle').textContent = `共 ${slots.length} 個時段`;
+            
+            const modalBody = document.getElementById('detailModalBody');
+            
+            if (slots.length === 0) {
+                modalBody.innerHTML = `
+                    <div class="detail-empty">
+                        <div class="detail-empty-icon">${config.icon}</div>
+                        <div>目前沒有${config.title}</div>
+                    </div>
+                `;
+            } else {
+                const slotsByDate = {};
+                slots.forEach(slot => {
+                    if (!slotsByDate[slot.date]) slotsByDate[slot.date] = [];
+                    slotsByDate[slot.date].push(slot);
+                });
+                
+                const sortedDates = Object.keys(slotsByDate).sort();
+                
+                modalBody.innerHTML = sortedDates.map(date => {
+                    const dateSlots = slotsByDate[date].sort((a, b) => 
+                        a.startTime.localeCompare(b.startTime)
+                    );
+                    
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const dayOfWeek = dayLabels[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+                    
+                    return `
+                        <div class="detail-slot-group">
+                            <div class="detail-slot-date">
+                                ${date} (${dayOfWeek})
+                            </div>
+                            <div class="detail-slot-list">
+                                ${dateSlots.map(slot => `
+                                    <div class="detail-slot-item ${config.class}${slot.optimistic ? ' optimistic' : ''}" onclick="jumpToSlot('${date}', '${slot.startTime}', event)" style="cursor: pointer;">
+                                        ${slot.startTime} - ${slot.endTime}
+                                        ${slot.studentName ? ` (${slot.studentName})` : ''}
+                                        ${slot.action === 'delete' ? ' <span style="color: var(--pink);">❌</span>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function hideSlotDetails() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function jumpToSlot(dateStr, timeStr, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            hideSlotDetails();
+            
+            const targetDate = new Date(dateStr + 'T00:00:00');
+            const dayOfWeek = targetDate.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const weekStart = new Date(targetDate);
+            weekStart.setDate(targetDate.getDate() + diff);
+            weekStart.setHours(0, 0, 0, 0);
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            currentWeekStart = weekStart;
+            currentWeekEnd = weekEnd;
+            
+            const hasMinutes = timeStr.includes(':') && !timeStr.endsWith(':00');
+            if (hasMinutes && viewMode === 'simple') {
+                viewMode = 'detail';
+                document.getElementById('viewModeBtn').innerHTML = '⚡ 簡易模式';
+                document.getElementById('viewModeDesc').textContent = '切換只選"整點"時段';
+                showToast('🎯 已切換至詳細模式');
+            }
+            
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            setTimeout(() => {
+                const timeSlots = getCurrentTimeSlots();
+                const timeIndex = timeSlots.indexOf(timeStr);
+                
+                if (timeIndex !== -1) {
+                    const dayIndex = targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1;
+                    
+                    const timeRows = document.querySelectorAll('.time-row');
+                    if (timeRows[timeIndex]) {
+                        const slotCells = timeRows[timeIndex].querySelectorAll('.slot-cell');
+                        if (slotCells[dayIndex]) {
+                            slotCells[dayIndex].scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                            
+                            slotCells[dayIndex].style.animation = 'highlight 2s';
+                        }
+                    }
+                }
+                
+                showToast(`📍 已跳轉至 ${dateStr} ${timeStr}`);
+            }, 100);
+        }
+
+        function generateCalendar() {
+            const timeSlots = getCurrentTimeSlots();
+            
+            const dayHeaderHtml = `
+                <div class="day-label">時間</div>
+                ${dayLabels.map((day, i) => {
+                    const date = new Date(currentWeekStart);
+                    date.setDate(date.getDate() + i);
+                    return `<div class="day-label ${isDateToday(date) ? 'today' : ''}">${day}<div class="day-date">${formatDateShort(date)}</div></div>`;
+                }).join('')}
+            `;
+            
+            const tableHtml = timeSlots.map((time, timeIndex) => `
+                <div class="time-row">
+                    <div class="time-label">${time}</div>
+                    ${[0, 1, 2, 3, 4, 5, 6].map(dayIndex => {
+                        const slotInfo = getSlotInfo(dayIndex, timeIndex);
+                        let content = `<span class="slot-time">${time}</span>`;
+                        
+                        if (slotInfo.studentName) {
+                            const icon = slotInfo.class === 'booked' ? '🔒' : '⏱';
+                            content = `
+                                <span class="slot-time">${time}</span>
+                                <span class="student-name">${icon} ${slotInfo.studentName}</span>
+                            `;
+                        }
+                        
+                        return `<div class="slot-cell ${slotInfo.class}${slotInfo.optimistic ? ' optimistic' : ''}" onclick="toggleSlot(${dayIndex}, ${timeIndex}, event)">${content}</div>`;
+                    }).join('')}
+                </div>
+            `).join('');
+            
+            document.getElementById('dayHeader').innerHTML = dayHeaderHtml;
+            document.getElementById('timeTable').innerHTML = tableHtml;
+        }
+
+        function getSlotInfo(dayIndex, timeIndex) {
+            const timeSlots = getCurrentTimeSlots();
+            const date = new Date(currentWeekStart);
+            date.setDate(date.getDate() + dayIndex);
+            const dateStr = formatDate(date);
+            const startTime = timeSlots[timeIndex];
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            const endTimeInfo = calculateEndTimeAndDate(dateStr, startTime, 60);
+            const endTime = endTimeInfo.endTime;
+            
+            if (pendingChanges[weekKey]) {
+                const pending = pendingChanges[weekKey].find(p => 
+                    p.date === dateStr && p.startTime === startTime && p.endTime === endTime
+                );
+                
+                if (pending) {
+                    if (pending.action === 'add') {
+                        const calEvent = calendarData[weekKey]?.find(e =>
+                            e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                        );
+                        
+                        if (calEvent) {
+                            return { class: 'confirmed', optimistic: true };
+                        } else {
+                            return { class: 'pending' };
+                        }
+                    } else if (pending.action === 'delete') {
+                        return { class: '' };
+                    }
+                }
+            }
+            
+            if (calendarData[weekKey]) {
+                const calEvent = calendarData[weekKey].find(e => 
+                    e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                if (calEvent) {
+                    if (calEvent.status === 'booked') return { 
+                        class: 'booked', 
+                        studentName: calEvent.studentName || calEvent.memberName || ''
+                    };
+                    if (calEvent.status === 'reserved') return { 
+                        class: 'reserved', 
+                        studentName: calEvent.studentName || calEvent.memberName || ''
+                    };
+                    if (calEvent.status === 'available' && !calEvent.optimistic) return { 
+                        class: 'confirmed'
+                    };
+                    if (calEvent.status === 'available' && calEvent.optimistic) return {
+                        class: 'confirmed',
+                        optimistic: true
+                    };
+                }
+            }
+            
+            return { class: '' };
+        }
+
+        function toggleViewMode() {
+            if (viewMode === 'simple') {
+                viewMode = 'detail';
+                document.getElementById('viewModeBtn').innerHTML = '⚡ 簡易模式';
+                document.getElementById('viewModeDesc').textContent = '切換只選"整點"時段';
+                showToast('🎯 詳細模式');
+            } else {
+                viewMode = 'simple';
+                document.getElementById('viewModeBtn').innerHTML = '🎯 詳細模式';
+                document.getElementById('viewModeDesc').textContent = '切換可選15/30/45分';
+                showToast('⚡ 簡易模式');
+            }
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        function getCurrentTimeSlots() {
+            return viewMode === 'simple' ? timeSlotsSimple : timeSlotsDetail;
+        }
+
+        // ✅ 修復版 toggleSlot - 防止快速點擊造成重複
+        function toggleSlot(dayIndex, timeIndex, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // ✅ 防止快速點擊
+            if (isToggling) {
+                console.log('⏳ 操作中，請稍候...');
+                return;
+            }
+            isToggling = true;
+            setTimeout(() => { isToggling = false; }, 300);  // 300ms 防抖
+            
+            const timeSlots = getCurrentTimeSlots();
+            const date = new Date(currentWeekStart);
+            date.setDate(date.getDate() + dayIndex);
+            const dateStr = formatDate(date);
+            const startTime = timeSlots[timeIndex];
+            
+            const durationMinutes = 60;
+            const endTimeInfo = calculateEndTimeAndDate(dateStr, startTime, durationMinutes);
+            const endTime = endTimeInfo.endTime;
+            
+            if (endTimeInfo.isCrossDay) {
+                console.log(`⏰ 跨日時段: ${dateStr} ${startTime} → ${endTimeInfo.endDate} ${endTime}`);
+            }
+            
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            // 檢查是否為已預約/保留的時段
+            if (calendarData[weekKey]) {
+                const existingEvent = calendarData[weekKey].find(e => 
+                    e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                if (existingEvent && (existingEvent.status === 'booked' || existingEvent.status === 'reserved')) {
+                    showToast('❌ 此時段無法修改');
+                    return;
+                }
+            }
+            
+            if (!pendingChanges[weekKey]) pendingChanges[weekKey] = [];
+            
+            // ✅ 修復：同時檢查 optimistic 和非 optimistic
+            const existsInCalendar = calendarData[weekKey] && calendarData[weekKey].some(e => 
+                e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime && 
+                e.status === 'available' && !e.optimistic
+            );
+            
+            const existsOptimistic = calendarData[weekKey] && calendarData[weekKey].some(e =>
+                e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime &&
+                e.status === 'available' && e.optimistic
+            );
+            
+            const pendingIndex = pendingChanges[weekKey].findIndex(p => 
+                p.date === dateStr && p.startTime === startTime && p.endTime === endTime
+            );
+            
+            if (pendingIndex >= 0) {
+                const pendingAction = pendingChanges[weekKey][pendingIndex].action;
+                pendingChanges[weekKey].splice(pendingIndex, 1);
+                
+                if (pendingAction === 'add') {
+                    const eventIndex = calendarData[weekKey]?.findIndex(e =>
+                        e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                    );
+                    if (eventIndex >= 0) {
+                        calendarData[weekKey].splice(eventIndex, 1);
+                    }
+                }
+                
+                showToast(`❌ 已取消 ${startTime}-${endTime}`);
+            }
+            else if (existsInCalendar) {
+                const calEvent = calendarData[weekKey].find(e =>
+                    e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                pendingChanges[weekKey].push({
+                    action: 'delete',
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    endDate: endTimeInfo.endDate,
+                    isCrossDay: endTimeInfo.isCrossDay,
+                    dayIndex,
+                    dayLabel: dayLabels[dayIndex],
+                    duration: durationMinutes,
+                    eventId: calEvent ? calEvent.eventId : null
+                });
+                
+                showToast(`📝 已標記刪除 ${startTime}-${endTime}`);
+            }
+            else if (existsOptimistic) {
+                // ✅ 新增：如果已經有 optimistic，就取消它
+                const eventIndex = calendarData[weekKey]?.findIndex(e =>
+                    e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                );
+                if (eventIndex >= 0) {
+                    calendarData[weekKey].splice(eventIndex, 1);
+                }
+                
+                // 找到對應的 pending 並移除
+                const pendingIdx = pendingChanges[weekKey].findIndex(p =>
+                    p.date === dateStr && p.startTime === startTime && p.endTime === endTime && p.action === 'add'
+                );
+                if (pendingIdx >= 0) {
+                    pendingChanges[weekKey].splice(pendingIdx, 1);
+                }
+                
+                showToast(`❌ 已取消 ${startTime}-${endTime}`);
+            }
+            else {
+                if (!calendarData[weekKey]) calendarData[weekKey] = [];
+                
+                const tempEventId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                
+                calendarData[weekKey].push({
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    status: 'available',
+                    eventId: tempEventId,
+                    optimistic: true
+                });
+                
+                pendingChanges[weekKey].push({
+                    action: 'add',
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    endDate: endTimeInfo.endDate,
+                    isCrossDay: endTimeInfo.isCrossDay,
+                    dayIndex,
+                    dayLabel: dayLabels[dayIndex],
+                    duration: durationMinutes,
+                    tempEventId: tempEventId
+                });
+                
+                showToast(`✅ 已新增 ${startTime}-${endTime} (待送出)${endTimeInfo.isCrossDay ? ' (跨日)' : ''}`);
+            }
+            
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        // ✅ 修復版 showSaveModal - 加入去重顯示
+        function showSaveModal() {
+            const allChangesRaw = [];
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey] && pendingChanges[weekKey].length > 0) {
+                    allChangesRaw.push(...pendingChanges[weekKey]);
+                }
+            });
+            
+            if (allChangesRaw.length === 0) {
+                showToast('ℹ️ 沒有需要送出的變更');
+                return;
+            }
+            
+            // ✅ 去重
+            const seenKeys = new Set();
+            const allChanges = [];
+            
+            allChangesRaw.forEach(change => {
+                const key = `${change.action}_${change.date}_${change.startTime}_${change.endTime}`;
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    allChanges.push(change);
+                }
+            });
+            
+            const added = allChanges.filter(c => c.action === 'add');
+            const deleted = allChanges.filter(c => c.action === 'delete');
+            
+            document.getElementById('modalAddCount').textContent = added.length;
+            document.getElementById('modalDeleteCount').textContent = deleted.length;
+            document.getElementById('modalTotalCount').textContent = allChanges.length;
+            
+            const changesList = [...added, ...deleted].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            document.getElementById('confirmScheduleList').innerHTML = changesList.map(c => `
+                <div class="schedule-item ${c.action}">
+                    <div><div class="schedule-date">${c.date} (${c.dayLabel})</div></div>
+                    <div class="schedule-time">${c.startTime} - ${c.endTime}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('saveModalOverlay').classList.remove('hidden');
+        }
+
+        function hideSaveModal() {
+            document.getElementById('saveModalOverlay').classList.add('hidden');
+        }
+
+        function showWeekJumpModal() {
+            document.getElementById('jumpToDate').value = formatDate(currentWeekStart);
+            document.getElementById('weekJumpModalOverlay').classList.remove('hidden');
+        }
+
+        function hideWeekJumpModal() {
+            document.getElementById('weekJumpModalOverlay').classList.add('hidden');
+        }
+
+        function confirmWeekJump() {
+            const dateInput = document.getElementById('jumpToDate').value;
+            if (!dateInput) {
+                showToast('⚠️ 請選擇日期');
+                return;
+            }
+
+            const selectedDate = new Date(dateInput + 'T00:00:00');
+            const dayOfWeek = selectedDate.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const weekStart = new Date(selectedDate);
+            weekStart.setDate(selectedDate.getDate() + diff);
+            weekStart.setHours(0, 0, 0, 0);
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            currentWeekStart = weekStart;
+            currentWeekEnd = weekEnd;
+            
+            hideWeekJumpModal();
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            showToast(`📅 已跳轉至 ${formatDate(weekStart)}`);
+        }
+
+        // ✅ 修復版 confirmSave - 加入去重邏輯
+        async function confirmSave() {
+            if (isSaving) {
+                showToast('⚠️ 正在送出中,請稍候...');
+                return;
+            }
+            
+            // ✅ 收集所有變更
+            const allChangesRaw = [];
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey] && pendingChanges[weekKey].length > 0) {
+                    allChangesRaw.push(...pendingChanges[weekKey]);
+                }
+            });
+            
+            if (allChangesRaw.length === 0) {
+                hideSaveModal();
+                return;
+            }
+            
+            // ✅ 關鍵修復：去重邏輯
+            const seenKeys = new Set();
+            const allChanges = [];
+            
+            allChangesRaw.forEach(change => {
+                // 建立唯一 key：action + date + startTime + endTime
+                const key = `${change.action}_${change.date}_${change.startTime}_${change.endTime}`;
+                
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    allChanges.push(change);
+                } else {
+                    console.warn('⚠️ 跳過重複項目:', key);
+                }
+            });
+            
+            console.log(`📊 去重前: ${allChangesRaw.length} 項, 去重後: ${allChanges.length} 項`);
+            
+            if (allChanges.length === 0) {
+                hideSaveModal();
+                showToast('ℹ️ 沒有需要送出的變更');
+                return;
+            }
+            
+            const deleteChanges = allChanges.filter(c => c.action === 'delete');
+            const missingEventIds = deleteChanges.filter(c => !c.eventId);
+            
+            if (missingEventIds.length > 0) {
+                console.warn('⚠️ 以下刪除操作缺少 eventId:', missingEventIds);
+            }
+            
+            isSaving = true;
+            
+            const confirmBtn = document.getElementById('confirmSaveBtn');
+            const originalText = confirmBtn ? confirmBtn.textContent : '確認送出';
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.style.cursor = 'not-allowed';
+                confirmBtn.textContent = '送出中...';
+            }
+            
+            hideSaveModal();
+            showToast(`📤 送出 ${allChanges.length} 個時段...`);
+            
+            try {
+                // 準備 changes 資料（共用）
+                const mappedChanges = allChanges.map(c => {
+                    const endTimeInfo = calculateEndTimeAndDate(c.date, c.startTime, c.duration || 60);
+                    return {
+                        action: c.action,
+                        date: c.date,
+                        startTime: c.startTime,
+                        endTime: endTimeInfo.endTime,
+                        endDate: endTimeInfo.endDate,
+                        isCrossDay: endTimeInfo.isCrossDay,
+                        dayName: c.dayLabel,
+                        startDateTime: `${c.date} ${c.startTime}`,
+                        endDateTime: endTimeInfo.endDateTime,
+                        eventId: c.eventId || null
+                    };
+                });
+
+                // ── 雙寫：同時寫 Google Calendar（Make.com）+ trial_slots（booking-api）──
+                const [gcalRes, slotsRes] = await Promise.allSettled([
+                    // 1. Make.com → Google Calendar（原有邏輯）
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'save',
+                            coachId: currentCoachId,
+                            userId: currentTeacher,
+                            userName: currentTeacher,
+                            coachType: currentTeacherType,
+                            timestamp: new Date().toISOString(),
+                            changes: mappedChanges
+                        })
+                    }),
+                    // 2. booking-api → trial_slots（新增）
+                    callEdge('saveSlots', {
+                        coachId: currentCoachId,
+                        coachName: currentTeacher,
+                        coachType: currentTeacherType,
+                        changes: mappedChanges
+                    })
+                ]);
+
+                // 檢查結果
+                const gcalOk = gcalRes.status === 'fulfilled' && gcalRes.value?.ok;
+                const slotsOk = slotsRes.status === 'fulfilled' && slotsRes.value?.success;
+
+                if (gcalOk || slotsOk) {
+                    console.log(`✅ 送出完成 — 日曆:${gcalOk ? '成功' : '失敗'}, trial_slots:${slotsOk ? '成功' : '失敗'}`);
+                    if (!gcalOk) console.warn('⚠️ Google 日曆寫入失敗（trial_slots 已成功）');
+                    if (!slotsOk) console.warn('⚠️ trial_slots 寫入失敗（Google 日曆已成功）');
+
+                    pendingChanges = {};
+                    await loadFromCalendar();
+                    generateCalendar();
+                    updateStats();
+                    updateSaveStatus();
+
+                    showToast(`🎉 已送出 ${allChanges.length} 個時段!`);
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+
+                } else {
+                    throw new Error('兩邊都寫入失敗');
+                }
+
+            } catch (error) {
+                console.error('❌ 送出錯誤:', error);
+                showToast('❌ 送出失敗,請稍後重試', 4000);
+
+                if (confirm('送出失敗,是否要重新載入頁面以確保資料一致性?')) {
+                    location.reload();
+                }
+            } finally {
+                isSaving = false;
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.cursor = 'pointer';
+                    confirmBtn.textContent = originalText;
+                }
+            }
+        }
+
+        async function reloadFromCalendar() {
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) totalPending += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalUnsaved = totalPending + optimisticCount;
+            
+            if (totalUnsaved > 0) {
+                if (!confirm(`確定要重新載入嗎?有 ${totalUnsaved} 個未儲存的變更將會遺失。`)) {
+                    return;
+                }
+            } else {
+                if (!confirm('確定要重新載入嗎?')) {
+                    return;
+                }
+            }
+            
+            document.getElementById('loadingScreen').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = '重新載入資料中...';
+            
+            calendarData = {};
+            pendingChanges = {};
+            
+            await loadFromCalendar();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            document.getElementById('loadingScreen').classList.add('hidden');
+            showToast('✅ 重新載入完成');
+        }
+
+        function clearCurrentWeek() {
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            let pendingCount = 0;
+            if (pendingChanges[weekKey]) {
+                pendingCount = pendingChanges[weekKey].length;
+            }
+            
+            let optimisticCount = 0;
+            if (calendarData[weekKey]) {
+                optimisticCount = calendarData[weekKey].filter(e => e.optimistic).length;
+            }
+            
+            const totalCount = pendingCount + optimisticCount;
+            
+            if (totalCount === 0) {
+                showToast('ℹ️ 本週沒有待送出的變更');
+                return;
+            }
+            
+            if (confirm(`確定要清除本週 ${totalCount} 個待送出的變更嗎?`)) {
+                if (pendingChanges[weekKey]) {
+                    delete pendingChanges[weekKey];
+                }
+                
+                if (calendarData[weekKey]) {
+                    calendarData[weekKey] = calendarData[weekKey].filter(e => !e.optimistic);
+                }
+                
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                showToast(`🗑️ 已清除 ${totalCount} 個變更`);
+            }
+        }
+        
+        function clearAllWeeks() {
+            let pendingCount = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) pendingCount += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalCount = pendingCount + optimisticCount;
+            
+            if (totalCount === 0) {
+                showToast('ℹ️ 沒有待送出的變更');
+                return;
+            }
+            
+            if (confirm(`確定要清除全部 ${totalCount} 個待送出的變更嗎?`)) {
+                pendingChanges = {};
+                
+                Object.keys(calendarData).forEach(weekKey => {
+                    if (calendarData[weekKey]) {
+                        calendarData[weekKey] = calendarData[weekKey].filter(e => !e.optimistic);
+                    }
+                });
+                
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                showToast(`🗑️ 已清除 ${totalCount} 個變更`);
+            }
+        }
+
+        // ✅ 修復版 copyLastWeek - 同時檢查 calendarData 和 pendingChanges
+        function copyLastWeek() {
+            const lastWeekStart = new Date(currentWeekStart);
+            lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+            const lastWeekKey = getWeekKey(lastWeekStart);
+            
+            if (!calendarData[lastWeekKey] || calendarData[lastWeekKey].length === 0) {
+                showToast('❌ 上週沒有排程資料');
+                return;
+            }
+            
+            const currentWeekKey = getWeekKey(currentWeekStart);
+            if (!pendingChanges[currentWeekKey]) pendingChanges[currentWeekKey] = [];
+            if (!calendarData[currentWeekKey]) calendarData[currentWeekKey] = [];
+            
+            let copiedCount = 0;
+            let skippedCount = 0;
+            
+            calendarData[lastWeekKey].forEach(event => {
+                if (event && event.status === 'available' && !event.optimistic) {
+                    const lastWeekDate = new Date(event.date + 'T00:00:00');
+                    const currentWeekDate = new Date(lastWeekDate);
+                    currentWeekDate.setDate(currentWeekDate.getDate() + 7);
+                    const newDateStr = formatDate(currentWeekDate);
+                    
+                    // ✅ 修復：同時檢查 calendarData 和 pendingChanges
+                    const existsInCalendar = calendarData[currentWeekKey].some(e => 
+                        e.date === newDateStr && e.startTime === event.startTime && e.endTime === event.endTime
+                    );
+                    
+                    const existsInPending = pendingChanges[currentWeekKey].some(p =>
+                        p.date === newDateStr && p.startTime === event.startTime && p.endTime === event.endTime
+                    );
+                    
+                    if (existsInCalendar || existsInPending) {
+                        skippedCount++;
+                        console.log(`⏭️ 跳過已存在: ${newDateStr} ${event.startTime}`);
+                        return;
+                    }
+                    
+                    const dayIndex = currentWeekDate.getDay() === 0 ? 6 : currentWeekDate.getDay() - 1;
+                    const tempEventId = `temp-${Date.now()}-${copiedCount}-${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    calendarData[currentWeekKey].push({
+                        date: newDateStr,
+                        startTime: event.startTime,
+                        endTime: event.endTime,
+                        status: 'available',
+                        eventId: tempEventId,
+                        optimistic: true
+                    });
+                    
+                    pendingChanges[currentWeekKey].push({
+                        action: 'add',
+                        date: newDateStr,
+                        startTime: event.startTime,
+                        endTime: event.endTime,
+                        dayIndex,
+                        dayLabel: dayLabels[dayIndex],
+                        tempEventId: tempEventId
+                    });
+                    
+                    copiedCount++;
+                }
+            });
+            
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            if (skippedCount > 0) {
+                showToast(`📋 複製 ${copiedCount} 個時段 (跳過 ${skippedCount} 個重複)`);
+            } else {
+                showToast(`📋 已複製 ${copiedCount} 個時段 (待送出)`);
+            }
+        }
+
+        function previousWeek() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            if (weekDiff + 1 <= 1) {
+                showToast('⚠️ 已經是本週了');
+                return;
+            }
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            currentWeekEnd.setDate(currentWeekEnd.getDate() - 7);
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        function nextWeek() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            if (weekDiff + 1 >= PRELOAD_WEEKS) {
+                showToast(`⚠️ 最多${PRELOAD_WEEKS}週`);
+                return;
+            }
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            currentWeekEnd.setDate(currentWeekEnd.getDate() + 7);
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        async function getUserInfo() {
+            const params = new URLSearchParams(window.location.search);
+            // 優先用 coachId（新流程），向下相容舊參數
+            currentCoachId = params.get('coach_id') || params.get('coachId') || '';
+            currentTeacher = params.get('userId') || params.get('teacher') || params.get('coach') || params.get('name') || '';
+            currentTeacherType = params.get('type') || params.get('coach_type') || '';
+
+            // 如果有 coachId，從 API 取得教練完整資訊（名稱、課種）
+            if (currentCoachId) {
+                try {
+                    const coachRes = await callEdge('getCoachSchedule', { coachId: currentCoachId });
+                    if (coachRes?.success && coachRes.coach) {
+                        const coach = coachRes.coach;
+                        currentCoachNickname = coach.nickname || coach.name || currentTeacher;
+                        currentTeacher = currentCoachNickname;
+                        currentTeacherType = coach.coach_type || currentTeacherType;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ 用 coachId 查詢教練失敗:', e.message);
+                }
+            }
+
+            // 顯示教練名稱（首字母大寫已在 DB nickname 處理）
+            document.getElementById('userName').textContent = currentTeacher || 'test-coach';
+
+            // 顯示課種中文名稱
+            const TYPE_DISPLAY = {
+                'ai_analysis': 'AI 3D體態分析',
+                'pilates': '皮拉提斯',
+                'stretch': '肌肉賦能伸展',
+                'strength_training': '重訓',
+                'stretching': '肌肉賦能伸展'
+            };
+            document.getElementById('userType').textContent = TYPE_DISPLAY[currentTeacherType] || currentTeacherType;
+            document.getElementById('userAvatar').textContent = getCoachTypeIcon(currentTeacherType);
+        }
+        
+        function getCoachTypeIcon(type) {
+            const typeMap = {
+                'ai_analysis': '🤖',
+                'aianalysis': '🤖',
+                'pilates': '🧘',
+                'stretch': '🤸',
+                'stretching': '🤸',
+                'strength_training': '💪',
+                'strengthtraining': '💪',
+                'AI分析': '🤖',
+                'ai分析': '🤖',
+                'AI 3D體態分析': '🤖',
+                '皮拉提斯': '🧘',
+                '重訓': '💪',
+                '肌肉賦能伸展': '🤸',
+                '伸展': '🤸'
+            };
+            
+            if (typeMap[type]) return typeMap[type];
+            
+            const normalized = type.toLowerCase().replace(/_/g, '');
+            return typeMap[normalized] || '👤';
+        }
+
+        function setCurrentWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            currentWeekStart = new Date(today);
+            currentWeekStart.setDate(today.getDate() + diff);
+            currentWeekStart.setHours(0, 0, 0, 0);
+            currentWeekEnd = new Date(currentWeekStart);
+            currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+            baseWeekStart = new Date(currentWeekStart);
+        }
+
+        function updateWeekDisplay() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            const year = currentWeekStart.getFullYear();
+            document.getElementById('weekDisplay').textContent = `${year}年 第 ${weekDiff + 1} 週`;
+            document.getElementById('weekRange').textContent = `${formatDateShort(currentWeekStart)} - ${formatDateShort(currentWeekEnd)}`;
+        }
+
+        function getWeekKey(date) {
+            // ✅ 使用 ISO 週年，而不是日期的年份
+            const isoWeekYear = getISOWeekYear(date);
+            return `${isoWeekYear}-W${String(getWeekNumber(date)).padStart(2, '0')}`;
+        }
+
+        function getWeekKeyFromDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return getWeekKey(date);
+        }
+
+        // ✅ 新增：計算 ISO 週年（處理跨年問題）
+        function getISOWeekYear(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            // 調整到該週的週四
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            // 週四所在的年份就是 ISO 週年
+            return d.getFullYear();
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function formatDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatDateShort(date) {
+            return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function isDateToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        }
+
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+        
+        window.addEventListener('beforeunload', function(e) {
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) totalPending += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalUnsaved = totalPending + optimisticCount;
+            
+            if (totalUnsaved > 0) {
+                const message = `您有 ${totalUnsaved} 個未送出的變更,確定要離開嗎?`;
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        });
+    </script>
+</body>
+</html>
