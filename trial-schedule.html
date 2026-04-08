@@ -1235,7 +1235,9 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errText = await response.text().catch(() => '');
+                    console.error(`callEdge(${action}) HTTP ${response.status}:`, errText);
+                    throw new Error(`HTTP ${response.status}: ${errText.substring(0, 200)}`);
                 }
 
                 const text = await response.text();
@@ -1246,7 +1248,7 @@
                 try {
                     return JSON.parse(text);
                 } catch (e) {
-                    console.error('JSON parse error:', e);
+                    console.error('JSON parse error:', e, 'raw:', text.substring(0, 300));
                     return null;
                 }
             } catch (error) {
@@ -1380,6 +1382,11 @@
                         endDate: formatDate(endDate)
                     });
                     if (dbData) {
+                        // 補回 coachId（防止 getUserInfo 查不到的情況）
+                        if (!currentCoachId && dbData.coach?.id) {
+                            currentCoachId = dbData.coach.id;
+                            console.log('✅ loadFromCalendar 補回 coachId:', currentCoachId);
+                        }
                         const dbEvents = dbData?.events || dbData?.schedules || dbData?.slots || [];
                         uniqueEvents = dbEvents.map(s => s.slot_date && !s.date
                             ? { ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }
@@ -2141,8 +2148,13 @@
                 console.warn('⚠️ 以下刪除操作缺少 eventId:', missingEventIds);
             }
             
+            if (!currentCoachId) {
+                showToast('❌ 無法辨識教練身份，請重新載入頁面', 4000);
+                return;
+            }
+
             isSaving = true;
-            
+
             const confirmBtn = document.getElementById('confirmSaveBtn');
             const originalText = confirmBtn ? confirmBtn.textContent : '確認送出';
             if (confirmBtn) {
@@ -2197,14 +2209,17 @@
                     }, 2000);
 
                 } else {
-                    throw new Error(result?.error || '寫入失敗');
+                    const detail = result?.errors ? result.errors.join('; ') : (result?.error || '寫入失敗');
+                    console.error('❌ saveSlots 失敗:', JSON.stringify(result));
+                    throw new Error(detail);
                 }
 
             } catch (error) {
                 console.error('❌ 送出錯誤:', error);
-                showToast('❌ 送出失敗,請稍後重試', 4000);
+                const errMsg = error?.message || String(error);
+                showToast(`❌ 送出失敗: ${errMsg.substring(0, 100)}`, 6000);
 
-                if (confirm('送出失敗,是否要重新載入頁面以確保資料一致性?')) {
+                if (confirm(`送出失敗: ${errMsg.substring(0, 150)}\n\n是否要重新載入頁面以確保資料一致性?`)) {
                     location.reload();
                 }
             } finally {
@@ -2442,19 +2457,28 @@
             currentTeacher = params.get('userId') || params.get('teacher') || params.get('coach') || params.get('name') || '';
             currentTeacherType = params.get('type') || params.get('coach_type') || '';
 
-            // 如果有 coachId，從 API 取得教練完整資訊（名稱、課種）
-            if (currentCoachId) {
-                try {
-                    const coachRes = await callEdge('getCoachSchedule', { coachId: currentCoachId });
+            // 從 API 取得教練完整資訊（名稱、課種、ID）
+            try {
+                const queryParams = currentCoachId
+                    ? { coachId: currentCoachId }
+                    : currentTeacher
+                        ? { userId: currentTeacher, coachType: currentTeacherType }
+                        : null;
+                if (queryParams) {
+                    const coachRes = await callEdge('getCoachSchedule', queryParams);
                     if (coachRes?.success && coachRes.coach) {
                         const coach = coachRes.coach;
+                        if (!currentCoachId && coach.id) {
+                            currentCoachId = coach.id;
+                            console.log('✅ 從 API 取得 coachId:', currentCoachId);
+                        }
                         currentCoachNickname = coach.nickname || coach.name || currentTeacher;
                         currentTeacher = currentCoachNickname;
                         currentTeacherType = coach.coach_type || currentTeacherType;
                     }
-                } catch (e) {
-                    console.warn('⚠️ 用 coachId 查詢教練失敗:', e.message);
                 }
+            } catch (e) {
+                console.warn('⚠️ 查詢教練失敗:', e.message);
             }
 
             // 顯示教練名稱（首字母大寫已在 DB nickname 處理）
