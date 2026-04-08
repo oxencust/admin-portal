@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>體驗排程管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --green:#7ac19a; --green-dark:#5f846f; --green-light:rgba(122,193,154,.12);
+    --pink:#f2ac98; --blue:#9fcccc; --danger:#e05252;
+    --text:#2d3436; --muted:#636e72; --bg:#f5f7f6;
+    /* 四種課種色系（配合日曆） */
+    --c-ai:#E84393;           /* AI 3D體態分析 — 紅鶴色 */
+    --c-ai-bg:#fce4ec;
+    --c-pilates:#FDCB6E;      /* 皮拉提斯 — 香蕉黃 */
+    --c-pilates-bg:#fef9e7;
+    --c-pilates-text:#b8860b;
+    --c-strength:#00B894;     /* 肌力訓練 — 開果綠 */
+    --c-strength-bg:#e0f5ef;
+    --c-stretch:#A0522D;      /* 伸展放鬆 — 可可棕 */
+    --c-stretch-bg:#f5ebe0;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 100%);min-height:100vh;color:var(--text)}
+
+/* ── Header ── */
+.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.header h1{font-size:17px;font-weight:700;color:var(--green-dark)}
+.header-sub{font-size:11px;color:var(--muted)}
+.refresh-btn{background:var(--green-light);border:1px solid var(--green);color:var(--green-dark);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit}
+
+/* ── 篩選列 ── */
+.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filter-chip{padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid #ddd;background:white;cursor:pointer;transition:.2s;white-space:nowrap}
+.filter-chip.active{background:var(--green);color:white;border-color:var(--green)}
+.filter-chip:hover{border-color:var(--green)}
+select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;font-size:12px;font-family:inherit;background:white;outline:none}
+
+/* ── 課種標籤（可點擊篩選）── */
+.type-tags{display:flex;gap:8px;padding:8px 16px;flex-wrap:wrap;align-items:center}
+.type-tag{display:flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;border:2px solid transparent;opacity:.6}
+.type-tag:hover{opacity:.9}
+.type-tag.active{opacity:1;border-color:currentColor;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.type-tag .tag-dot{width:8px;height:8px;border-radius:50%}
+.type-tag .tag-count{font-size:10px;background:rgba(0,0,0,.1);padding:1px 6px;border-radius:10px;margin-left:2px}
+.type-tag[data-type="ai_analysis"]{background:var(--c-ai-bg);color:var(--c-ai)}
+.type-tag[data-type="pilates"]{background:var(--c-pilates-bg);color:var(--c-pilates-text)}
+.type-tag[data-type="strength_training"]{background:var(--c-strength-bg);color:var(--c-strength)}
+.type-tag[data-type="stretch"]{background:var(--c-stretch-bg);color:var(--c-stretch)}
+
+/* 選中課種時顯示的教練列表 */
+.coach-chips{display:none;gap:6px;padding:0 16px 6px;flex-wrap:wrap}
+.coach-chips.show{display:flex}
+.coach-chip{padding:3px 10px;border-radius:14px;font-size:11px;background:white;border:1px solid #ddd;cursor:pointer;transition:.2s}
+.coach-chip.active{background:var(--green-dark);color:white;border-color:var(--green-dark)}
+.coach-chip:hover{border-color:var(--green)}
+
+/* ── 統計列 ── */
+.stats-bar{display:flex;gap:8px;padding:8px 16px;overflow-x:auto}
+.stat-card{flex-shrink:0;background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;border:1px solid rgba(255,255,255,.5)}
+.stat-num{font-size:22px;font-weight:700;color:var(--green-dark)}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── 日曆導覽 ── */
+.cal-nav{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:rgba(255,255,255,.6)}
+.cal-nav button{background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--green-dark)}
+.cal-nav button:hover{background:var(--green-light)}
+.cal-nav .month-label{font-size:15px;font-weight:600;min-width:160px;text-align:center}
+.today-btn{font-size:12px!important;padding:4px 12px!important;background:var(--green-light)!important;border-radius:8px!important}
+.view-toggle{display:flex;border:1px solid var(--green);border-radius:16px;overflow:hidden;margin-left:4px}
+.view-toggle button{padding:4px 12px;font-size:11px;border:none;background:white;cursor:pointer;font-family:inherit;color:var(--green-dark);font-weight:500}
+.view-toggle button.active{background:var(--green);color:white}
+
+/* ── 週曆 ── */
+.week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.week-header{padding:8px 2px;text-align:center;font-size:11px;font-weight:600;background:var(--green-dark);color:white}
+.week-header.today{background:var(--green)}
+.week-header .date-num{font-size:15px;font-weight:700}
+.time-label{padding:2px 6px;font-size:10px;color:var(--muted);text-align:right;border-right:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:flex-end;min-height:54px}
+.day-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:54px;padding:2px;position:relative}
+
+/* ── 月曆 ── */
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.month-header{padding:8px 4px;text-align:center;font-size:12px;font-weight:600;background:var(--green-dark);color:white}
+.month-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:90px;padding:4px;position:relative}
+.month-cell.other-month{background:#fafafa}
+.month-cell.is-today{background:rgba(122,193,154,.08)}
+.month-cell .cell-date{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px}
+.month-cell.is-today .cell-date{color:var(--green);font-weight:700}
+.month-cell .slot-dots{display:flex;flex-wrap:wrap;gap:2px}
+.month-cell .dot-slot{padding:2px 4px;border-radius:4px;font-size:9px;line-height:1.2;cursor:pointer;margin-bottom:1px;border-left:2px solid transparent;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.month-cell .more-link{font-size:9px;color:var(--green-dark);cursor:pointer;text-decoration:underline;margin-top:2px}
+
+/* ── 時段方塊 ── */
+.slot{padding:3px 5px;border-radius:6px;font-size:10px;margin:1px 0;cursor:pointer;line-height:1.25;transition:.15s;border-left:3px solid transparent}
+/* 課種顏色 */
+.slot[data-type="ai_analysis"], .dot-slot[data-type="ai_analysis"]{background:var(--c-ai-bg);color:var(--c-ai);border-left-color:var(--c-ai)}
+.slot[data-type="pilates"], .dot-slot[data-type="pilates"]{background:var(--c-pilates-bg);color:var(--c-pilates-text);border-left-color:var(--c-pilates)}
+.slot[data-type="strength_training"], .dot-slot[data-type="strength_training"]{background:var(--c-strength-bg);color:var(--c-strength);border-left-color:var(--c-strength)}
+.slot[data-type="stretch"], .dot-slot[data-type="stretch"]{background:var(--c-stretch-bg);color:var(--c-stretch);border-left-color:var(--c-stretch)}
+/* 狀態覆蓋 */
+.slot.booked{opacity:1}
+.slot.booked .coach-name::after{content:' ✦';font-size:8px}
+.slot.reserved{opacity:.85;border-style:dashed}
+.slot.reserved .coach-name::after{content:' ◐';font-size:8px}
+.slot.cancelled{opacity:.5;text-decoration:line-through}
+
+.slot:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.slot .coach-name{font-weight:600;font-size:10px}
+.slot .slot-time{font-size:9px;opacity:.7}
+.slot .student{font-size:9px;font-weight:600}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:white;border-radius:20px;padding:20px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--green-dark)}
+.modal .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.modal .info-label{color:var(--muted)}
+.modal .info-val{font-weight:500}
+.modal input, .modal select, .modal textarea{width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:6px 0;outline:none;transition:.2s}
+.modal input:focus, .modal select:focus{border-color:var(--green)}
+.modal textarea{resize:vertical;min-height:60px}
+.modal .btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.modal .btn{flex:1;padding:11px;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:80px}
+.btn-cancel-modal{background:#f5f5f5;color:var(--muted)}
+.btn-book{background:var(--green-dark);color:white}
+.btn-reserve{background:#f39c12;color:white}
+.btn-unbook{background:var(--danger);color:white}
+.btn-edit{background:var(--blue);color:white}
+
+/* ── Badge ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-available{background:#e8f5e9;color:#2e7d32}
+.badge-booked{background:#fff3e0;color:#e65100}
+.badge-reserved{background:#fef5e7;color:#f39c12}
+.badge-cancelled{background:#f5f5f5;color:#999}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:10px 24px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1}
+
+/* ── Loading ── */
+.loading-mask{display:none;position:fixed;inset:0;background:rgba(255,255,255,.6);z-index:300;justify-content:center;align-items:center}
+.loading-mask.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid #ddd;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top">
+        <div>
+            <h1>📋 體驗排程管理</h1>
+            <div class="header-sub">行政端 · 時段管理與預約</div>
+        </div>
+        <button class="refresh-btn" onclick="loadSlots()">↻ 重新整理</button>
+    </div>
+    <div class="filters">
+        <select class="coach-select" id="filterCoach" onchange="applyFilters()">
+            <option value="">所有教練</option>
+        </select>
+        <div class="filter-chip active" data-f="all" onclick="setStatusFilter('all',this)">全部</div>
+        <div class="filter-chip" data-f="available" onclick="setStatusFilter('available',this)">🟢 可預約</div>
+        <div class="filter-chip" data-f="booked" onclick="setStatusFilter('booked',this)">🟠 已預約</div>
+        <div class="filter-chip" data-f="reserved" onclick="setStatusFilter('reserved',this)">🟡 保留中</div>
+    </div>
+</div>
+
+<!-- 課種標籤（可點擊） -->
+<div class="type-tags" id="typeTags">
+    <div class="type-tag active" data-type="" onclick="setTypeFilter('',this)">
+        <span style="font-size:11px">全部課種</span>
+    </div>
+    <div class="type-tag" data-type="ai_analysis" onclick="setTypeFilter('ai_analysis',this)">
+        <div class="tag-dot" style="background:var(--c-ai)"></div>
+        AI分析 <span class="tag-count" id="countAi">0</span>
+    </div>
+    <div class="type-tag" data-type="pilates" onclick="setTypeFilter('pilates',this)">
+        <div class="tag-dot" style="background:var(--c-pilates)"></div>
+        皮拉提斯 <span class="tag-count" id="countPilates">0</span>
+    </div>
+    <div class="type-tag" data-type="strength_training" onclick="setTypeFilter('strength_training',this)">
+        <div class="tag-dot" style="background:var(--c-strength)"></div>
+        肌力訓練 <span class="tag-count" id="countStrength">0</span>
+    </div>
+    <div class="type-tag" data-type="stretch" onclick="setTypeFilter('stretch',this)">
+        <div class="tag-dot" style="background:var(--c-stretch)"></div>
+        伸展放鬆 <span class="tag-count" id="countStretch">0</span>
+    </div>
+</div>
+
+<!-- 選中課種後，顯示該課種的教練列表 -->
+<div class="coach-chips" id="coachChips"></div>
+
+<!-- 統計 -->
+<div class="stats-bar">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">總時段</div></div>
+    <div class="stat-card"><div class="stat-num" id="statAvail">0</div><div class="stat-label">可預約</div></div>
+    <div class="stat-card"><div class="stat-num" id="statBooked">0</div><div class="stat-label">已預約</div></div>
+    <div class="stat-card"><div class="stat-num" id="statReserved">0</div><div class="stat-label">保留中</div></div>
+    <div class="stat-card"><div class="stat-num" id="statRate">0%</div><div class="stat-label">預約率</div></div>
+</div>
+
+<!-- 導覽列 -->
+<div class="cal-nav">
+    <button onclick="changePeriod(-1)">◀</button>
+    <div class="month-label" id="periodLabel">2026 年 4 月</div>
+    <button onclick="changePeriod(1)">▶</button>
+    <button class="today-btn" onclick="goToday()">今天</button>
+    <div class="view-toggle">
+        <button id="btnWeek" class="active" onclick="setView('week')">週</button>
+        <button id="btnMonth" onclick="setView('month')">月</button>
+    </div>
+</div>
+
+<!-- 週曆容器 -->
+<div class="week-grid" id="weekGrid" style="display:none"></div>
+
+<!-- 月曆容器 -->
+<div class="month-grid" id="monthGrid" style="display:none"></div>
+
+<!-- ═══ 預約 / 編輯 Modal ═══ -->
+<div class="modal-overlay" id="slotModal">
+    <div class="modal">
+        <h3 id="modalTitle">📝 預約體驗課</h3>
+        <div class="info-row"><span class="info-label">教練</span><span class="info-val" id="mCoach">-</span></div>
+        <div class="info-row"><span class="info-label">課種</span><span class="info-val" id="mType">-</span></div>
+        <div class="info-row"><span class="info-label">日期</span><span class="info-val" id="mDate">-</span></div>
+        <div class="info-row"><span class="info-label">時間</span><span class="info-val" id="mTime">-</span></div>
+        <div class="info-row"><span class="info-label">狀態</span><span id="mBadge"><span class="badge badge-available">可預約</span></span></div>
+
+        <div id="studentSection">
+            <input type="text" placeholder="學員姓名" id="mStudentName">
+            <input type="text" placeholder="學員電話（選填）" id="mStudentPhone">
+            <textarea placeholder="備註（選填）" id="mNote"></textarea>
+        </div>
+
+        <div id="editTimeSection" style="display:none">
+            <div style="font-size:12px;color:var(--muted);margin:8px 0 4px">更改預約時間：</div>
+            <input type="date" id="mNewDate">
+            <div style="display:flex;gap:8px">
+                <input type="time" id="mNewStart" style="flex:1">
+                <input type="time" id="mNewEnd" style="flex:1">
+            </div>
+        </div>
+
+        <div class="btn-row" id="modalBtns"></div>
+    </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
+const TYPE_LABELS = {
+    ai_analysis: 'AI 3D體態分析',
+    pilates: '皮拉提斯',
+    strength_training: '肌力訓練',
+    stretch: '伸展放鬆'
+};
+const STATUS_LABELS = { available: '可預約', booked: '已預約', reserved: '保留中', cancelled: '已取消' };
+const STATUS_BADGE  = { available: 'badge-available', booked: 'badge-booked', reserved: 'badge-reserved', cancelled: 'badge-cancelled' };
+
+// ═══════════════════════════════════════════════
+//  Edge Function 呼叫
+// ═══════════════════════════════════════════════
+async function callEdge(action, params = {}) {
+    const res = await fetch(BOOKING_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...params })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `API error: ${res.status}`);
+    return json;
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let allSlots = [];
+let weekStart = null;       // 週視圖：星期一
+let monthDate = null;       // 月視圖：該月 1 號
+let viewMode = 'week';      // 'week' or 'month'
+let statusFilter = 'all';
+let typeFilter = '';         // 課種篩選
+let coachFilter = '';        // 教練篩選（來自課種標籤下方的教練chip）
+let currentSlot = null;
+let isEditMode = false;
+
+// ═══════════════════════════════════════════════
+//  初始化
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    goToday();
+});
+
+function goToday() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
+    monthDate = new Date(d.getFullYear(), d.getMonth(), 1);
+    loadSlots();
+}
+
+function changePeriod(delta) {
+    if (viewMode === 'week') {
+        weekStart = new Date(weekStart.getTime() + delta * 7 * 86400000);
+    } else {
+        monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + delta, 1);
+    }
+    loadSlots();
+}
+
+function setView(mode) {
+    viewMode = mode;
+    document.getElementById('btnWeek').classList.toggle('active', mode === 'week');
+    document.getElementById('btnMonth').classList.toggle('active', mode === 'month');
+    render();
+}
+
+// ═══════════════════════════════════════════════
+//  載入時段
+// ═══════════════════════════════════════════════
+async function loadSlots() {
+    showLoading(true);
+    try {
+        let startDate, endDate;
+        if (viewMode === 'week') {
+            startDate = fmt(weekStart);
+            endDate = fmt(new Date(weekStart.getTime() + 6 * 86400000));
+        } else {
+            // 月視圖：取前後各一週的資料以涵蓋邊界
+            const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+            const last = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+            const padStart = new Date(first.getTime() - 7 * 86400000);
+            const padEnd = new Date(last.getTime() + 7 * 86400000);
+            startDate = fmt(padStart);
+            endDate = fmt(padEnd);
+        }
+        const res = await callEdge('getAvailableSlots', { startDate, endDate });
+        allSlots = (res.data || []);
+        populateCoachFilter();
+        updateTypeCounts();
+        render();
+        updateStats();
+    } catch (e) {
+        toast('載入失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+function populateCoachFilter() {
+    const sel = document.getElementById('filterCoach');
+    const old = sel.value;
+    const coaches = [...new Set(allSlots.map(s => s.coach_name))].sort();
+    sel.innerHTML = '<option value="">所有教練</option>' + coaches.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = old;
+}
+
+// 更新課種標籤上的數量
+function updateTypeCounts() {
+    const types = { ai_analysis: 0, pilates: 0, strength_training: 0, stretch: 0 };
+    allSlots.forEach(s => { if (types[s.coach_type] !== undefined) types[s.coach_type]++; });
+    document.getElementById('countAi').textContent = types.ai_analysis;
+    document.getElementById('countPilates').textContent = types.pilates;
+    document.getElementById('countStrength').textContent = types.strength_training;
+    document.getElementById('countStretch').textContent = types.stretch;
+}
+
+// ═══════════════════════════════════════════════
+//  課種標籤篩選
+// ═══════════════════════════════════════════════
+function setTypeFilter(type, el) {
+    typeFilter = type;
+    coachFilter = ''; // 切換課種時重置教練篩選
+    // 更新標籤 active
+    document.querySelectorAll('.type-tag').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    // 如果選了某課種，顯示該課種所有教練
+    updateCoachChips();
+    render();
+    updateStats();
+}
+
+function updateCoachChips() {
+    const container = document.getElementById('coachChips');
+    if (!typeFilter) {
+        container.classList.remove('show');
+        container.innerHTML = '';
+        return;
+    }
+    // 找出該課種的所有教練
+    const coaches = [...new Set(allSlots.filter(s => s.coach_type === typeFilter).map(s => s.coach_name))].sort();
+    if (coaches.length === 0) {
+        container.classList.remove('show');
+        container.innerHTML = '';
+        return;
+    }
+    let html = `<div class="coach-chip ${coachFilter===''?'active':''}" onclick="setCoachChip('')">全部教練</div>`;
+    coaches.forEach(c => {
+        const count = allSlots.filter(s => s.coach_type === typeFilter && s.coach_name === c).length;
+        html += `<div class="coach-chip ${coachFilter===c?'active':''}" onclick="setCoachChip('${esc(c)}')">${esc(c)} (${count})</div>`;
+    });
+    container.innerHTML = html;
+    container.classList.add('show');
+}
+
+function setCoachChip(name) {
+    coachFilter = name;
+    updateCoachChips();
+    render();
+    updateStats();
+}
+
+// ═══════════════════════════════════════════════
+//  渲染入口
+// ═══════════════════════════════════════════════
+function render() {
+    const weekEl = document.getElementById('weekGrid');
+    const monthEl = document.getElementById('monthGrid');
+    if (viewMode === 'week') {
+        weekEl.style.display = '';
+        monthEl.style.display = 'none';
+        renderWeek();
+    } else {
+        weekEl.style.display = 'none';
+        monthEl.style.display = '';
+        renderMonth();
+    }
+    updatePeriodLabel();
+}
+
+function updatePeriodLabel() {
+    const label = document.getElementById('periodLabel');
+    if (viewMode === 'week') {
+        const wNum = getWeekNumber(weekStart);
+        label.textContent = `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月 W${wNum}`;
+    } else {
+        label.textContent = `${monthDate.getFullYear()} 年 ${monthDate.getMonth()+1} 月`;
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  篩選
+// ═══════════════════════════════════════════════
+function getFilteredSlots() {
+    let list = allSlots;
+    const coachVal = document.getElementById('filterCoach').value;
+    if (coachVal) list = list.filter(s => s.coach_name === coachVal);
+    if (typeFilter) list = list.filter(s => s.coach_type === typeFilter);
+    if (coachFilter) list = list.filter(s => s.coach_name === coachFilter);
+    if (statusFilter !== 'all') list = list.filter(s => s.status === statusFilter);
+    return list;
+}
+
+function setStatusFilter(f, el) {
+    statusFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    render();
+    updateStats();
+}
+
+function applyFilters() {
+    render();
+    updateStats();
+}
+
+// ═══════════════════════════════════════════════
+//  渲染週曆
+// ═══════════════════════════════════════════════
+function renderWeek() {
+    const grid = document.getElementById('weekGrid');
+    const dayNames = ['一','二','三','四','五','六','日'];
+    const today = fmt(new Date());
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) dates.push(new Date(weekStart.getTime() + i * 86400000));
+
+    const filtered = getFilteredSlots();
+
+    // 收集出現的小時
+    const hourSet = new Set();
+    filtered.forEach(s => { const h = parseInt(s.start_time.split(':')[0], 10); hourSet.add(h); });
+    for (let h = 9; h <= 21; h++) hourSet.add(h);
+    const hours = [...hourSet].sort((a,b) => a - b);
+
+    // slot lookup
+    const slotMap = {};
+    filtered.forEach(s => {
+        const h = parseInt(s.start_time.split(':')[0], 10);
+        const key = s.slot_date + '_' + h;
+        if (!slotMap[key]) slotMap[key] = [];
+        slotMap[key].push(s);
+    });
+
+    let html = '<div class="week-header"></div>';
+    dates.forEach((d, i) => {
+        const isToday = fmt(d) === today;
+        html += `<div class="week-header${isToday?' today':''}">${dayNames[i]}<br><span class="date-num">${d.getDate()}</span></div>`;
+    });
+
+    hours.forEach(h => {
+        html += `<div class="time-label">${String(h).padStart(2,'0')}:00</div>`;
+        dates.forEach(d => {
+            const key = fmt(d) + '_' + h;
+            const slots = slotMap[key] || [];
+            html += '<div class="day-cell">';
+            slots.forEach(s => {
+                const studentHtml = s.student_name ? `<div class="student">${esc(s.student_name)}</div>` : '';
+                html += `<div class="slot ${s.status||'available'}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">
+                    <div class="coach-name">${esc(s.coach_name)}</div>
+                    <div class="slot-time">${s.start_time}${s.end_time?'-'+s.end_time:''}</div>
+                    ${studentHtml}
+                </div>`;
+            });
+            html += '</div>';
+        });
+    });
+
+    grid.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  渲染月曆
+// ═══════════════════════════════════════════════
+function renderMonth() {
+    const grid = document.getElementById('monthGrid');
+    const today = fmt(new Date());
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+
+    // 月份第一天和最後一天
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // 日曆開始：找到第一天那週的星期一
+    let calStart = new Date(firstDay);
+    const fwd = firstDay.getDay(); // 0=Sun
+    const offset = fwd === 0 ? -6 : 1 - fwd;
+    calStart.setDate(calStart.getDate() + offset);
+
+    // 日曆結束：至少到月底那週的星期日
+    let calEnd = new Date(lastDay);
+    const lwd = lastDay.getDay();
+    const endOffset = lwd === 0 ? 0 : 7 - lwd;
+    calEnd.setDate(calEnd.getDate() + endOffset);
+
+    const filtered = getFilteredSlots();
+
+    // 按日期分組
+    const dayMap = {};
+    filtered.forEach(s => {
+        if (!dayMap[s.slot_date]) dayMap[s.slot_date] = [];
+        dayMap[s.slot_date].push(s);
+    });
+
+    let html = '';
+    // 星期 header
+    ['一','二','三','四','五','六','日'].forEach(d => {
+        html += `<div class="month-header">${d}</div>`;
+    });
+
+    // 日期格
+    let cursor = new Date(calStart);
+    while (cursor <= calEnd) {
+        const dateStr = fmt(cursor);
+        const isThisMonth = cursor.getMonth() === month;
+        const isToday = dateStr === today;
+        const slots = dayMap[dateStr] || [];
+        const MAX_SHOW = 3;
+
+        html += `<div class="month-cell${isThisMonth?'':' other-month'}${isToday?' is-today':''}">`;
+        html += `<div class="cell-date">${cursor.getDate()}</div>`;
+        html += '<div class="slot-dots">';
+        slots.slice(0, MAX_SHOW).forEach(s => {
+            const statusIcon = s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '';
+            html += `<div class="dot-slot" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time} ${statusIcon}</div>`;
+        });
+        if (slots.length > MAX_SHOW) {
+            html += `<div class="more-link" onclick="jumpToWeek('${dateStr}')">+${slots.length - MAX_SHOW} 更多</div>`;
+        }
+        html += '</div></div>';
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    grid.innerHTML = html;
+}
+
+function jumpToWeek(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
+    setView('week');
+    loadSlots();
+}
+
+// ═══════════════════════════════════════════════
+//  統計
+// ═══════════════════════════════════════════════
+function updateStats() {
+    const filtered = getFilteredSlots();
+    const total = filtered.length;
+    const avail = filtered.filter(s => s.status === 'available').length;
+    const booked = filtered.filter(s => s.status === 'booked').length;
+    const reserved = filtered.filter(s => s.status === 'reserved').length;
+    const rate = total > 0 ? Math.round((booked + reserved) / total * 100) : 0;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAvail').textContent = avail;
+    document.getElementById('statBooked').textContent = booked;
+    document.getElementById('statReserved').textContent = reserved;
+    document.getElementById('statRate').textContent = rate + '%';
+}
+
+// ═══════════════════════════════════════════════
+//  開啟 Slot Modal
+// ═══════════════════════════════════════════════
+function openSlot(slotId) {
+    const slot = allSlots.find(s => String(s.id) === String(slotId));
+    if (!slot) return;
+    currentSlot = slot;
+    isEditMode = false;
+
+    document.getElementById('mCoach').textContent = slot.coach_name || '-';
+    document.getElementById('mType').textContent = TYPE_LABELS[slot.coach_type] || slot.coach_type || '-';
+    document.getElementById('mDate').textContent = slot.slot_date + ' (' + (slot.day_name || '') + ')';
+    document.getElementById('mTime').textContent = slot.start_time + (slot.end_time ? ' - ' + slot.end_time : '');
+
+    const status = slot.status || 'available';
+    document.getElementById('mBadge').innerHTML =
+        `<span class="badge ${STATUS_BADGE[status] || ''}">${STATUS_LABELS[status] || status}</span>`;
+
+    document.getElementById('mStudentName').value = slot.student_name || '';
+    document.getElementById('mStudentPhone').value = slot.student_phone || '';
+    document.getElementById('mNote').value = slot.notes || '';
+
+    document.getElementById('editTimeSection').style.display = 'none';
+    document.getElementById('mNewDate').value = slot.slot_date || '';
+    document.getElementById('mNewStart').value = slot.start_time || '';
+    document.getElementById('mNewEnd').value = slot.end_time || '';
+
+    renderModalButtons(status);
+
+    if (status === 'available') {
+        document.getElementById('modalTitle').textContent = '📝 預約 / 保留體驗課';
+        document.getElementById('studentSection').style.display = '';
+    } else if (status === 'booked' || status === 'reserved') {
+        document.getElementById('modalTitle').textContent = '📋 預約詳情';
+        document.getElementById('studentSection').style.display = '';
+    } else {
+        document.getElementById('modalTitle').textContent = '📋 時段資訊';
+        document.getElementById('studentSection').style.display = 'none';
+    }
+
+    document.getElementById('slotModal').classList.add('show');
+}
+
+function renderModalButtons(status) {
+    const btns = document.getElementById('modalBtns');
+    let html = '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>';
+    if (status === 'available') {
+        html += '<button class="btn btn-reserve" onclick="doReserve()">🟡 保留</button>';
+        html += '<button class="btn btn-book" onclick="doBook()">✅ 確認預約</button>';
+    } else if (status === 'reserved') {
+        html += '<button class="btn btn-unbook" onclick="doCancel()">取消保留</button>';
+        html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
+        html += '<button class="btn btn-book" onclick="doBook()">✅ 轉為預約</button>';
+    } else if (status === 'booked') {
+        html += '<button class="btn btn-unbook" onclick="doCancel()">取消預約</button>';
+        html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
+    }
+    btns.innerHTML = html;
+}
+
+function toggleEdit() {
+    isEditMode = !isEditMode;
+    document.getElementById('editTimeSection').style.display = isEditMode ? '' : 'none';
+    if (isEditMode) {
+        const btns = document.getElementById('modalBtns');
+        btns.innerHTML = '<button class="btn btn-cancel-modal" onclick="toggleEdit()">取消編輯</button>' +
+            '<button class="btn btn-book" onclick="doSaveEdit()">💾 儲存變更</button>';
+    } else {
+        renderModalButtons(currentSlot.status);
+    }
+}
+
+function closeModal() {
+    document.getElementById('slotModal').classList.remove('show');
+    currentSlot = null;
+    isEditMode = false;
+}
+
+// ═══════════════════════════════════════════════
+//  動作：預約 / 保留 / 取消 / 編輯
+// ═══════════════════════════════════════════════
+async function doBook() {
+    if (!currentSlot) return;
+    const name = document.getElementById('mStudentName').value.trim();
+    if (!name) { toast('請輸入學員姓名'); return; }
+    showLoading(true);
+    try {
+        await callEdge('updateSlotStatus', {
+            slotId: currentSlot.id,
+            status: 'booked',
+            studentName: name,
+            studentPhone: document.getElementById('mStudentPhone').value.trim(),
+            note: document.getElementById('mNote').value.trim()
+        });
+        toast('✅ 預約成功');
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('預約失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+async function doReserve() {
+    if (!currentSlot) return;
+    const name = document.getElementById('mStudentName').value.trim();
+    showLoading(true);
+    try {
+        await callEdge('updateSlotStatus', {
+            slotId: currentSlot.id,
+            status: 'reserved',
+            studentName: name,
+            studentPhone: document.getElementById('mStudentPhone').value.trim(),
+            note: document.getElementById('mNote').value.trim()
+        });
+        toast('🟡 已保留');
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('保留失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+async function doCancel() {
+    if (!currentSlot) return;
+    if (!confirm('確定要取消嗎？將恢復為可預約狀態')) return;
+    showLoading(true);
+    try {
+        await callEdge('updateSlotStatus', {
+            slotId: currentSlot.id,
+            status: 'available',
+            studentName: '',
+            studentPhone: '',
+            note: ''
+        });
+        toast('已取消，時段恢復可預約');
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('取消失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+async function doSaveEdit() {
+    if (!currentSlot) return;
+    const newDate = document.getElementById('mNewDate').value;
+    const newStart = document.getElementById('mNewStart').value;
+    const newEnd = document.getElementById('mNewEnd').value;
+    const name = document.getElementById('mStudentName').value.trim();
+    const phone = document.getElementById('mStudentPhone').value.trim();
+    const note = document.getElementById('mNote').value.trim();
+
+    showLoading(true);
+    try {
+        await callEdge('updateSlotDetails', {
+            slotId: currentSlot.id,
+            updates: {
+                slot_date: newDate || currentSlot.slot_date,
+                start_time: newStart || currentSlot.start_time,
+                end_time: newEnd || currentSlot.end_time,
+                student_name: name,
+                student_phone: phone,
+                notes: note,
+                day_name: getDayName(newDate || currentSlot.slot_date)
+            }
+        });
+        toast('💾 已儲存變更');
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('儲存失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+// ═══════════════════════════════════════════════
+//  工具函數
+// ═══════════════════════════════════════════════
+function fmt(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function getWeekNumber(d) {
+    const onejan = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+}
+function getDayName(dateStr) {
+    const names = ['週日','週一','週二','週三','週四','週五','週六'];
+    return names[new Date(dateStr + 'T00:00:00').getDay()] || '';
+}
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+}
+function showLoading(on) {
+    document.getElementById('loadingMask').classList.toggle('show', on);
+}
+</script>
+</body>
+</html>
