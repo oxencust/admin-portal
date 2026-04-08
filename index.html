@@ -778,7 +778,8 @@
             'class-record-query': { view:true, fill:false, edit:true, create:false, delete:false, export:true },
             'moti-analyze': { view:true, fill:false, edit:false, create:false, delete:false, export:true },
             'substitute-coach': { view:true, fill:true, edit:true, create:true, delete:false, export:false },
-            consultation: { view:true, fill:true, edit:true, create:true, delete:false, export:true }
+            consultation: { view:true, fill:true, edit:true, create:true, delete:false, export:true },
+            'trial-schedule-admin': { view:true, fill:true, edit:true, create:true, delete:false, export:false }
         },
         // 舊名相容
         admin: null,
@@ -818,7 +819,7 @@
     const ALL_MODULE_IDS_V2 = [
         'member','coach','staff-manage','substitute','substitute-coach','schedule',
         'punch','report','settings','moti-booking','leave-manage','personal-schedule',
-        'trial-schedule','trial-feedback','class-record','class-record-query','moti-analyze','consultation'
+        'trial-schedule','trial-feedback','class-record','class-record-query','moti-analyze','consultation','trial-schedule-admin'
     ];
     // 權限 v2 角色→模組映射（on/off 簡化版）
     const ROLE_MODULE_DEFAULTS_V2 = {
