@@ -385,8 +385,8 @@ async function openMotiHistory(memberId, memberName) {
     document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">載入中...</div>';
     openModal('recordModal');
     try {
-        const {data} = await callEdge('getAssessmentHistory', {memberId});
-        if (error) throw error;
+        const result = await callEdge('getAssessmentHistory', {memberId});
+        const data = result?.data || result;
         if (!data || data.length === 0) {
             document.getElementById('recordBody').innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:48px;margin-bottom:12px;">📊</div><p>尚無 MOTI 檢測紀錄</p></div>';
             return;
