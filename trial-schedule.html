@@ -2472,7 +2472,7 @@
                             currentCoachId = coach.id;
                             console.log('✅ 從 API 取得 coachId:', currentCoachId);
                         }
-                        currentCoachNickname = coach.nickname || coach.name || currentTeacher;
+                        currentCoachNickname = coach.name || coach.nickname || currentTeacher;
                         currentTeacher = currentCoachNickname;
                         currentTeacherType = coach.coach_type || currentTeacherType;
                     }
