@@ -1528,10 +1528,12 @@
             return;
         }
 
-        // 解析 specialties（可能是陣列或 PostgreSQL 字串 "{a,b}"）
+        // 解析 specialties（可能是 JSON 字串 '["ai"]'、PostgreSQL 字串 "{a,b}" 或陣列）
         let specArr = coachData?.specialties || [];
         if (typeof specArr === 'string') {
-            specArr = specArr.replace(/^\{|\}$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+            try { specArr = JSON.parse(specArr); } catch(e) {
+                specArr = specArr.replace(/^\{|\}$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+            }
         }
 
         // 其他模組：如果有多個專長 → 先讓教練選
@@ -2204,10 +2206,12 @@
             });
 
             // 雙重身份：同步寫入另一張表（共用欄位）
+            // ⚠ name 不在共用欄位裡，因為 coaches.name = 顯示暱稱，staff.name = 本名，用途不同
+            // real_name 才是共用的本名欄位
             const otherData = src === 'staff' ? currentUser.coach_data : currentUser.staff_data;
             if (otherData) {
                 const sharedFields = {};
-                ['name', 'real_name', 'phone', 'gender', 'birthday', 'email',
+                ['real_name', 'phone', 'gender', 'birthday', 'email',
                  'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
                     if (profileData[key]) sharedFields[key] = profileData[key];
                 });
@@ -2226,7 +2230,7 @@
             }
             if (currentUser.coach_data) {
                 const sharedUpdate = {};
-                ['name', 'real_name', 'phone', 'gender', 'birthday', 'email',
+                ['real_name', 'phone', 'gender', 'birthday', 'email',
                  'emergency_contact', 'emergency_phone', 'emergency_relation'].forEach(key => {
                     if (profileData[key]) sharedUpdate[key] = profileData[key];
                 });
