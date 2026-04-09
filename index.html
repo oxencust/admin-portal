@@ -1103,16 +1103,15 @@
             if (!staff && !coach) {
                 const urlInvite = new URLSearchParams(window.location.search).get('invite') || '';
                 if (urlInvite) {
-                    // URL 帶有邀請碼 → 自動兌換
+                    // URL 帶有邀請碼 → 先查姓名再顯示確認畫面
                     updateLoadingText('驗證邀請碼中...');
                     try {
-                        const rResult = await callEdge('redeemInvite', { inviteCode: urlInvite, lineUid, displayName });
-                        if (rResult.success) {
-                            showToast('✅ 驗證成功，請完善個人資料');
-                            await authenticateWithStaff(lineUid, displayName);
+                        const lookup = await callEdge('lookupInvite', { inviteCode: urlInvite });
+                        if (lookup.success && lookup.maskedName) {
+                            showInviteConfirmScreen(lookup.maskedName, urlInvite, lineUid, displayName);
                             return;
                         }
-                    } catch(e) { console.warn('Auto redeem failed', e); }
+                    } catch(e) { console.warn('Invite lookup failed', e); }
                 }
                 showInviteCodeScreen(displayName, lineUid);
                 return;
@@ -1768,6 +1767,52 @@
     let _inviteLineUid = '';
     let _inviteDisplayName = '';
     let inviteRedeeming = false;
+
+    function showInviteConfirmScreen(maskedName, inviteCode, lineUid, displayName) {
+        _inviteLineUid = lineUid;
+        _inviteDisplayName = displayName;
+        document.getElementById('loadingScreen').classList.add('hide');
+        document.getElementById('mainApp').style.display = 'block';
+        document.querySelector('.main').innerHTML = `
+            <div class="no-permission" style="text-align: center;">
+                <div class="no-permission-icon">👋</div>
+                <div class="no-permission-title">歡迎加入衡點</div>
+                <div style="margin:16px 0;padding:16px;background:linear-gradient(135deg,rgba(122,193,154,0.1),rgba(159,204,204,0.1));border-radius:12px;">
+                    <div style="font-size:20px;font-weight:700;color:#2d3436;margin-bottom:4px;">${maskedName}</div>
+                    <div style="font-size:13px;color:#666;">請確認這是您本人的操作</div>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">
+                    <button onclick="confirmInviteJoin('${inviteCode}')"
+                        style="flex:1;max-width:160px;padding:14px;border:none;border-radius:12px;background:var(--green);color:white;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+                        確認加入
+                    </button>
+                    <button onclick="handleLogout()"
+                        style="flex:1;max-width:160px;padding:14px;border:1px solid #ddd;border-radius:12px;background:white;color:#666;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+                        這不是我
+                    </button>
+                </div>
+                <div id="inviteConfirmError" style="color:var(--danger);font-size:13px;min-height:20px;margin-top:12px;"></div>
+            </div>
+        `;
+    }
+
+    async function confirmInviteJoin(inviteCode) {
+        const errEl = document.getElementById('inviteConfirmError');
+        try {
+            errEl.textContent = '驗證中...';
+            const result = await callEdge('redeemInvite', { inviteCode, lineUid: _inviteLineUid, displayName: _inviteDisplayName });
+            if (!result.success) {
+                errEl.textContent = result.error || '驗證失敗';
+                return;
+            }
+            showToast('✅ 驗證成功，請完善個人資料');
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loadingScreen').classList.remove('hide');
+            await authenticateWithStaff(_inviteLineUid, _inviteDisplayName);
+        } catch(e) {
+            errEl.textContent = '連線失敗，請重試';
+        }
+    }
 
     function showInviteCodeScreen(displayName, lineUid) {
         _inviteLineUid = lineUid;
