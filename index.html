@@ -1099,8 +1099,21 @@
             const staff = result.staff || null;
             const coach = result.coach || null;
 
-            // 兩張表都找不到 → 顯示邀請碼輸入
+            // 兩張表都找不到 → 檢查 URL 是否帶有邀請碼
             if (!staff && !coach) {
+                const urlInvite = new URLSearchParams(window.location.search).get('invite') || '';
+                if (urlInvite) {
+                    // URL 帶有邀請碼 → 自動兌換
+                    updateLoadingText('驗證邀請碼中...');
+                    try {
+                        const rResult = await callEdge('redeemInvite', { inviteCode: urlInvite, lineUid, displayName });
+                        if (rResult.success) {
+                            showToast('✅ 驗證成功，請完善個人資料');
+                            await authenticateWithStaff(lineUid, displayName);
+                            return;
+                        }
+                    } catch(e) { console.warn('Auto redeem failed', e); }
+                }
                 showInviteCodeScreen(displayName, lineUid);
                 return;
             }
