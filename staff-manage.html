@@ -238,7 +238,7 @@ function viewDetail(id){
         fh+='<button class="btn btn-primary" onclick="restoreStaff(\''+escAttr(s.id)+'\')">♻️ 恢復</button>';
     }else{
         if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
-        if(!s.line_id_edu&&currentUser.permission_level==='super_admin')fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(s.id)+'\')">🔗 產生入口連結</button>';
+        if(!s.line_id_edu&&(currentUser.permission_level==='super_admin'||currentUser.role==='super_admin'))fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(s.id)+'\')">🔗 產生入口連結</button>';
         if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.permission_level==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
     }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
@@ -389,7 +389,7 @@ function copyInviteLink(){
 }
 async function generateInviteLinkFor(id){
     const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;
-    if(currentUser.permission_level!=='super_admin'){showToast('僅限最高管理員操作');return;}
+    if(currentUser.permission_level!=='super_admin'&&currentUser.role!=='super_admin'){showToast('僅限最高管理員操作');return;}
     try{
         showToast('⏳ 產生連結中...');
         const inv=await callEdge('createInviteForExisting',{table:'staff',id:s.id});
