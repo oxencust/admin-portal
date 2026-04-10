@@ -340,6 +340,23 @@
         .timeline-date .weekday { font-size: 11px; color: var(--gray); }
         .timeline-date .time { font-size: 10px; color: var(--gray); margin-top: 4px; }
         .timeline-date .extra-info { font-size: 10px; color: var(--gray); margin-top: 2px; }
+        .timeline-date .focus-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            justify-content: center;
+            margin-top: 4px;
+        }
+        .timeline-date .focus-chip {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 5px;
+            border-radius: 8px;
+            background: var(--green-light);
+            color: var(--green);
+            line-height: 1.4;
+        }
 
         /* 空狀態 */
         .empty-state {
@@ -1055,6 +1072,23 @@
             const config = CLASS_TYPE_CONFIG[record.class_type] || { icon: '📋', class: '' };
             const hasPhoto = record.photos && record.photos.trim();
 
+            // 訓練主軸縮寫標籤：肩背→肩、核心→核、臀腿→臀、柔軟度→柔、其他→其
+            let focusChipsHtml = '';
+            if (record.training_focus) {
+                const abbrMap = { '肩背': '肩', '核心': '核', '臀腿': '臀', '柔軟度': '柔' };
+                const rawItems = record.training_focus.split('、').map(s => s.trim()).filter(Boolean);
+                const chips = rawItems.map(item => {
+                    if (abbrMap[item]) return abbrMap[item];
+                    if (item.startsWith('其他')) return '其';
+                    return item.charAt(0);
+                });
+                if (chips.length > 0) {
+                    const fullTitle = rawItems.join('、').replace(/"/g, '&quot;');
+                    focusChipsHtml = `<div class="focus-chips" title="${fullTitle}">` +
+                        chips.map(c => `<span class="focus-chip">${c}</span>`).join('') + `</div>`;
+                }
+            }
+
             return `
                 <div class="timeline-date ${config.class} ${hasPhoto ? 'has-photo' : ''}" onclick="viewRecord('${record.id}')">
                     <div class="month">${month}月</div>
@@ -1062,6 +1096,7 @@
                     <div class="weekday">週${weekday}</div>
                     <div class="time">${record.class_time || ''}</div>
                     <div class="extra-info">${config.icon} ${record.coach_name || ''}</div>
+                    ${focusChipsHtml}
                     ${hasPhoto ? '<div style="font-size:10px;">📷</div>' : ''}
                 </div>
             `;
@@ -1168,6 +1203,12 @@
                         <div class="info-label">📋 課種</div>
                         <div class="info-value">${config.name}</div>
                     </div>
+                    ${record.training_focus ? `
+                    <div class="detail-info-row">
+                        <div class="info-label">🎯 訓練主軸</div>
+                        <div class="info-value">${record.training_focus}</div>
+                    </div>
+                    ` : ''}
                     <div class="detail-info-row">
                         <div class="info-label">⭐ 狀態</div>
                         <div class="info-value"><span class="star-display">${stars}</span></div>
@@ -1184,6 +1225,12 @@
                     <div class="detail-info-row">
                         <div class="info-label">⚡ 狀況</div>
                         <div class="info-value">${incidentHtml}</div>
+                    </div>
+                    ` : ''}
+                    ${record.special_note ? `
+                    <div class="detail-info-row">
+                        <div class="info-label">📝 特殊備註</div>
+                        <div class="info-value">${record.special_note}</div>
                     </div>
                     ` : ''}
                 </div>
