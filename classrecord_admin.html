@@ -901,7 +901,7 @@
                 const data = await callEdge('getUserType', { lineUserId });
                 if (data.success) {
                     currentUser = data.user;
-                    document.getElementById('userBadge').textContent = currentUser.name;
+                    document.getElementById('userBadge').textContent = currentUser.nickname || currentUser.name;
                 }
             } catch (error) {
                 console.error('載入用戶失敗:', error);
