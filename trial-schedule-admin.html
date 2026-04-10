@@ -359,7 +359,8 @@ function setView(mode) {
     viewMode = mode;
     document.getElementById('btnWeek').classList.toggle('active', mode === 'week');
     document.getElementById('btnMonth').classList.toggle('active', mode === 'month');
-    render();
+    // 切換視圖時重新載入資料（週→月資料範圍不同）
+    loadSlots();
 }
 
 // ═══════════════════════════════════════════════
