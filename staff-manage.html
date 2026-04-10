@@ -220,6 +220,7 @@ function viewDetail(id){
     h+=ddf('編號',escHtml(s.id));h+=ddf('姓名',escHtml(s.name));if(s.nickname)h+=ddf('暱稱',escHtml(s.nickname));
     h+=ddf('性別',genderNames[s.gender]||'-');h+=ddf('人員類型',escHtml(s.staff_type||'-'));
     h+=ddf('部門',escHtml(s.department||'-'));
+    h+=ddf('職稱',escHtml(s.job_title||'-'));
     h+=ddf('權限等級',roleNames[s.permission_level]||s.permission_level||'-');h+=ddf('狀態',s.status==='封存'?'已封存':(s.status==='inactive'?'停用':'在職'));
     if(s.hire_date)h+=ddf('到職日',escHtml(s.hire_date));if(s.leave_date)h+=ddf('離職日',escHtml(s.leave_date));
     if(isVis('birthday'))h+=ddf('生日',getFD('birthday',s.birthday));
@@ -257,6 +258,7 @@ function editStaff(id){
     if(!ro(s.staff_type))h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';
     h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
     h+=fg('部門','text','e_dept',s.department,ro(s.department));
+    h+=fg('職稱','text','e_title',s.job_title,ro(s.job_title));
     h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],s.permission_level||'staff');
     h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用'],['封存','封存']],s.status||'active');
     if(isFull('phone'))h+=fg('電話','tel','e_phone',s.phone,ro(s.phone));
@@ -291,7 +293,7 @@ async function saveStaff(){
             // TODO: personalLink for user-facing schedule page needs to be implemented via Edge Function or alternative solution
             const personalLink=null;
             const newStaff={id:newId,name:name,nickname:val('e_nick')||null,staff_type:val('e_type')||null,
-                gender:val('e_gender')||null,department:val('e_dept')||null,
+                gender:val('e_gender')||null,department:val('e_dept')||null,job_title:val('e_title')||null,
                 permission_level:val('e_perm')||'staff',status:val('e_status')||'active',
                 phone:val('e_phone')||null,email:val('e_email')||null,birthday:val('e_bday')||null,
                 address:val('e_addr')||null,emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
@@ -316,7 +318,7 @@ async function saveStaff(){
         /* === 編輯模式：Supabase-first === */
         const s=editingStaff;const u={};
         function chk(field,elId,orig){const el=document.getElementById(elId);if(!el||el.readOnly)return;const v=el.value.trim();if(v!==(orig||''))u[field]=v;}
-        chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);
+        chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('job_title','e_title',s.job_title);
         const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
         const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
         chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
@@ -360,7 +362,7 @@ async function restoreStaff(id){
         await loadStaff();
     }catch(e){showToast('❌ 恢復失敗：'+e.message);}
 }
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('職稱','text','e_title','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
