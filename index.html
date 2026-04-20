@@ -1168,11 +1168,11 @@
             }
 
             // 三層權限合併（模組內部操作權限，保留不動）
-            const resolvedModules = role === 'super_admin'
+            const resolvedModules = (role === 'owner' || role === 'super_admin')
                 ? 'all'
                 : resolvePermissions(role, staffType, dbPerms);
 
-            const resolvedFields = role === 'super_admin'
+            const resolvedFields = (role === 'owner' || role === 'super_admin')
                 ? {}
                 : resolveFieldPermissions(role, dbPerms, staff || coach);
 
@@ -1253,11 +1253,11 @@
         document.getElementById('userRoleText').textContent = roleText;
 
         // 管理員才顯示「新增人員」按鈕
-        if (['super_admin', 'admin'].includes(currentUser.role)) {
+        if (['owner', 'super_admin', 'admin'].includes(currentUser.role)) {
             document.getElementById('addMemberBtn').style.display = '';
         }
         // 超級管理員才顯示「模組管理」按鈕
-        if (currentUser.role === 'super_admin') {
+        if (currentUser.role === 'owner' || currentUser.role === 'super_admin') {
             document.getElementById('moduleManageBtn').style.display = '';
         }
 
@@ -1281,7 +1281,7 @@
         const hidden = loadHiddenModules();
         const devMods = loadDevModules();
         const ordered = getOrderedModules().filter(m => !hidden.includes(m.id));
-        const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
+        const isSuperAdmin = currentUser && (currentUser.role === 'owner' || currentUser.role === 'super_admin');
 
         ordered.forEach(mod => {
             const isDev = mod.developing || devMods.includes(mod.id);
@@ -1368,7 +1368,7 @@
             btn.textContent = '✅ 完成'; btn.classList.add('active');
             grid.classList.add('edit-mode'); initDragAndDrop();
             renderHiddenModules();
-            showToast(currentUser.role==='super_admin' ? '🔀 排序 / ✕ 隱藏 / 🔨 開發中' : '🔀 拖動排序 / ✕ 隱藏模組');
+            showToast((currentUser.role==='owner'||currentUser.role==='super_admin') ? '🔀 排序 / ✕ 隱藏 / 🔨 開發中' : '🔀 拖動排序 / ✕ 隱藏模組');
         } else {
             btn.textContent = '編輯'; btn.classList.remove('active');
             grid.classList.remove('edit-mode'); cleanupDrag();
@@ -1669,8 +1669,8 @@
 
     function hasModuleAccess(mod) {
         if (!currentUser) return false;
-        // 超級管理員看到全部
-        if (currentUser.role === 'super_admin') return true;
+        // owner / 超級管理員看到全部
+        if (currentUser.role === 'owner' || currentUser.role === 'super_admin') return true;
         // 權限設定模組：只有 super_admin 和 manager 可看
         if (mod.id === 'settings') {
             return currentUser.role === 'manager' || currentUser.role === 'admin';
@@ -1700,7 +1700,7 @@
     // 檢查特定操作權限
     function hasPermission(moduleId, action) {
         if (!currentUser) return false;
-        if (currentUser.role === 'super_admin') return true;
+        if (currentUser.role === 'owner' || currentUser.role === 'super_admin') return true;
         if (currentUser.permissions === 'all') return true;
 
         const modPerms = currentUser.permissions[moduleId];
@@ -1710,7 +1710,7 @@
     // 給 iframe 模組讀取模組操作權限
     window.getModulePermissions = function(moduleId) {
         if (!currentUser) return { view:false, edit:false, create:false, delete:false, export:false };
-        if (currentUser.role === 'super_admin' || currentUser.permissions === 'all') {
+        if (currentUser.role === 'owner' || currentUser.role === 'super_admin' || currentUser.permissions === 'all') {
             return { view:true, edit:true, create:true, delete:true, export:true };
         }
         return currentUser.permissions[moduleId] || { view:false, edit:false, create:false, delete:false, export:false };
@@ -1721,7 +1721,7 @@
     // 沒有定義的欄位 = true（預設顯示）
     window.getFieldPermissions = function(moduleId) {
         if (!currentUser) return {};
-        if (currentUser.role === 'super_admin') return {}; // 空 = 全開
+        if (currentUser.role === 'owner' || currentUser.role === 'super_admin') return {}; // 空 = 全開
         return (currentUser.fieldPermissions || {})[moduleId] || {};
     };
 
@@ -2027,9 +2027,9 @@
         const url = document.getElementById('me_url').value.trim();
         if (!id || !name) { showToast('請填寫 ID 和名稱'); return; }
 
-        const roles = ['super_admin']; // 超管永遠有
+        const roles = ['super_admin', 'owner']; // 超管與 owner 永遠有
         document.querySelectorAll('#me_roles input[type=checkbox]:checked').forEach(cb => {
-            if (cb.value !== 'super_admin') roles.push(cb.value);
+            if (cb.value !== 'super_admin' && cb.value !== 'owner') roles.push(cb.value);
         });
 
         const moduleData = {
