@@ -118,7 +118,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="header-bar">
     <h1>🕵️ 操作紀錄</h1>
     <div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><div class="user-name-badge" id="userName">-</div></div>
-    <div class="header-sub">僅老闆可見</div>
+    <div class="header-sub">僅限老闆與最高管理員</div>
 </div>
 
 <div class="container" id="mainArea" style="display:none;">
@@ -178,8 +178,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 
 <div id="accessDenied" style="padding:60px 20px;text-align:center;display:none;">
     <div style="font-size:60px;margin-bottom:16px;">🔒</div>
-    <h2 style="color:var(--text-secondary);font-weight:600;margin-bottom:6px;">僅限老闆查看</h2>
-    <p style="color:var(--text-muted);font-size:13px;">此頁面需要 owner 權限</p>
+    <h2 style="color:var(--text-secondary);font-weight:600;margin-bottom:6px;">權限不足</h2>
+    <p style="color:var(--text-muted);font-size:13px;">此頁面需要老闆或最高管理員權限</p>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -211,11 +211,13 @@ function initPermissions(){
             currentUser={name:p.get('name')||'',role:p.get('role')||'',permission_level:p.get('permission_level')||'',line_id_edu:p.get('lineUid')||p.get('uid')||''};
         }
     }
-    const isOwner = currentUser && (
+    const isAuditReader = currentUser && (
         currentUser.role==='owner' ||
-        currentUser.permission_level==='owner'
+        currentUser.role==='super_admin' ||
+        currentUser.permission_level==='owner' ||
+        currentUser.permission_level==='super_admin'
     );
-    if(!currentUser || !isOwner){
+    if(!currentUser || !isAuditReader){
         document.getElementById('accessDenied').style.display='block';
         document.getElementById('mainArea').style.display='none';
         if(currentUser){
