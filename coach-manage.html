@@ -109,11 +109,18 @@ const specClass={pilates:'badge-pilates',weight:'badge-weight',stretch:'badge-st
 const zhToSpecKey={'皮拉提斯':'pilates','重量訓練':'weight','重訓':'weight','伸展課程':'stretch','伸展':'stretch','AI 體態分析':'ai','AI體態分析':'ai','ai':'ai'};
 function normalizeSpecs(raw){
     if(!raw)return[];
+    // 相容舊資料：DB 中曾被 GAS 雙寫誤存成 JSON 字串 '["weight"]'，先 parse 回陣列
+    if(typeof raw==='string'){
+        const t=raw.trim();
+        if(t.startsWith('[')){
+            try{const p=JSON.parse(t);if(Array.isArray(p))raw=p;}catch(e){}
+        }
+    }
     if(Array.isArray(raw)){
-        return raw.map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);
+        return raw.map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(s=>specNames[s]);
     }
     if(typeof raw==='string'){
-        return raw.split(',').map(s=>s.trim()).map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(Boolean);
+        return raw.split(',').map(s=>s.trim()).map(s=>{if(specNames[s])return s;return zhToSpecKey[s]||s;}).filter(s=>specNames[s]);
     }
     return[];
 }
