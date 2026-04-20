@@ -73,6 +73,7 @@
         .b-new{background:rgba(224,82,82,.12);color:#c84040}
         .b-booked{background:rgba(122,193,154,.18);color:var(--green-dark)}
         .b-closed{background:rgba(0,0,0,.06);color:#888}
+        .b-closed-nt{background:rgba(240,168,0,.18);color:#b87d00}
         .cpills{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
         .pill{font-size:11px;padding:2px 8px;border-radius:7px;font-weight:500}
         .pill-c{background:rgba(242,172,152,.2);color:#b05545}
@@ -221,6 +222,7 @@
         <button class="fchip" onclick="setFilter('new',this)">🔴 待處理</button>
         <button class="fchip" onclick="setFilter('booked',this)">🟢 已預約</button>
         <button class="fchip" onclick="setFilter('closed',this)">⚫ 結案</button>
+        <button class="fchip" onclick="setFilter('closed_no_trial',this)">🟡 結案未體驗</button>
     </div>
 </div>
 
@@ -229,6 +231,7 @@
     <div class="scard glass-strong s-new" style="animation-delay:.10s"><div class="snum" id="sN">-</div><div class="slbl">待處理</div></div>
     <div class="scard glass-strong s-bk"  style="animation-delay:.15s"><div class="snum" id="sB">-</div><div class="slbl">已預約</div></div>
     <div class="scard glass-strong s-cl"  style="animation-delay:.20s"><div class="snum" id="sCl">-</div><div class="slbl">結案</div></div>
+    <div class="scard glass-strong s-cnt" style="animation-delay:.25s"><div class="snum" id="sCNT">-</div><div class="slbl">結案未體驗</div></div>
 </div>
 
 <div class="clist" id="CL"></div>
@@ -289,6 +292,7 @@
 //  ⚙️ Supabase 設定
 // ═══════════════════════════════════════════════
 const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
+const NOTIFY_COACHES_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/notify-coaches';
 async function callEdge(action, params = {}) {
     const res = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
@@ -299,15 +303,37 @@ async function callEdge(action, params = {}) {
     return res.json();
 }
 
+// 通知教練（諮詢單預約成功）— 非阻塞、失敗不影響儲存
+async function notifyCoachTrialBooked(coachName, bookingTime, consultationId, studentObj) {
+    try {
+        const res = await fetch(NOTIFY_COACHES_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'consultation_trial_booked',
+                coach_name: coachName,
+                booking_time: bookingTime,
+                consultation_id: consultationId,
+                student: studentObj,
+            })
+        });
+        const j = await res.json().catch(() => ({}));
+        return j;
+    } catch (e) {
+        console.warn('notifyCoachTrialBooked failed:', e);
+        return { success: false, reason: 'fetch_error' };
+    }
+}
+
 // ═══════════════════════════════════════════════
 
 const P       = new URLSearchParams(location.search);
 const MY_NAME = P.get('name') || '';
 const MY_UID  = P.get('uid')  || '';
 
-const SD  = { new:'🔴', booked:'🟢', closed:'⚫' };
-const SZH = { new:'待處理', booked:'已預約', closed:'結案' };
-const SCS = { new:'b-new', booked:'b-booked', closed:'b-closed' };
+const SD  = { new:'🔴', booked:'🟢', closed:'⚫', closed_no_trial:'🟡' };
+const SZH = { new:'待處理', booked:'已預約', closed:'結案', closed_no_trial:'結案未體驗' };
+const SCS = { new:'b-new', booked:'b-booked', closed:'b-closed', closed_no_trial:'b-closed-nt' };
 
 const GOALS    = ['減脂','增肌','改善體態','改善痠痛/調整姿勢','術後/產後恢復','日常健康維持'];
 const DISEASES = ['心臟病','心絞痛','糖尿病','疝氣/脫腸','高血壓','氣喘','貧血','癲癇','甲狀腺問題','靜脈瘤','惡性腫瘤','椎間盤突出','習慣性脫臼','脊椎滑脫','骨質疏鬆症','痛風/風濕','關節問題','脊椎問題','其他','無'];
@@ -372,7 +398,9 @@ async function loadAll() {
             promo: r.promo || '',
             applicant_type: r.applicant_type || '',
             inbody: r.inbody || '',
-            statusKey: r.status_key || (r.closed ? 'closed' : r.booking_status ? 'booked' : 'new')
+            statusKey: r.closed
+                ? (r.booking_status ? 'closed' : 'closed_no_trial')
+                : (r.booking_status ? 'booked' : 'new')
         }));
 
         stats(); applyFilter();
@@ -395,6 +423,7 @@ function stats() {
     document.getElementById('sN').textContent = ALL.filter(r=>r.statusKey==='new').length;
     document.getElementById('sB').textContent = ALL.filter(r=>r.statusKey==='booked').length;
     document.getElementById('sCl').textContent = ALL.filter(r=>r.statusKey==='closed').length;
+    document.getElementById('sCNT').textContent = ALL.filter(r=>r.statusKey==='closed_no_trial').length;
 }
 
 // ── Filter ────────────────────────────────────────
@@ -442,7 +471,7 @@ function renderCards(list) {
         const pat = r.admin_track ? `<span class="ctrack">📌 ${r.admin_track.substring(0,25)}</span>` : '';
         const aiBadge = (r.is_ai==='是'||r.is_ai===true) ? `<span class="cbadge ai">AI檢測</span>` : '';
         const purchaseBadge = r.is_purchased ? `<span class="cbadge" style="background:rgba(122,193,154,.18);color:var(--green-dark)">${r.is_purchased}</span>` : '';
-        const borderColor = {new:'#e05252', booked:'#7ac19a', closed:'#b2bec3'}[sk]||'#e05252';
+        const borderColor = {new:'#e05252', booked:'#7ac19a', closed:'#b2bec3', closed_no_trial:'#f0a800'}[sk]||'#e05252';
         return `<div class="ccard glass-strong" style="animation-delay:${i*.04}s;border-left:4px solid ${borderColor}" onclick="openDrawer(${r._row})">
             <div class="ctop">
                 <div style="display:flex;align-items:center;justify-content:center;flex-shrink:0;width:80px;align-self:stretch">
@@ -858,7 +887,12 @@ async function confirmSave() {
     btn.disabled = true; btn.textContent = '儲存中…';
     if (ch.birthday) ch.age = calcAge(ch.birthday);
 
-    const newStatusKey = ch.closed ? 'closed' : ch.booking_status ? 'booked' : 'new';
+    const newStatusKey = ch.closed
+        ? (ch.booking_status ? 'closed' : 'closed_no_trial')
+        : (ch.booking_status ? 'booked' : 'new');
+
+    // 記錄舊狀態，判斷是否為「首次預約成功」
+    const prevBooked = (REC.statusKey === 'booked') && !!REC.booking_status;
 
     try {
         // ── 1. 主寫入：Supabase ──
@@ -916,6 +950,39 @@ async function confirmSave() {
         document.getElementById('ETB').className = 'etbtn vm';
         document.getElementById('DF').style.display = 'none';
         toast('✅ 已儲存');
+
+        // ── 3. 通知教練（首次從非 booked → booked，且有 coach）──
+        const nowBooked = (newStatusKey === 'booked') && !!ch.booking_status;
+        if (!prevBooked && nowBooked && ch.coach) {
+            const nf = await notifyCoachTrialBooked(
+                ch.coach,
+                ch.booking_status,
+                REC._row,
+                {
+                    name:             ch.name,
+                    phone:            ch.phone,
+                    gender:           ch.gender,
+                    birthday:         ch.birthday,
+                    age:              ch.age,
+                    line_id:          ch.lineId,
+                    email:            ch.email,
+                    goals:            ch.goals,
+                    diseases:         ch.diseases,
+                    remarks:          ch.remarks,
+                    exercise_exp:     ch.exercise_exp,
+                    time_preferences: ch.time_preferences,
+                }
+            );
+            if (nf && nf.success) {
+                toast('✅ 已儲存並通知 ' + (nf.coach_name || ch.coach) + ' 教練');
+            } else if (nf && nf.reason === 'coach_not_found') {
+                toast('✅ 已儲存（找不到教練「' + ch.coach + '」的群組，請確認教練資料）');
+            } else if (nf && nf.reason === 'line_group_id_missing') {
+                toast('✅ 已儲存（該教練尚未設定 LINE 群組 ID）');
+            } else {
+                toast('✅ 已儲存（通知教練失敗，請手動提醒）');
+            }
+        }
 
     } catch(e) { toast('❌ 儲存失敗：' + e.message); }
     btn.disabled = false; btn.textContent = '💾 儲存';
