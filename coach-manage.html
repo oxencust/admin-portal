@@ -127,9 +127,9 @@ function initPermissions(){
     if(!currentUser){document.getElementById('coachList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
-    if(currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
+    if(currentUser.role==='owner'||currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
     else{modulePerms=(currentUser.permissions&&currentUser.permissions['coach'])||{view:false};}
-    if(currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['coach'])||{};}
+    if(currentUser.role==='owner'||currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['coach'])||{};}
     try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('coach');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('coach');}catch(e){}
     if(modulePerms.fill===undefined)modulePerms.fill=modulePerms.edit||false;
     if(modulePerms.create)document.getElementById('addBtn').style.display='flex';
@@ -249,7 +249,7 @@ function viewDetail(id){
         fh+='<button class="btn btn-primary" onclick="restoreCoach(\''+escAttr(co.id)+'\')">♻️ 恢復</button>';
     }else{
         if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
-        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveCoach(\''+escAttr(co.id)+'\')">📦 封存</button>';
+        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='owner'||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveCoach(\''+escAttr(co.id)+'\')">📦 封存</button>';
     }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
 }
@@ -298,9 +298,10 @@ async function saveCoach(){
             showToast('⏳ 新增中...');
             const personId=await generatePersonId();
             if(!personId){showToast('❌ 無法生成ID');return;}
+            const coachType=specs.includes('pilates')?'pilates':specs.includes('stretch')?'stretch':specs.includes('weight')?'weight':specs.includes('ai')?'ai':specs[0]||'';
             const newCoach={id:personId,name:name,real_name:val('e_rname')||null,
                 gender:val('e_gender')||null,phone:val('e_phone')||null,email:val('e_email')||null,
-                birthday:val('e_bday')||null,specialties:specs,is_active:val('e_active')!=='false',
+                birthday:val('e_bday')||null,specialties:specs,coach_type:coachType,is_active:val('e_active')!=='false',
                 certifications:val('e_cert')||null,notes:val('e_notes')||null,
                 emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
                 emergency_relation:val('e_er')||null,
@@ -320,7 +321,7 @@ async function saveCoach(){
         const cv=val('e_cert');if(cv!==(co.certifications||''))u.certifications=cv;
         const nv=val('e_notes');if(nv!==(co.notes||''))u.notes=nv;
         const specs=[];['pilates','weight','stretch','ai'].forEach(s=>{if(document.getElementById('e_spec_'+s)?.checked)specs.push(s);});
-        if(JSON.stringify(specs.sort())!==JSON.stringify((co.specialties||[]).sort()))u.specialties=specs;
+        if(JSON.stringify(specs.slice().sort())!==JSON.stringify((co.specialties||[]).slice().sort())){u.specialties=specs;u.coach_type=specs.includes('pilates')?'pilates':specs.includes('stretch')?'stretch':specs.includes('weight')?'weight':specs.includes('ai')?'ai':specs[0]||'';}
         const pe=document.getElementById('e_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(co.phone||''))u.phone=pv;}
         const ee=document.getElementById('e_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(co.email||''))u.email=ev;}
         const be=document.getElementById('e_bday');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(co.birthday||''))u.birthday=bv||null;}
