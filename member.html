@@ -166,9 +166,9 @@ function initPermissions(){
     if(!currentUser){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
-    if(currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
+    if(currentUser.role==='owner'||currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
     else{modulePerms=(currentUser.permissions&&currentUser.permissions['member'])||{view:false};}
-    if(currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['member'])||{};}
+    if(currentUser.role==='owner'||currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['member'])||{};}
     try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('member');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('member');}catch(e){}
     // 向下相容：如果 fill 未定義，從 edit 繼承
     if(modulePerms.fill===undefined)modulePerms.fill=modulePerms.edit||false;
