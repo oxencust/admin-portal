@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>操作紀錄</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+    --white:#fff;--gray:#808080;--gray-light:#f0f2f5;--gray-border:#e0e0e0;
+    --green:#7ac19a;--green-light:#e2ede6;--green-dark:#5f846f;
+    --pink:#f2ac98;--pink-light:#faece8;--pink-dark:#c67566;
+    --yellow:#ffe08b;--yellow-light:#fcf4e3;--yellow-dark:#ba9e60;
+    --blue:#9fcccc;--blue-light:#daedec;--blue-dark:#66888e;
+    --purple:#a78bca;--purple-light:#f3eaff;--purple-dark:#7b5ea7;
+    --text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;
+    --danger:#e05252;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;font-size:13px;}
+
+/* HEADER */
+.header-bar{background:linear-gradient(135deg,var(--pink-dark),var(--pink));color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(198,117,102,.3);}
+.header-bar h1{font-size:18px;font-weight:700;letter-spacing:.5px;}
+.header-bar .header-sub{margin-left:auto;font-size:12px;opacity:.9;}
+.header-bar .user-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);padding:4px 10px 4px 6px;border-radius:20px;}
+.header-bar .user-avatar{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.header-bar .user-name-badge{font-size:12px;font-weight:600;}
+
+/* LAYOUT */
+.container{padding:16px 20px;max-width:1400px;margin:0 auto;}
+
+/* STATS CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--white);border-radius:12px;padding:12px 14px;box-shadow:0 2px 4px rgba(0,0,0,.04);border:1px solid var(--gray-border);}
+.stat-card .label{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.stat-card .value{font-size:22px;font-weight:900;color:var(--pink-dark);}
+.stat-card.green .value{color:var(--green-dark);}
+.stat-card.blue .value{color:var(--blue-dark);}
+.stat-card.purple .value{color:var(--purple-dark);}
+
+/* FILTER BAR */
+.filter-panel{background:var(--white);border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:0 2px 4px rgba(0,0,0,.04);border:1px solid var(--gray-border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.fp-group{display:flex;flex-direction:column;gap:4px;}
+.fp-label{font-size:11px;color:var(--text-muted);font-weight:600;}
+.fp-input{padding:6px 10px;border:1.5px solid var(--gray-border);border-radius:8px;font-size:12px;outline:none;background:var(--gray-light);font-family:inherit;min-width:130px;}
+.fp-input:focus{border-color:var(--pink);background:var(--white);}
+.fp-btn{padding:7px 16px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--pink-dark);color:#fff;}
+.fp-btn.secondary{background:var(--gray-light);color:var(--text);}
+.fp-btn:hover{opacity:.9;}
+
+/* TABLE */
+.log-panel{background:var(--white);border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.04);border:1px solid var(--gray-border);overflow:hidden;}
+.log-panel-head{padding:10px 14px;border-bottom:1px solid var(--gray-border);display:flex;align-items:center;justify-content:space-between;background:#fafafa;}
+.log-panel-title{font-size:13px;font-weight:700;color:var(--text);}
+.log-panel-meta{font-size:11px;color:var(--text-muted);}
+.log-list{max-height:calc(100vh - 330px);overflow-y:auto;}
+.log-item{padding:10px 14px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background .15s;}
+.log-item:hover{background:var(--pink-light);}
+.log-item.expanded{background:#fef5f2;}
+.log-line{display:flex;align-items:center;gap:10px;}
+.log-time{font-size:10px;color:var(--text-muted);min-width:110px;font-variant-numeric:tabular-nums;}
+.log-actor{font-size:12px;font-weight:600;color:var(--text);min-width:70px;}
+.log-role{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:600;background:#eee;color:var(--text-muted);}
+.log-role.owner{background:#ffebee;color:#c62828;}
+.log-role.super_admin{background:var(--pink-light);color:var(--pink-dark);}
+.log-role.manager,.log-role.admin{background:var(--blue-light);color:var(--blue-dark);}
+.log-role.employee,.log-role.staff{background:var(--yellow-light);color:var(--yellow-dark);}
+.log-role.coach{background:var(--green-light);color:var(--green-dark);}
+.log-role.analyst,.log-role.viewer{background:var(--purple-light);color:var(--purple-dark);}
+.action-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;min-width:56px;text-align:center;}
+.ab-create{background:#e8f5e9;color:#2e7d32;}
+.ab-update{background:#e3f2fd;color:#1565c0;}
+.ab-delete{background:#ffebee;color:#c62828;}
+.ab-export{background:#fff3e0;color:#e65100;}
+.ab-login{background:var(--green-light);color:var(--green-dark);}
+.ab-logout{background:var(--gray-light);color:var(--gray);}
+.ab-permission_change{background:var(--purple-light);color:var(--purple-dark);}
+.ab-other{background:#eee;color:var(--text-muted);}
+.log-resource{font-size:12px;color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.log-resource b{color:var(--text);}
+.log-expand-icon{font-size:10px;color:var(--text-muted);transition:transform .2s;}
+.log-item.expanded .log-expand-icon{transform:rotate(90deg);}
+
+.log-detail{margin-top:10px;padding:10px 12px;background:#fafafa;border-radius:8px;display:none;font-size:11px;}
+.log-item.expanded .log-detail{display:block;}
+.log-detail-row{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:3px 0;}
+.log-detail-label{color:var(--text-muted);}
+.log-detail-value{color:var(--text);word-break:break-all;font-family:ui-monospace,monospace;font-size:11px;}
+.changes-box{margin-top:6px;padding:8px;background:#fff;border:1px solid var(--gray-border);border-radius:6px;}
+.change-row{padding:3px 0;display:grid;grid-template-columns:100px 1fr 1fr;gap:6px;border-bottom:1px dashed #eee;font-family:ui-monospace,monospace;font-size:11px;}
+.change-row:last-child{border-bottom:none;}
+.change-field{font-weight:600;color:var(--text);}
+.change-from{color:#c62828;text-decoration:line-through;opacity:.75;}
+.change-to{color:#2e7d32;}
+
+.empty-state{padding:40px 20px;text-align:center;color:var(--text-muted);}
+.empty-state .empty-icon{font-size:40px;margin-bottom:10px;opacity:.5;}
+
+.pagination{padding:10px 14px;display:flex;align-items:center;gap:8px;justify-content:center;border-top:1px solid var(--gray-border);background:#fafafa;}
+.pg-btn{padding:5px 12px;border:1px solid var(--gray-border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-family:inherit;}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+.pg-info{font-size:11px;color:var(--text-muted);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;}
+.toast.show{opacity:1;}
+
+@media (max-width:640px){
+    .log-time{min-width:90px;font-size:9px;}
+    .log-actor{min-width:50px;font-size:11px;}
+    .fp-input{min-width:110px;}
+    .log-list{max-height:calc(100vh - 400px);}
+}
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+    <h1>🕵️ 操作紀錄</h1>
+    <div class="user-badge"><div class="user-avatar" id="userAvatar">?</div><div class="user-name-badge" id="userName">-</div></div>
+    <div class="header-sub">僅老闆可見</div>
+</div>
+
+<div class="container" id="mainArea" style="display:none;">
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Filter -->
+    <div class="filter-panel">
+        <div class="fp-group"><label class="fp-label">動作類型</label>
+            <select class="fp-input" id="f_action">
+                <option value="">全部</option>
+                <option value="create">新增</option>
+                <option value="update">修改</option>
+                <option value="delete">刪除</option>
+                <option value="export">匯出</option>
+                <option value="login">登入</option>
+                <option value="logout">登出</option>
+                <option value="permission_change">權限變更</option>
+            </select>
+        </div>
+        <div class="fp-group"><label class="fp-label">資源類型</label>
+            <select class="fp-input" id="f_resource_type">
+                <option value="">全部</option>
+                <option value="students">學員</option>
+                <option value="coaches">教練</option>
+                <option value="staff">營運人員</option>
+                <option value="consultation_records">諮詢單</option>
+                <option value="chatrooms">聊天室</option>
+                <option value="class_records">課表紀錄</option>
+                <option value="staff_permissions">權限設定</option>
+                <option value="audit_logs">稽核日誌</option>
+            </select>
+        </div>
+        <div class="fp-group"><label class="fp-label">從</label><input type="date" class="fp-input" id="f_date_from"></div>
+        <div class="fp-group"><label class="fp-label">到</label><input type="date" class="fp-input" id="f_date_to"></div>
+        <div class="fp-group"><label class="fp-label">操作者</label><input type="text" class="fp-input" id="f_actor" placeholder="姓名關鍵字"></div>
+        <button class="fp-btn" onclick="applyFilter()">🔍 查詢</button>
+        <button class="fp-btn secondary" onclick="resetFilter()">重置</button>
+    </div>
+
+    <!-- Log list -->
+    <div class="log-panel">
+        <div class="log-panel-head">
+            <div class="log-panel-title">操作紀錄</div>
+            <div class="log-panel-meta" id="logMeta">-</div>
+        </div>
+        <div class="log-list" id="logList">
+            <div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div>
+        </div>
+        <div class="pagination" id="pagination" style="display:none;">
+            <button class="pg-btn" id="pgPrev" onclick="changePage(-1)">← 上一頁</button>
+            <div class="pg-info" id="pgInfo">-</div>
+            <button class="pg-btn" id="pgNext" onclick="changePage(1)">下一頁 →</button>
+        </div>
+    </div>
+</div>
+
+<div id="accessDenied" style="padding:60px 20px;text-align:center;display:none;">
+    <div style="font-size:60px;margin-bottom:16px;">🔒</div>
+    <h2 style="color:var(--text-secondary);font-weight:600;margin-bottom:6px;">僅限老闆查看</h2>
+    <p style="color:var(--text-muted);font-size:13px;">此頁面需要 owner 權限</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EDGE_AUDIT_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/audit-api';
+
+let currentUser=null;
+let allLogs=[],totalCount=0,page=0;
+const PAGE_SIZE=50;
+let loading=false;
+
+// ─── utils ───────────────────────────────────────
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function escHtml(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+function fmtDt(iso){if(!iso)return'-';try{const d=new Date(iso);const mm=String(d.getMonth()+1).padStart(2,'0');const dd=String(d.getDate()).padStart(2,'0');const hh=String(d.getHours()).padStart(2,'0');const mi=String(d.getMinutes()).padStart(2,'0');const ss=String(d.getSeconds()).padStart(2,'0');return `${d.getFullYear()}/${mm}/${dd} ${hh}:${mi}:${ss}`;}catch(e){return iso;}}
+function getLineUid(){
+    try{const cu=JSON.parse(sessionStorage.getItem('currentStaff')||'null');if(cu&&(cu.line_id_edu||cu.lineUid))return cu.line_id_edu||cu.lineUid;}catch(e){}
+    const p=new URLSearchParams(window.location.search);
+    return p.get('lineUid')||p.get('uid')||p.get('line_id_edu')||'';
+}
+
+// ─── auth / init ────────────────────────────────
+function initPermissions(){
+    try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
+    if(!currentUser){
+        const p=new URLSearchParams(window.location.search);
+        if(p.get('uid')||p.get('name')){
+            currentUser={name:p.get('name')||'',role:p.get('role')||'',permission_level:p.get('permission_level')||'',line_id_edu:p.get('lineUid')||p.get('uid')||''};
+        }
+    }
+    const isOwner = currentUser && (
+        currentUser.role==='owner' ||
+        currentUser.permission_level==='owner'
+    );
+    if(!currentUser || !isOwner){
+        document.getElementById('accessDenied').style.display='block';
+        document.getElementById('mainArea').style.display='none';
+        if(currentUser){
+            document.getElementById('userName').textContent=currentUser.name||'-';
+            document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
+        }
+        return false;
+    }
+    document.getElementById('userName').textContent=currentUser.name||'-';
+    document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
+    document.getElementById('mainArea').style.display='block';
+    return true;
+}
+
+// ─── call audit-api ──────────────────────────────
+async function callAudit(action,params={}){
+    const lineUid=getLineUid();
+    if(!lineUid){throw new Error('缺少 lineUid，無法驗證身份');}
+    const res=await fetch(EDGE_AUDIT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,lineUid,...params})});
+    const j=await res.json().catch(()=>({success:false,error:'無法解析回應'}));
+    if(!res.ok||j.success===false){throw new Error(j.error||('HTTP '+res.status));}
+    return j;
+}
+
+// ─── stats ───────────────────────────────────────
+async function loadStats(){
+    try{
+        const s=await callAudit('stats',{days:7});
+        const byAction=s.by_action||{};
+        const total=s.total||0;
+        const actors=Object.keys(s.by_actor||{}).length;
+        const sensitive=(byAction.delete||0)+(byAction.permission_change||0);
+        const row=document.getElementById('statsRow');
+        row.innerHTML=
+            `<div class="stat-card"><div class="label">近 7 日操作</div><div class="value">${total}</div></div>`+
+            `<div class="stat-card green"><div class="label">活躍操作者</div><div class="value">${actors}</div></div>`+
+            `<div class="stat-card blue"><div class="label">修改 / 新增</div><div class="value">${(byAction.update||0)+(byAction.create||0)}</div></div>`+
+            `<div class="stat-card purple"><div class="label">🚨 高風險</div><div class="value">${sensitive}</div></div>`;
+    }catch(e){
+        console.warn('loadStats error',e);
+        const row=document.getElementById('statsRow');
+        row.innerHTML=`<div class="stat-card"><div class="label">統計載入失敗</div><div class="value" style="font-size:13px;color:var(--danger);">${escHtml(e.message)}</div></div>`;
+    }
+}
+
+// ─── list ───────────────────────────────────────
+async function loadLogs(){
+    if(loading)return;
+    loading=true;
+    const listEl=document.getElementById('logList');
+    listEl.innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div>';
+    document.getElementById('pagination').style.display='none';
+    try{
+        const params={limit:PAGE_SIZE,offset:page*PAGE_SIZE};
+        const fa=document.getElementById('f_action').value;if(fa)params.action=fa;
+        const fr=document.getElementById('f_resource_type').value;if(fr)params.resource_type=fr;
+        const fdf=document.getElementById('f_date_from').value;if(fdf)params.date_from=fdf+'T00:00:00Z';
+        const fdt=document.getElementById('f_date_to').value;if(fdt)params.date_to=fdt+'T23:59:59Z';
+        const r=await callAudit('list',params);
+        let data=r.data||[];
+        totalCount=r.total||0;
+        // actor 姓名本地過濾（後端沒支援姓名模糊）
+        const actorKw=document.getElementById('f_actor').value.trim();
+        if(actorKw){data=data.filter(x=>(x.actor_name||'').includes(actorKw));}
+        allLogs=data;
+        renderLogs();
+        renderPagination();
+    }catch(e){
+        listEl.innerHTML=`<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗：${escHtml(e.message)}</p></div>`;
+    }finally{loading=false;}
+}
+
+function renderLogs(){
+    const listEl=document.getElementById('logList');
+    const meta=document.getElementById('logMeta');
+    if(allLogs.length===0){
+        listEl.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>沒有符合條件的紀錄</p></div>';
+        meta.textContent='0 筆';
+        return;
+    }
+    meta.textContent=`共 ${totalCount} 筆，顯示第 ${page*PAGE_SIZE+1}-${page*PAGE_SIZE+allLogs.length} 筆`;
+    listEl.innerHTML=allLogs.map((log,idx)=>{
+        const actCls='ab-'+(['create','update','delete','export','login','logout','permission_change'].includes(log.action)?log.action:'other');
+        const actLabel={create:'新增',update:'修改',delete:'刪除',export:'匯出',login:'登入',logout:'登出',permission_change:'權限'}[log.action]||log.action;
+        const roleCls=log.actor_role||'';
+        const resName=log.resource_name?`<b>${escHtml(log.resource_name)}</b>`:(log.resource_id?escHtml(log.resource_id):'');
+        const resStr=log.resource_type?escHtml(log.resource_type)+(resName?' · '+resName:''):(resName||'-');
+        return `<div class="log-item" id="log-${idx}" onclick="toggleLog(${idx})">
+            <div class="log-line">
+                <div class="log-time">${fmtDt(log.created_at)}</div>
+                <div class="log-actor">${escHtml(log.actor_name||'-')}</div>
+                <div class="log-role ${escHtml(roleCls)}">${escHtml(log.actor_role||'')}</div>
+                <div class="action-badge ${actCls}">${actLabel}</div>
+                <div class="log-resource">${resStr}</div>
+                <div class="log-expand-icon">▶</div>
+            </div>
+            <div class="log-detail">${renderDetail(log)}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderDetail(log){
+    const rows=[];
+    rows.push(['紀錄 ID',log.id]);
+    rows.push(['操作者 ID',log.actor_id||'-']);
+    if(log.resource_id)rows.push(['資源 ID',log.resource_id]);
+    if(log.ip)rows.push(['來源 IP',log.ip]);
+    if(log.user_agent)rows.push(['User Agent',log.user_agent]);
+    let h=rows.map(r=>`<div class="log-detail-row"><div class="log-detail-label">${escHtml(r[0])}</div><div class="log-detail-value">${escHtml(r[1])}</div></div>`).join('');
+    if(log.changes){
+        const c=log.changes;
+        let rowsHtml='';
+        if(typeof c==='object'&&!Array.isArray(c)){
+            Object.keys(c).forEach(field=>{
+                const v=c[field];
+                let fromStr='',toStr='';
+                if(v&&typeof v==='object'&&('from' in v||'to' in v)){
+                    fromStr=JSON.stringify(v.from);toStr=JSON.stringify(v.to);
+                }else{toStr=JSON.stringify(v);}
+                rowsHtml+=`<div class="change-row"><div class="change-field">${escHtml(field)}</div><div class="change-from">${escHtml(fromStr)}</div><div class="change-to">${escHtml(toStr)}</div></div>`;
+            });
+        }else{
+            rowsHtml=`<div class="log-detail-value">${escHtml(JSON.stringify(c))}</div>`;
+        }
+        h+=`<div class="log-detail-row" style="margin-top:6px;"><div class="log-detail-label">變更細節</div><div class="log-detail-value"><div class="changes-box">${rowsHtml}</div></div></div>`;
+    }
+    return h||'<div class="log-detail-value" style="color:var(--text-muted);">（無額外細節）</div>';
+}
+
+function toggleLog(idx){
+    const el=document.getElementById('log-'+idx);
+    if(el)el.classList.toggle('expanded');
+}
+
+function renderPagination(){
+    const pg=document.getElementById('pagination');
+    if(totalCount<=PAGE_SIZE){pg.style.display='none';return;}
+    pg.style.display='flex';
+    const totalPages=Math.ceil(totalCount/PAGE_SIZE);
+    document.getElementById('pgPrev').disabled=page===0;
+    document.getElementById('pgNext').disabled=page>=totalPages-1;
+    document.getElementById('pgInfo').textContent=`第 ${page+1} / ${totalPages} 頁`;
+}
+
+function changePage(d){
+    const totalPages=Math.ceil(totalCount/PAGE_SIZE);
+    const np=page+d;
+    if(np<0||np>=totalPages)return;
+    page=np;
+    loadLogs();
+}
+
+function applyFilter(){page=0;loadLogs();}
+function resetFilter(){
+    document.getElementById('f_action').value='';
+    document.getElementById('f_resource_type').value='';
+    document.getElementById('f_date_from').value='';
+    document.getElementById('f_date_to').value='';
+    document.getElementById('f_actor').value='';
+    page=0;loadLogs();
+}
+
+// ─── entry ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+    if(!initPermissions())return;
+    loadStats();
+    loadLogs();
+});
+</script>
+</body>
+</html>
