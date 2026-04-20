@@ -103,9 +103,9 @@ const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/a
 async function callEdge(action,params={}){const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...params})});if(!res.ok)throw new Error('Edge Function error: '+res.status);return res.json();}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let allStaff=[],archivedStaff=[],filteredStaff=[],searchTerm='',searchTimeout=null,editingStaff=null,currentFilter='all';
-const roleNames={super_admin:'最高管理員',admin:'部門主管',staff:'營運人員',viewer:'檢視者'};
-const roleBadge={super_admin:'badge-super',admin:'badge-admin',staff:'badge-staff',viewer:'badge-viewer'};
-const roleAvatar={super_admin:'admin',admin:'admin',staff:'staff',viewer:'viewer'};
+const roleNames={owner:'老闆',super_admin:'最高管理員',admin:'部門主管',manager:'部門主管',staff:'營運人員',employee:'營運人員',viewer:'檢視者',analyst:'分析師',coach:'教練'};
+const roleBadge={owner:'badge-super',super_admin:'badge-super',admin:'badge-admin',manager:'badge-admin',staff:'badge-staff',employee:'badge-staff',viewer:'badge-viewer',analyst:'badge-viewer',coach:'badge-staff'};
+const roleAvatar={owner:'admin',super_admin:'admin',admin:'admin',manager:'admin',staff:'staff',employee:'staff',viewer:'viewer',analyst:'viewer',coach:'staff'};
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
 const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','女':'female','其他':'other'}[g]||'');
 
@@ -115,9 +115,9 @@ function initPermissions(){
     if(!currentUser){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
-    if(currentUser.permission_level==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
+    if(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='owner'||currentUser.role==='super_admin'||currentUser.permissions==='all'){modulePerms={view:true,fill:true,edit:true,create:true,delete:false,export:true};}
     else{modulePerms=(currentUser.permissions&&currentUser.permissions['staff-manage'])||{view:false};}
-    if(currentUser.permission_level==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['staff-manage'])||{};}
+    if(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='owner'||currentUser.role==='super_admin'){fieldPerms={};}else{fieldPerms=(currentUser.fieldPermissions&&currentUser.fieldPermissions['staff-manage'])||{};}
     try{if(window.parent&&window.parent.getModulePermissions)modulePerms=window.parent.getModulePermissions('staff-manage');if(window.parent&&window.parent.getFieldPermissions)fieldPerms=window.parent.getFieldPermissions('staff-manage');}catch(e){}
     if(modulePerms.fill===undefined)modulePerms.fill=modulePerms.edit||false;
     if(modulePerms.create)document.getElementById('addBtn').style.display='flex';
@@ -153,7 +153,7 @@ function renderFilters(){
     let h='<span class="filter-chip active" onclick="setFilter(\'all\',this)">全部<span class="cnt">'+allStaff.length+'</span></span>';
     h+='<span class="filter-chip" onclick="setFilter(\'active\',this)">在職<span class="cnt">'+allStaff.filter(s=>s.status!=='inactive').length+'</span></span>';
     Object.keys(types).forEach(t=>{h+='<span class="filter-chip" onclick="setFilter(\'type:'+t+'\',this)">'+escHtml(t)+'<span class="cnt">'+types[t]+'</span></span>';});
-    if(currentUser&&currentUser.permission_level==='super_admin'&&archivedStaff.length>0){h+='<span class="filter-chip" style="border-color:#ffcdd2;color:#c62828;" onclick="setFilter(\'archived\',this)">📦 封存<span class="cnt">'+archivedStaff.length+'</span></span>';}
+    if(currentUser&&(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='owner'||currentUser.role==='super_admin')&&archivedStaff.length>0){h+='<span class="filter-chip" style="border-color:#ffcdd2;color:#c62828;" onclick="setFilter(\'archived\',this)">📦 封存<span class="cnt">'+archivedStaff.length+'</span></span>';}
     document.getElementById('filterBar').innerHTML=h;
 }
 function setFilter(f,el){currentFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');applyFilter();}
@@ -239,8 +239,8 @@ function viewDetail(id){
         fh+='<button class="btn btn-primary" onclick="restoreStaff(\''+escAttr(s.id)+'\')">♻️ 恢復</button>';
     }else{
         if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editStaff(\''+escAttr(s.id)+'\')">✏️ 編輯</button>';
-        if(!s.line_id_edu&&(currentUser.permission_level==='super_admin'||currentUser.role==='super_admin'))fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(s.id)+'\')">🔗 產生入口連結</button>';
-        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.permission_level==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
+        if(!s.line_id_edu&&(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='super_admin'||currentUser.role==='owner'))fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(s.id)+'\')">🔗 產生入口連結</button>';
+        if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='owner'||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
     }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
 }
@@ -391,7 +391,7 @@ function copyInviteLink(){
 }
 async function generateInviteLinkFor(id){
     const s=allStaff.find(x=>x.id===id)||archivedStaff.find(x=>x.id===id);if(!s)return;
-    if(currentUser.permission_level!=='super_admin'&&currentUser.role!=='super_admin'){showToast('僅限最高管理員操作');return;}
+    if(currentUser.permission_level!=='super_admin'&&currentUser.role!=='super_admin'&&currentUser.permission_level!=='owner'&&currentUser.role!=='owner'){showToast('僅限最高管理員操作');return;}
     try{
         showToast('⏳ 產生連結中...');
         const inv=await callEdge('createInviteForExisting',{table:'staff',id:s.id});
