@@ -1137,6 +1137,8 @@
                 if (role === 'admin') role = 'manager';
                 if (role === 'staff') role = 'employee';
                 if (role === 'viewer') role = 'analyst';
+                // owner 雙軌優先：若 staff.role = 'owner'，以 role 欄位為準
+                if (staff.role === 'owner') role = 'owner';
                 staffType = staff.staff_type || '';
                 dbPerms = staff.permissions || {};
                 userName = staff.nickname || staff.name || displayName;
@@ -1748,7 +1750,7 @@
     }
 
     function getRoleDisplay(r) {
-        return { super_admin:'超級管理員', admin:'管理員', manager:'部門主管', staff:'營運人員', employee:'一般員工', coach:'教練', viewer:'檢視者', analyst:'分析師' }[r] || r;
+        return { owner:'老闆', super_admin:'超級管理員', admin:'管理員', manager:'部門主管', staff:'營運人員', employee:'一般員工', coach:'教練', viewer:'檢視者', analyst:'分析師' }[r] || r;
     }
 
     function updateLoadingText(t) { const e = document.querySelector('.loading-text'); if(e) e.textContent = t; }
