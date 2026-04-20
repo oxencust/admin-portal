@@ -560,8 +560,8 @@ async function initPermissions() {
         return false;
     }
 
-    // 3. 權限檢查：只有 super_admin / manager 可進入
-    if (currentUser.role !== 'super_admin' && currentUser.role !== 'manager') {
+    // 3. 權限檢查：只有 owner / super_admin / manager 可進入
+    if (currentUser.role !== 'owner' && currentUser.role !== 'super_admin' && currentUser.role !== 'manager') {
         showBlockedScreen('🔒', '僅限管理員存取');
         return false;
     }
@@ -633,8 +633,8 @@ async function loadAllPeople() {
         });
 
         // ── 合併雙重身份：同一個 line_id_edu 出現在 staff + coaches 的人，合併為一筆 ──
-        const staffFiltered = staffData.filter(s => s._role !== 'super_admin');
-        const coachFiltered = coachData.filter(c => c._role !== 'super_admin');
+        const staffFiltered = staffData.filter(s => s._role !== 'super_admin' && s._role !== 'owner');
+        const coachFiltered = coachData.filter(c => c._role !== 'super_admin' && c._role !== 'owner');
 
         // 建立 line_id_edu → coach 的對照表
         const coachByLineId = {};
@@ -1104,7 +1104,8 @@ async function savePermissions() {
         };
 
         // 同時更新舊的 permission_level 保持向下相容
-        const roleMap = { super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
+        // owner → super_admin（雙軌：新 role 存 owner，舊 permission_level 存 super_admin）
+        const roleMap = { owner:'super_admin', super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
         updateData.permission_level = roleMap[p._role] || p._role;
 
         // 同時更新 permissions JSONB 以保持舊系統相容
@@ -1338,7 +1339,7 @@ async function saveBatchPermissions() {
 
     for (const p of users) {
         try {
-            const roleMap = { super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
+            const roleMap = { owner:'super_admin', super_admin:'super_admin', manager:'admin', employee:'staff', coach:'coach', analyst:'viewer' };
             const enabledModules = getPersonModules(p);
             const hiddenModules = MODULES.filter(m => !enabledModules.has(m.id)).map(m => m.id);
             const oldPermissions = p.permissions || {};
