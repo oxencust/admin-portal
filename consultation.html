@@ -292,7 +292,6 @@
 //  ⚙️ Supabase 設定
 // ═══════════════════════════════════════════════
 const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
-const NOTIFY_COACHES_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/notify-coaches';
 async function callEdge(action, params = {}) {
     const res = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
@@ -301,74 +300,6 @@ async function callEdge(action, params = {}) {
     });
     if (!res.ok) throw new Error('Edge Function error: ' + res.status);
     return res.json();
-}
-
-// 通知教練（諮詢單預約成功）— 非阻塞、失敗不影響儲存
-async function notifyCoachTrialBooked(coachName, bookingTime, consultationId, studentObj) {
-    try {
-        const res = await fetch(NOTIFY_COACHES_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'consultation_trial_booked',
-                coach_name: coachName,
-                booking_time: bookingTime,
-                consultation_id: consultationId,
-                student: studentObj,
-            })
-        });
-        const j = await res.json().catch(() => ({}));
-        return j;
-    } catch (e) {
-        console.warn('notifyCoachTrialBooked failed:', e);
-        return { success: false, reason: 'fetch_error' };
-    }
-}
-
-// 通知教練（預約時間變更）— 同教練、時間變了才觸發
-async function notifyCoachTrialUpdated(coachName, oldBookingTime, newBookingTime, consultationId, studentObj) {
-    try {
-        const res = await fetch(NOTIFY_COACHES_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'consultation_trial_updated',
-                coach_name: coachName,
-                old_booking_time: oldBookingTime,
-                booking_time: newBookingTime,
-                consultation_id: consultationId,
-                student: studentObj,
-            })
-        });
-        const j = await res.json().catch(() => ({}));
-        return j;
-    } catch (e) {
-        console.warn('notifyCoachTrialUpdated failed:', e);
-        return { success: false, reason: 'fetch_error' };
-    }
-}
-
-// 通知教練（取消預約 / 結案未體驗）— booking_time 傳「原本預約時間」
-async function notifyCoachTrialCancelled(coachName, oldBookingTime, cancelReason, consultationId, studentObj) {
-    try {
-        const res = await fetch(NOTIFY_COACHES_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'consultation_trial_cancelled',
-                coach_name: coachName,
-                booking_time: oldBookingTime,
-                cancel_reason: cancelReason || '',
-                consultation_id: consultationId,
-                student: studentObj,
-            })
-        });
-        const j = await res.json().catch(() => ({}));
-        return j;
-    } catch (e) {
-        console.warn('notifyCoachTrialCancelled failed:', e);
-        return { success: false, reason: 'fetch_error' };
-    }
 }
 
 // ═══════════════════════════════════════════════
@@ -937,11 +868,6 @@ async function confirmSave() {
         ? (ch.booking_status ? 'closed' : 'closed_no_trial')
         : (ch.booking_status ? 'booked' : 'new');
 
-    // 記錄舊狀態 — 供後續決定要觸發哪種通知
-    const prevBooked      = (REC.statusKey === 'booked') && !!REC.booking_status;
-    const prevBookingTime = REC.booking_status || '';
-    const prevCoach       = REC.coach || '';
-
     try {
         // ── 1. 主寫入：Supabase ──
         const updateData = {
@@ -998,68 +924,6 @@ async function confirmSave() {
         document.getElementById('ETB').className = 'etbtn vm';
         document.getElementById('DF').style.display = 'none';
         toast('✅ 已儲存');
-
-        // ── 3. 決定要觸發哪一種通知 ──
-        const nowBooked = (newStatusKey === 'booked') && !!ch.booking_status;
-
-        // 共用 student payload
-        const studentPayload = {
-            name:             ch.name,
-            phone:            ch.phone,
-            gender:           ch.gender,
-            birthday:         ch.birthday,
-            age:              ch.age,
-            line_id:          ch.lineId,
-            email:            ch.email,
-            goals:            ch.goals,
-            diseases:         ch.diseases,
-            remarks:          ch.remarks,
-            exercise_exp:     ch.exercise_exp,
-            time_preferences: ch.time_preferences,
-            is_ai:            ch.is_ai,
-        };
-
-        // 通知結果 toast helper
-        const reportNotify = (nf, coachLabel, okMsg) => {
-            if (nf && nf.success) {
-                toast('✅ ' + okMsg.replace('{coach}', nf.coach_name || coachLabel));
-            } else if (nf && nf.reason === 'coach_not_found') {
-                toast('✅ 已儲存（找不到教練「' + coachLabel + '」的群組，請確認教練資料）');
-            } else if (nf && nf.reason === 'line_group_id_missing') {
-                toast('✅ 已儲存（該教練尚未設定 LINE 群組 ID）');
-            } else {
-                toast('✅ 已儲存（通知教練失敗，請手動提醒）');
-            }
-        };
-
-        // (a) 首次預約：非 booked → booked
-        if (!prevBooked && nowBooked && ch.coach) {
-            const nf = await notifyCoachTrialBooked(
-                ch.coach, ch.booking_status, REC._row, studentPayload
-            );
-            reportNotify(nf, ch.coach, '已儲存並通知 {coach} 教練（新體驗預約）');
-        }
-        // (b) 時間變更：原本是 booked、現在還是 booked、同教練、時間變了
-        else if (prevBooked && nowBooked
-                 && ch.coach && prevCoach
-                 && ch.coach === prevCoach
-                 && prevBookingTime !== ch.booking_status) {
-            const nf = await notifyCoachTrialUpdated(
-                ch.coach, prevBookingTime, ch.booking_status, REC._row, studentPayload
-            );
-            reportNotify(nf, ch.coach, '已儲存並通知 {coach} 教練（預約時間變更）');
-        }
-        // (c) 取消 / 結案未體驗：原本是 booked、現在不是 booked → 通知原教練
-        else if (prevBooked && !nowBooked && prevCoach) {
-            // 結案未體驗用狀態名當原因、其他則給通用描述
-            const reason = (newStatusKey === 'closed_no_trial')
-                ? '結案未體驗'
-                : (newStatusKey === 'closed' ? '已結案' : '取消預約');
-            const nf = await notifyCoachTrialCancelled(
-                prevCoach, prevBookingTime, reason, REC._row, studentPayload
-            );
-            reportNotify(nf, prevCoach, '已儲存並通知 {coach} 教練（預約取消）');
-        }
 
     } catch(e) { toast('❌ 儲存失敗：' + e.message); }
     btn.disabled = false; btn.textContent = '💾 儲存';
