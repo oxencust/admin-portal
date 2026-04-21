@@ -313,6 +313,7 @@ async function saveCoach(){
                 emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
                 emergency_relation:val('e_er')||null,
                 permission_level:'coach',
+                status:'approved',
                 created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
             const{data:inserted,error}=await callEdge('addCoach',{coach:newCoach}).then(r=>({data:r.data,error:null})).catch(e=>({data:null,error:e}));
             if(error)throw error;
