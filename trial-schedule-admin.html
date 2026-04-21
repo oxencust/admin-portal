@@ -129,6 +129,18 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .modal input, .modal select, .modal textarea{width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:6px 0;outline:none;transition:.2s}
 .modal input:focus, .modal select:focus{border-color:var(--green)}
 .modal textarea{resize:vertical;min-height:60px}
+/* 學員姓名自動搜尋下拉 */
+.ac-wrap{position:relative}
+.ac-dropdown{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.08);z-index:20;margin-top:-2px}
+.ac-item{padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f5f5f5}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover{background:#f0f9f4}
+.ac-item .ac-name{font-weight:600;color:#2e7d32}
+.ac-item .ac-meta{font-size:11px;color:#888;margin-top:2px}
+.ac-empty{padding:10px 12px;font-size:12px;color:#999;text-align:center}
+.consult-badge{display:inline-block;margin:6px 0 4px;padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600}
+.consult-badge.linked{background:#e8f5e9;color:#2e7d32}
+.consult-badge.manual{background:#fff3e0;color:#e65100}
 .modal .btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .modal .btn{flex:1;padding:11px;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:80px}
 .btn-cancel-modal{background:#f5f5f5;color:var(--muted)}
@@ -242,8 +254,13 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
         <div class="info-row"><span class="info-label">狀態</span><span id="mBadge"><span class="badge badge-available">可預約</span></span></div>
 
         <div id="studentSection">
-            <input type="text" placeholder="學員姓名" id="mStudentName">
+            <div class="ac-wrap">
+                <input type="text" placeholder="學員姓名（輸入可搜尋諮詢單）" id="mStudentName" autocomplete="off">
+                <div class="ac-dropdown" id="mConsultationList" style="display:none"></div>
+            </div>
+            <div id="mConsultationBadge" class="consult-badge" style="display:none"></div>
             <input type="hidden" id="mStudentPhone">
+            <input type="hidden" id="mConsultationId">
             <textarea placeholder="備註（選填）" id="mNote"></textarea>
         </div>
 
@@ -294,6 +311,8 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 //  CONFIG
 // ═══════════════════════════════════════════════
 const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
+const CONSULTATION_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
+const NOTIFY_COACHES_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/notify-coaches';
 const TYPE_LABELS = {
     ai_analysis: 'AI 3D體態分析',
     pilates: '皮拉提斯',
@@ -315,6 +334,189 @@ async function callEdge(action, params = {}) {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || `API error: ${res.status}`);
     return json;
+}
+
+// ═══════════════════════════════════════════════
+//  諮詢單自動搜尋（mStudentName 輸入時 debounce 查 consultation-api）
+// ═══════════════════════════════════════════════
+let consultationSearchTimer = null;
+
+async function searchConsultationsByName(keyword) {
+    const k = (keyword || '').trim();
+    if (!k) return [];
+    try {
+        const res = await fetch(CONSULTATION_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'search', keyword: k })
+        });
+        const json = await res.json().catch(() => ({}));
+        return (json.data || []);
+    } catch (e) {
+        console.warn('searchConsultationsByName failed:', e);
+        return [];
+    }
+}
+
+function renderConsultationDropdown(list, keyword) {
+    const box = document.getElementById('mConsultationList');
+    if (!list || list.length === 0) {
+        box.innerHTML = `<div class="ac-empty">找不到「${escHtml(keyword)}」的諮詢單，直接輸入即為手動建立</div>`;
+        box.style.display = '';
+        return;
+    }
+    // 最多顯示 8 筆
+    const items = list.slice(0, 8).map(c => {
+        const name  = c.member_name || '-';
+        const phone = c.member_phone || '';
+        const tail4 = phone ? phone.slice(-4) : '';
+        const created = (c.created_at || '').slice(0, 10);
+        const metaParts = [];
+        if (tail4) metaParts.push('尾碼 ' + tail4);
+        if (created) metaParts.push(created);
+        if (c.coach) metaParts.push('教練 ' + c.coach);
+        return `<div class="ac-item" data-id="${c.id}">
+            <div class="ac-name">${escHtml(name)}</div>
+            <div class="ac-meta">${escHtml(metaParts.join(' · '))}</div>
+        </div>`;
+    }).join('');
+    box.innerHTML = items;
+    box.style.display = '';
+
+    // 綁定點擊
+    [...box.querySelectorAll('.ac-item')].forEach(el => {
+        el.addEventListener('mousedown', (ev) => {
+            ev.preventDefault();  // 避免 blur 先觸發把下拉收起
+            const id = el.getAttribute('data-id');
+            const rec = list.find(x => String(x.id) === String(id));
+            if (rec) pickConsultation(rec);
+        });
+    });
+}
+
+function hideConsultationDropdown() {
+    const box = document.getElementById('mConsultationList');
+    if (box) box.style.display = 'none';
+}
+
+function pickConsultation(rec) {
+    document.getElementById('mStudentName').value = rec.member_name || '';
+    document.getElementById('mStudentPhone').value = rec.member_phone || '';
+    document.getElementById('mConsultationId').value = rec.id || '';
+    updateConsultationBadge('linked', rec);
+    hideConsultationDropdown();
+}
+
+function clearConsultationSelection(reason /* 'manual' | 'clear' */) {
+    document.getElementById('mConsultationId').value = '';
+    document.getElementById('mStudentPhone').value = '';
+    if (reason === 'manual') {
+        updateConsultationBadge('manual', null);
+    } else {
+        updateConsultationBadge('hide', null);
+    }
+}
+
+function updateConsultationBadge(mode, rec) {
+    const el = document.getElementById('mConsultationBadge');
+    if (!el) return;
+    if (mode === 'linked') {
+        const label = rec && rec.member_name ? rec.member_name : '已選';
+        el.className = 'consult-badge linked';
+        el.textContent = '✓ 已連結諮詢單：' + label;
+        el.style.display = '';
+    } else if (mode === 'manual') {
+        el.className = 'consult-badge manual';
+        el.textContent = '⚠ 手動輸入（無諮詢單資料）';
+        el.style.display = '';
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+function handleStudentNameInput() {
+    const input = document.getElementById('mStudentName');
+    const val = (input.value || '').trim();
+
+    // 使用者一輸入就視為「脫鉤」當前選中的諮詢單（除非之後又點選下拉項目）
+    const linkedId = document.getElementById('mConsultationId').value;
+    if (linkedId) {
+        // 若名字已變，清掉連結
+        // 先暫存 pending change，等搜尋結果回來再決定 badge 狀態
+        document.getElementById('mConsultationId').value = '';
+    }
+
+    if (consultationSearchTimer) clearTimeout(consultationSearchTimer);
+    if (!val) {
+        hideConsultationDropdown();
+        updateConsultationBadge('hide', null);
+        return;
+    }
+    // 尚未選取 → 顯示 manual badge（會在 pick 後被覆蓋為 linked）
+    updateConsultationBadge('manual', null);
+
+    consultationSearchTimer = setTimeout(async () => {
+        const list = await searchConsultationsByName(val);
+        // 只有 input 仍有值才顯示
+        if ((document.getElementById('mStudentName').value || '').trim() !== '') {
+            renderConsultationDropdown(list, val);
+        }
+    }, 250);
+}
+
+function bindConsultationAutocomplete() {
+    const input = document.getElementById('mStudentName');
+    if (!input || input.dataset.acBound === '1') return;
+    input.dataset.acBound = '1';
+    input.addEventListener('input', handleStudentNameInput);
+    input.addEventListener('blur', () => setTimeout(hideConsultationDropdown, 150));
+    input.addEventListener('focus', () => {
+        const v = (input.value || '').trim();
+        if (v) handleStudentNameInput();
+    });
+}
+
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+        ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// ═══════════════════════════════════════════════
+//  教練通知（booked / updated / cancelled）— 非阻塞、失敗不影響儲存
+// ═══════════════════════════════════════════════
+async function notifyCoach(action, payload) {
+    try {
+        const res = await fetch(NOTIFY_COACHES_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, ...payload })
+        });
+        const j = await res.json().catch(() => ({}));
+        return j;
+    } catch (e) {
+        console.warn('notifyCoach failed:', e);
+        return { success: false, reason: 'fetch_error' };
+    }
+}
+
+function reportNotifyResult(nf, coachLabel, okMsg) {
+    if (nf && nf.success) {
+        toast('📨 ' + okMsg.replace('{coach}', nf.coach_name || coachLabel));
+    } else if (nf && nf.reason === 'coach_not_found') {
+        toast('⚠️ 找不到教練「' + coachLabel + '」的群組，請確認教練資料');
+    } else if (nf && nf.reason === 'line_group_id_missing') {
+        toast('⚠️ 該教練尚未設定 LINE 群組 ID');
+    } else {
+        toast('⚠️ 通知教練失敗，請手動提醒');
+    }
+}
+
+function buildBookingTimeLabel(slot) {
+    const d = slot.slot_date || '';
+    const s = slot.start_time || '';
+    const e = slot.end_time || '';
+    const day = slot.day_name ? `(${slot.day_name})` : '';
+    return `${d} ${day} ${s}${e ? '-' + e : ''}`.trim();
 }
 
 // ═══════════════════════════════════════════════
@@ -684,7 +886,19 @@ function openSlot(slotId) {
 
     document.getElementById('mStudentName').value = slot.student_name || '';
     document.getElementById('mStudentPhone').value = slot.student_phone || '';
+    document.getElementById('mConsultationId').value = slot.consultation_id || '';
     document.getElementById('mNote').value = slot.notes || '';
+
+    // 初始化諮詢單連結 badge
+    if (slot.consultation_id) {
+        updateConsultationBadge('linked', { member_name: slot.student_name || '' });
+    } else if (slot.student_name) {
+        updateConsultationBadge('manual', null);
+    } else {
+        updateConsultationBadge('hide', null);
+    }
+    hideConsultationDropdown();
+    bindConsultationAutocomplete();
 
     document.getElementById('editTimeSection').style.display = 'none';
     document.getElementById('mNewDate').value = slot.slot_date || '';
@@ -824,6 +1038,12 @@ async function doBook() {
     if (!currentSlot) return;
     const name = document.getElementById('mStudentName').value.trim();
     if (!name) { toast('請輸入學員姓名'); return; }
+    const consultationId = document.getElementById('mConsultationId').value || null;
+
+    // 記錄原本狀態（判斷是「保留 → 預約」還是「新預約」，兩者都發 booked 通知）
+    const wasBooked = currentSlot.status === 'booked';
+    const snap = { ...currentSlot };
+
     showLoading(true);
     try {
         await callEdge('updateSlotStatus', {
@@ -831,9 +1051,22 @@ async function doBook() {
             status: 'booked',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim()
+            note: document.getElementById('mNote').value.trim(),
+            consultationId: consultationId
         });
         toast('✅ 預約成功');
+
+        // 觸發教練通知（booked）— 保留→預約 或 從 available→預約 均算新預約
+        if (!wasBooked && snap.coach_name) {
+            const nf = await notifyCoach('consultation_trial_booked', {
+                coach_name: snap.coach_name,
+                booking_time: buildBookingTimeLabel(snap),
+                consultation_id: consultationId,
+                student: { name: name }
+            });
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（新體驗預約）');
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
@@ -845,6 +1078,7 @@ async function doBook() {
 async function doReserve() {
     if (!currentSlot) return;
     const name = document.getElementById('mStudentName').value.trim();
+    const consultationId = document.getElementById('mConsultationId').value || null;
     showLoading(true);
     try {
         await callEdge('updateSlotStatus', {
@@ -852,9 +1086,11 @@ async function doReserve() {
             status: 'reserved',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim()
+            note: document.getElementById('mNote').value.trim(),
+            consultationId: consultationId
         });
         toast('🟡 已保留');
+        // 保留不發通知（尚未實際預約），保持行為簡單
         closeModal();
         await loadSlots();
     } catch (e) {
@@ -866,6 +1102,11 @@ async function doReserve() {
 async function doCancel() {
     if (!currentSlot) return;
     if (!confirm('確定要取消嗎？將恢復為可預約狀態')) return;
+
+    // 快照：供取消後通知使用（此時 currentSlot 仍為原資料）
+    const snap = { ...currentSlot };
+    const wasBooked = snap.status === 'booked';
+
     showLoading(true);
     try {
         await callEdge('updateSlotStatus', {
@@ -874,8 +1115,22 @@ async function doCancel() {
             studentName: '',
             studentPhone: '',
             note: ''
+            // consultationId 不傳 → updateSlotStatus 內 available 分支會自動 null 掉
         });
         toast('已取消，時段恢復可預約');
+
+        // 僅對「原本已 booked」的時段發取消通知（保留取消不打擾教練）
+        if (wasBooked && snap.coach_name) {
+            const nf = await notifyCoach('consultation_trial_cancelled', {
+                coach_name: snap.coach_name,
+                booking_time: buildBookingTimeLabel(snap),  // 原本預約時間
+                cancel_reason: '行政端取消',
+                consultation_id: snap.consultation_id || null,
+                student: { name: snap.student_name || '' }
+            });
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約取消）');
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
@@ -892,22 +1147,50 @@ async function doSaveEdit() {
     const name = document.getElementById('mStudentName').value.trim();
     const phone = document.getElementById('mStudentPhone').value.trim();
     const note = document.getElementById('mNote').value.trim();
+    const consultationId = document.getElementById('mConsultationId').value || null;
+
+    // 快照原始時間（用於判斷是否變更，以及組「原本時間」標籤）
+    const snap = { ...currentSlot };
+    const finalDate  = newDate  || currentSlot.slot_date;
+    const finalStart = newStart || currentSlot.start_time;
+    const finalEnd   = newEnd   || currentSlot.end_time;
+    const timeChanged =
+        finalDate  !== currentSlot.slot_date ||
+        finalStart !== currentSlot.start_time ||
+        finalEnd   !== currentSlot.end_time;
 
     showLoading(true);
     try {
         await callEdge('updateSlotDetails', {
             slotId: currentSlot.id,
             updates: {
-                slot_date: newDate || currentSlot.slot_date,
-                start_time: newStart || currentSlot.start_time,
-                end_time: newEnd || currentSlot.end_time,
+                slot_date: finalDate,
+                start_time: finalStart,
+                end_time: finalEnd,
                 student_name: name,
                 student_phone: phone,
                 notes: note,
-                day_name: getDayName(newDate || currentSlot.slot_date)
+                day_name: getDayName(finalDate),
+                consultation_id: consultationId
             }
         });
         toast('💾 已儲存變更');
+
+        // 僅對「原本 booked + 時間真的變動」才發 updated 通知
+        if (snap.status === 'booked' && timeChanged && snap.coach_name) {
+            const nf = await notifyCoach('consultation_trial_updated', {
+                coach_name: snap.coach_name,
+                old_booking_time: buildBookingTimeLabel(snap),
+                booking_time: buildBookingTimeLabel({
+                    slot_date: finalDate, start_time: finalStart, end_time: finalEnd,
+                    day_name: getDayName(finalDate)
+                }),
+                consultation_id: consultationId,
+                student: { name: name }
+            });
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約時間變更）');
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
