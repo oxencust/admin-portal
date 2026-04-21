@@ -1059,13 +1059,34 @@ async function doAddSlot() {
 
     showLoading(true);
     try {
+        // 計算 endTime / endDateTime（若使用者未填 endTime，預設 60 分鐘）
+        let finalEndTime = endTime;
+        let endInfo;
+        if (endTime) {
+            // 使用者有填 endTime：用它計算 endDate / isCrossDay
+            const [eh, em] = endTime.split(':').map(Number);
+            const [sh, sm] = startTime.split(':').map(Number);
+            const duration = (eh * 60 + em) - (sh * 60 + sm);
+            endInfo = calculateEndTimeAndDate(date, startTime, duration > 0 ? duration : 60);
+        } else {
+            // 沒填 endTime：預設 60 分鐘
+            endInfo = calculateEndTimeAndDate(date, startTime, 60);
+            finalEndTime = endInfo.endTime;
+        }
+
         await callEdge('saveSlots', {
             coachId, coachName, coachType,
             changes: [{
                 action: 'add',
                 date,
                 startTime,
-                endTime: endTime || null
+                endTime: finalEndTime,
+                endDate: endInfo.endDate,
+                isCrossDay: endInfo.isCrossDay,
+                dayName: getDayName(date),
+                startDateTime: `${date} ${startTime}`,
+                endDateTime: endInfo.endDateTime,
+                eventId: null
             }]
         });
         toast('✅ 時段已新增');
@@ -1300,6 +1321,24 @@ function getWeekNumber(d) {
 function getDayName(dateStr) {
     const names = ['週日','週一','週二','週三','週四','週五','週六'];
     return names[new Date(dateStr + 'T00:00:00').getDay()] || '';
+}
+function calculateEndTimeAndDate(dateStr, startTime, durationMinutes = 60) {
+    const startDateTime = new Date(`${dateStr}T${startTime}:00`);
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+    const endYear = endDateTime.getFullYear();
+    const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+    const endDay = String(endDateTime.getDate()).padStart(2, '0');
+    const endDate = `${endYear}-${endMonth}-${endDay}`;
+    const endHour = String(endDateTime.getHours()).padStart(2, '0');
+    const endMinute = String(endDateTime.getMinutes()).padStart(2, '0');
+    const endTime = `${endHour}:${endMinute}`;
+    return {
+        endDate,
+        endTime,
+        endDateTime: `${endDate} ${endTime}`,
+        isCrossDay: dateStr !== endDate
+    };
 }
 function toast(msg) {
     const el = document.getElementById('toast');
