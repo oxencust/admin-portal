@@ -1619,7 +1619,18 @@
 
         // 外部模組 → 新分頁（自己做 LIFF 登入驗證身分）
         if (EXTERNAL_MODULES.includes(mod.id)) {
-            window.open(fullUrl, '_blank');
+            // LIFF in-client 環境：改用 liff.openWindow 避免 Android LINE webview 對 window.open 不一致造成「網址無效」
+            // external: false → 留在 LINE webview 開啟，保留 LIFF 身分（適用模組也是 LIFF app 的情況）
+            try {
+                if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+                    liff.openWindow({ url: fullUrl, external: false });
+                } else {
+                    window.open(fullUrl, '_blank');
+                }
+            } catch (e) {
+                console.error('liff.openWindow failed, fallback to window.open:', e);
+                window.open(fullUrl, '_blank');
+            }
             return;
         }
 
