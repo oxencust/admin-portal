@@ -1198,12 +1198,23 @@ async function doReserve() {
 
 async function doCancel() {
     if (!currentSlot) return;
-    if (!confirm('確定要取消嗎？將恢復為可預約狀態')) return;
+
+    // 原本是 booked → 需要帶取消原因到教練卡（reserved 取消不顯示原因，故只對 booked 問）
+    const wasBooked   = currentSlot.status === 'booked';
+    const wasReserved = currentSlot.status === 'reserved';
+
+    let cancelReason = '行政端取消';
+    if (wasBooked) {
+        const input = prompt('請輸入取消原因（留白＝「行政端取消」）\n例如：學員請假、臨時改期、結案未體驗…', '');
+        if (input === null) return;  // 使用者按「取消」按鈕 → 中止整個動作
+        const trimmed = (input || '').trim();
+        if (trimmed) cancelReason = trimmed;
+    } else {
+        if (!confirm('確定要取消保留嗎？將恢復為可預約狀態')) return;
+    }
 
     // 快照：供取消後通知使用（此時 currentSlot 仍為原資料）
     const snap = { ...currentSlot };
-    const wasBooked   = snap.status === 'booked';
-    const wasReserved = snap.status === 'reserved';
 
     showLoading(true);
     try {
@@ -1217,12 +1228,12 @@ async function doCancel() {
         });
         toast('已取消，時段恢復可預約');
 
-        // 原本 booked → 發 cancelled 通知（完整取消）
+        // 原本 booked → 發 cancelled 通知（完整取消，帶行政人員填的取消原因）
         if (wasBooked && snap.coach_name) {
             const nf = await notifyCoach('consultation_trial_cancelled', {
                 coach_name: snap.coach_name,
                 booking_time: buildBookingTimeLabel(snap),  // 原本預約時間
-                cancel_reason: '行政端取消',
+                cancel_reason: cancelReason,
                 consultation_id: snap.consultation_id || null,
                 student: { name: snap.student_name || '' }
             });
