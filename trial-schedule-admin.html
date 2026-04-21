@@ -383,6 +383,61 @@ async function callWithDupConfirm(action, params, actionLabel) {
 }
 
 // ═══════════════════════════════════════════════
+//  諮詢單同步 helper（doBook / doReserve / doCancel / doSaveEdit 共用）
+//  目的：時段狀態變更後，同步更新 consultation_records.booking_status 與 coach
+//       讓諮詢單列表看到最新預約狀態；status_key 由 DB trigger 自動維護。
+// ═══════════════════════════════════════════════
+
+// 產生諮詢單 booking_status 文字：「2026/04/01(五) 14:00」
+// - 日期轉 YYYY/MM/DD
+// - 星期只取單字（「週五」→「五」），避免太冗長
+// - 只帶開始時間（HH:MM）
+function formatBookingStatusText(slot) {
+    if (!slot || !slot.slot_date || !slot.start_time) return '';
+    const datePart = String(slot.slot_date).replace(/-/g, '/');
+    const timePart = String(slot.start_time).substring(0, 5);
+    const dayFull = slot.day_name || getDayName(slot.slot_date) || '';
+    const dayShort = dayFull.replace(/^週/, '');
+    const dayPart = dayShort ? `(${dayShort})` : '';
+    return `${datePart}${dayPart} ${timePart}`.trim();
+}
+
+// 呼叫 consultation-api update action 更新諮詢單
+// 失敗不 throw，只 console.warn + 回傳結構讓 caller 決定是否 toast 警告
+// opts: { consultationId, updateData, actionLabel, options? }
+//   options.auto_reopen_if_closed_no_trial: true
+//     → Edge Function 會先讀該筆，若 closed=true 且 booking_status 為空
+//       則自動把 closed 設為 false（讓結案未體驗學員回遊時自動解除結案）
+async function syncConsultationRecord(opts) {
+    const { consultationId, updateData, actionLabel, options } = opts || {};
+    if (!consultationId) return { skipped: true, reason: 'no_consultation_id' };
+    if (!updateData || Object.keys(updateData).length === 0) {
+        return { skipped: true, reason: 'empty_update' };
+    }
+    try {
+        const body = { action: 'update', id: consultationId, updateData };
+        if (options) body.options = options;
+        const res = await fetch(CONSULTATION_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.success === false) {
+            const msg = json.message || json.error || `HTTP ${res.status}`;
+            console.warn(`⚠️ 諮詢單同步失敗（${actionLabel || 'sync'}）:`, msg, json);
+            return { ok: false, error: msg };
+        }
+        console.log(`✅ 諮詢單同步成功（${actionLabel || 'sync'}）`,
+            'autoReopened:', json.autoReopened, 'gasSync:', json.gasSync);
+        return { ok: true, data: json.data, autoReopened: json.autoReopened, gasSync: json.gasSync };
+    } catch (e) {
+        console.warn(`⚠️ 諮詢單同步例外（${actionLabel || 'sync'}）:`, e);
+        return { ok: false, error: String(e && e.message || e) };
+    }
+}
+
+// ═══════════════════════════════════════════════
 //  諮詢單自動搜尋（mStudentName 輸入時 debounce 查 consultation-api）
 // ═══════════════════════════════════════════════
 let consultationSearchTimer = null;
@@ -1139,6 +1194,33 @@ async function doBook() {
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（新體驗預約）');
         }
 
+        // 諮詢單同步：寫入 booking_status + coach（status_key 由 DB trigger 自動重算）
+        // options.auto_reopen_if_closed_no_trial：若該筆是「結案未體驗」(closed=true + booking_status 為空)
+        //   Edge Function 會自動把 closed 設為 false，讓回遊學員狀態回到「已預約」而不是停在「結案」
+        const syncCid = consultationId || snap.consultation_id || null;
+        if (syncCid) {
+            const syncSlot = {
+                slot_date: snap.slot_date,
+                start_time: snap.start_time,
+                day_name:   snap.day_name,
+                coach_name: snap.coach_name
+            };
+            const sync = await syncConsultationRecord({
+                consultationId: syncCid,
+                updateData: {
+                    booking_status: formatBookingStatusText(syncSlot),
+                    coach:          snap.coach_name || ''
+                },
+                options: { auto_reopen_if_closed_no_trial: true },
+                actionLabel: 'doBook'
+            });
+            if (sync && sync.ok === false) {
+                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+            } else if (sync && sync.autoReopened) {
+                toast('🔓 此諮詢單原為「結案未體驗」，已自動解除結案');
+            }
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
@@ -1182,6 +1264,20 @@ async function doReserve() {
                 student: { name: name }
             });
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（體驗保留中）');
+        }
+
+        // 諮詢單同步：保留中只寫 coach（booking_status 留待 doBook 轉正式才寫）
+        // → 諮詢單 status_key 仍停留在 new（待處理），但可看到已指派教練
+        const syncCid = consultationId || snap.consultation_id || null;
+        if (syncCid && snap.coach_name) {
+            const sync = await syncConsultationRecord({
+                consultationId: syncCid,
+                updateData: { coach: snap.coach_name },
+                actionLabel: 'doReserve'
+            });
+            if (sync && sync.ok === false) {
+                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+            }
         }
 
         closeModal();
@@ -1251,6 +1347,23 @@ async function doCancel() {
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（保留已取消）');
         }
 
+        // 諮詢單同步：
+        //   booked   → 清空 booking_status + coach（status_key 會自動回 new 或 closed_no_trial）
+        //   reserved → 只清空 coach（當初 doReserve 本來就沒寫 booking_status）
+        if (snap.consultation_id) {
+            const updateData = wasBooked
+                ? { booking_status: '', coach: '' }
+                : { coach: '' };
+            const sync = await syncConsultationRecord({
+                consultationId: snap.consultation_id,
+                updateData,
+                actionLabel: 'doCancel(' + (wasBooked ? 'booked' : 'reserved') + ')'
+            });
+            if (sync && sync.ok === false) {
+                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+            }
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
@@ -1309,6 +1422,25 @@ async function doSaveEdit() {
                 student: { name: name }
             });
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約時間變更）');
+        }
+
+        // 諮詢單同步（僅 booked 且時間有動才更新 booking_status；保留中時間不動諮詢單）
+        const syncCid = consultationId || snap.consultation_id || null;
+        if (syncCid && snap.status === 'booked' && timeChanged) {
+            const newSlotForSync = {
+                slot_date:  finalDate,
+                start_time: finalStart,
+                day_name:   getDayName(finalDate),
+                coach_name: snap.coach_name
+            };
+            const sync = await syncConsultationRecord({
+                consultationId: syncCid,
+                updateData: { booking_status: formatBookingStatusText(newSlotForSync) },
+                actionLabel: 'doSaveEdit'
+            });
+            if (sync && sync.ok === false) {
+                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+            }
         }
 
         closeModal();
