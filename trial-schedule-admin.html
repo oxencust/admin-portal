@@ -332,8 +332,54 @@ async function callEdge(action, params = {}) {
         body: JSON.stringify({ action, ...params })
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || `API error: ${res.status}`);
+    if (!res.ok) {
+        // 帶結構化 payload 的錯誤（例如 409 duplicate_booking）
+        const e = new Error(json.message || json.error || `API error: ${res.status}`);
+        e.status = res.status;
+        e.code = json.error;
+        e.payload = json;
+        throw e;
+    }
     return json;
+}
+
+// 將後端回傳的 duplicate slot 轉成友善提示文字（只呈現資訊，由呼叫端決定追加提示語）
+function formatDuplicateSlotMsg(dup) {
+    if (!dup) return '⚠️ 此學員已有預約';
+    const dateStr = dup.slot_date || '';
+    const dayStr  = dup.day_name ? '(' + dup.day_name + ')' : '';
+    const timeStr = (dup.start_time || '') + (dup.end_time ? '-' + dup.end_time : '');
+    const statusLabel = STATUS_LABELS[dup.status] || dup.status;
+    const coachStr = dup.coach_name || '-';
+    const nameStr  = dup.student_name || '-';
+    return [
+        '⚠️ 此學員已有預約',
+        '',
+        '👥 學員：' + nameStr,
+        '📅 ' + dateStr + ' ' + dayStr + ' ' + timeStr,
+        '👤 教練：' + coachStr,
+        '📌 狀態：' + statusLabel
+    ].join('\n');
+}
+
+// ── 軟擋：遇到 409 duplicate_booking 時彈 confirm，按確定則帶 force:true 重送 ──
+//   actionLabel 範例：'建立預約'、'保留時段'、'儲存變更'
+async function callWithDupConfirm(action, params, actionLabel) {
+    try {
+        return await callEdge(action, params);
+    } catch (e) {
+        if (e && e.code === 'duplicate_booking') {
+            const info = formatDuplicateSlotMsg(e.payload && e.payload.duplicate);
+            const msg  = info + '\n\n仍要強制' + (actionLabel || '繼續') + '嗎？';
+            if (!confirm(msg)) {
+                const cancelled = new Error('user_cancelled_duplicate');
+                cancelled.code = 'user_cancelled_duplicate';
+                throw cancelled;
+            }
+            return await callEdge(action, Object.assign({}, params, { force: true }));
+        }
+        throw e;
+    }
 }
 
 // ═══════════════════════════════════════════════
@@ -1046,14 +1092,14 @@ async function doBook() {
 
     showLoading(true);
     try {
-        await callEdge('updateSlotStatus', {
+        await callWithDupConfirm('updateSlotStatus', {
             slotId: currentSlot.id,
             status: 'booked',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
             note: document.getElementById('mNote').value.trim(),
             consultationId: consultationId
-        });
+        }, '建立預約');
         toast('✅ 預約成功');
 
         // 觸發教練通知（booked）— 保留→預約 或 從 available→預約 均算新預約
@@ -1070,7 +1116,11 @@ async function doBook() {
         closeModal();
         await loadSlots();
     } catch (e) {
-        toast('預約失敗：' + e.message);
+        if (e && e.code === 'user_cancelled_duplicate') {
+            toast('已取消預約');
+        } else {
+            toast('預約失敗：' + e.message);
+        }
     }
     showLoading(false);
 }
@@ -1078,23 +1128,44 @@ async function doBook() {
 async function doReserve() {
     if (!currentSlot) return;
     const name = document.getElementById('mStudentName').value.trim();
+    if (!name) { toast('請輸入學員姓名'); return; }
     const consultationId = document.getElementById('mConsultationId').value || null;
+
+    // 記錄原本狀態（若原本已是 reserved 則不再重複發通知）
+    const wasReserved = currentSlot.status === 'reserved';
+    const snap = { ...currentSlot };
+
     showLoading(true);
     try {
-        await callEdge('updateSlotStatus', {
+        await callWithDupConfirm('updateSlotStatus', {
             slotId: currentSlot.id,
             status: 'reserved',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
             note: document.getElementById('mNote').value.trim(),
             consultationId: consultationId
-        });
+        }, '保留時段');
         toast('🟡 已保留');
-        // 保留不發通知（尚未實際預約），保持行為簡單
+
+        // 觸發教練通知（reserved）— 首次保留才發，避免重複打擾
+        if (!wasReserved && snap.coach_name) {
+            const nf = await notifyCoach('consultation_trial_reserved', {
+                coach_name: snap.coach_name,
+                booking_time: buildBookingTimeLabel(snap),
+                consultation_id: consultationId,
+                student: { name: name }
+            });
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（體驗保留中）');
+        }
+
         closeModal();
         await loadSlots();
     } catch (e) {
-        toast('保留失敗：' + e.message);
+        if (e && e.code === 'user_cancelled_duplicate') {
+            toast('已取消保留');
+        } else {
+            toast('保留失敗：' + e.message);
+        }
     }
     showLoading(false);
 }
@@ -1105,7 +1176,8 @@ async function doCancel() {
 
     // 快照：供取消後通知使用（此時 currentSlot 仍為原資料）
     const snap = { ...currentSlot };
-    const wasBooked = snap.status === 'booked';
+    const wasBooked   = snap.status === 'booked';
+    const wasReserved = snap.status === 'reserved';
 
     showLoading(true);
     try {
@@ -1119,7 +1191,7 @@ async function doCancel() {
         });
         toast('已取消，時段恢復可預約');
 
-        // 僅對「原本已 booked」的時段發取消通知（保留取消不打擾教練）
+        // 原本 booked → 發 cancelled 通知（完整取消）
         if (wasBooked && snap.coach_name) {
             const nf = await notifyCoach('consultation_trial_cancelled', {
                 coach_name: snap.coach_name,
@@ -1129,6 +1201,17 @@ async function doCancel() {
                 student: { name: snap.student_name || '' }
             });
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約取消）');
+        }
+
+        // 原本 reserved → 發 reserved_cancelled 通知（對稱 reserved 發過的「保留中」）
+        if (wasReserved && snap.coach_name) {
+            const nf = await notifyCoach('consultation_trial_reserved_cancelled', {
+                coach_name: snap.coach_name,
+                booking_time: buildBookingTimeLabel(snap),  // 原保留時段
+                consultation_id: snap.consultation_id || null,
+                student: { name: snap.student_name || '' }
+            });
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（保留已取消）');
         }
 
         closeModal();
@@ -1161,7 +1244,7 @@ async function doSaveEdit() {
 
     showLoading(true);
     try {
-        await callEdge('updateSlotDetails', {
+        await callWithDupConfirm('updateSlotDetails', {
             slotId: currentSlot.id,
             updates: {
                 slot_date: finalDate,
@@ -1173,7 +1256,7 @@ async function doSaveEdit() {
                 day_name: getDayName(finalDate),
                 consultation_id: consultationId
             }
-        });
+        }, '儲存變更');
         toast('💾 已儲存變更');
 
         // 僅對「原本 booked + 時間真的變動」才發 updated 通知
@@ -1194,7 +1277,11 @@ async function doSaveEdit() {
         closeModal();
         await loadSlots();
     } catch (e) {
-        toast('儲存失敗：' + e.message);
+        if (e && e.code === 'user_cancelled_duplicate') {
+            toast('已取消變更');
+        } else {
+            toast('儲存失敗：' + e.message);
+        }
     }
     showLoading(false);
 }
