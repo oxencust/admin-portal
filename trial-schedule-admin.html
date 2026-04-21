@@ -552,7 +552,12 @@ function reportNotifyResult(nf, coachLabel, okMsg) {
         toast('⚠️ 找不到教練「' + coachLabel + '」的群組，請確認教練資料');
     } else if (nf && nf.reason === 'line_group_id_missing') {
         toast('⚠️ 該教練尚未設定 LINE 群組 ID');
+    } else if (nf && nf.error === 'internal_error') {
+        // notify-coaches 內部 500：顯示具體錯誤供除錯
+        console.warn('notifyCoach internal_error:', nf);
+        toast('⚠️ 通知失敗（內部錯誤）：' + (nf.detail || '未知'));
     } else {
+        console.warn('notifyCoach unknown result:', nf);
         toast('⚠️ 通知教練失敗，請手動提醒');
     }
 }
