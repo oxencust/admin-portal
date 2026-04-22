@@ -286,7 +286,7 @@ function editStudent(id){
     let h='';
     // ── 影響範圍預覽區（由 loadImpactPreview 非同步填入）──
     h+='<div id="impactPreview" style="margin:0 0 16px;padding:12px;background:#e8f5ee;border-radius:10px;border-left:3px solid #7ac19a;"><div style="font-size:13px;font-weight:700;color:#5a9a7a;margin-bottom:6px;">📊 此學員相關資料</div><div id="impactBody" style="font-size:12px;color:#666;">載入中...</div></div>';
-    h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name,true);
+    h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name,ro(s.name));
     h+=fg('暱稱','text','edit_nickname',s.line_display_name,ro(s.line_display_name));
     h+=fsel('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
     if(isFieldFull('phone'))h+=fg('電話','tel','edit_phone',formatPhone(s.phone),ro(s.phone));
@@ -316,7 +316,7 @@ async function loadImpactPreview(id){
         const items=labels.map(function(p){
             return '<span style="display:inline-block;margin-right:12px;">'+p[1]+': <b style="color:#5a9a7a;">'+(i[p[0]]||0)+'</b> 筆</span>';
         }).join('');
-        body.innerHTML=items+'<div style="width:100%;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e5e5;font-size:11px;color:#999;">變更姓名/電話時，以上 <b>'+data.total+'</b> 筆相關資料可能需要同步更新（目前尚未啟用 cascade）</div>';
+        body.innerHTML=items+'<div style="width:100%;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e5e5;font-size:11px;color:#5a9a7a;">✓ 變更姓名/電話/生日時，以上 <b>'+data.total+'</b> 筆相關資料會自動同步更新</div>';
     }catch(e){
         body.innerHTML='<span style="color:#c66;">預覽載入失敗: '+(e.message||'')+'</span>';
     }
@@ -362,8 +362,9 @@ async function saveStudent(){
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
         return;
     }
-    // ===== 編輯模式（以下不動）=====
+    // ===== 編輯模式 =====
     const u={};
+    const ne=document.getElementById('edit_name');if(ne&&!ne.readOnly){const nv=ne.value.trim();if(nv&&nv!==(editingStudent.name||''))u.name=nv;}
     const nn=val('edit_nickname');if(nn!==escAttr(editingStudent.line_display_name||''))u.line_display_name=nn;
     const gv=val('edit_gender');if(gv!==genderNorm(editingStudent.gender))u.gender=gv;
     const lv=val('edit_level');if(lv!==(editingStudent.member_level||'normal'))u.member_level=lv;
