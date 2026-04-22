@@ -295,6 +295,11 @@ function editStudent(id){
     if(isFieldFull('medical_history'))h+=fta('疾病史','edit_medical',s.medical_history,ro(s.medical_history));
     h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],s.member_level,ro(s.member_level));
     h+=fsel('會員狀態','edit_member_status',[['','不設'],['OK','OK'],['vip_商務夥伴','vip_商務夥伴'],['親友','親友'],['過去夥伴','過去夥伴']],s.member_status||'',ro(s.member_status));
+    // 加入年份 / 月份
+    const _yopt=[['','-']];for(let _y=2030;_y>=2020;_y--)_yopt.push([String(_y),String(_y)+'年']);
+    const _mopt=[['','-']];for(let _m=1;_m<=12;_m++)_mopt.push([String(_m),String(_m)+'月']);
+    h+=fsel('加入年份','edit_join_year',_yopt,s.join_year?String(s.join_year):'',ro(s.join_year));
+    h+=fsel('加入月份','edit_join_month',_mopt,s.join_month?String(s.join_month):'',ro(s.join_month));
     if(s.first_experience)h+=fg('初次體驗','text','_',expNames[s.first_experience]||s.first_experience,true);
     if(s.fitness_goal)h+=fg('健身目標','text','_',s.fitness_goal,true);
     if(s.line_uid)h+=fg('LINE ID','text','_',s.line_uid,true);
@@ -346,12 +351,13 @@ async function saveStudent(){
 
             // ── 1. 從 Edge Function 產生下一個 ID（依選擇的加入年份）──
             const joinYear = val('edit_join_year') || String(new Date().getFullYear());
+            const joinMonth = val('edit_join_month') || String(new Date().getMonth() + 1);
             const yearPrefix = 'HDS' + joinYear.substring(2);
             const{data:idData}=await callEdge('generateMemberId',{prefix:yearPrefix});
             const newId=idData.member_id;
 
             // ── 2. 主寫入：Edge Function（含 GAS 回寫 Google Sheet）──
-            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,member_status:memberStatus||'',updated_at:new Date().toISOString()};
+            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,member_status:memberStatus||'',join_year:parseInt(joinYear,10),join_month:parseInt(joinMonth,10),updated_at:new Date().toISOString()};
             const result=await callEdge('addStudent',{student});
             if(result.error){showToast('❌ 新增失敗：'+result.error);return;}
 
@@ -371,6 +377,8 @@ async function saveStudent(){
     const gv=val('edit_gender');if(gv!==genderNorm(editingStudent.gender))u.gender=gv;
     const lv=val('edit_level');if(lv!==(editingStudent.member_level||'normal'))u.member_level=lv;
     const ms=document.getElementById('edit_member_status');if(ms&&!ms.readOnly){const mv=ms.value.trim();if(mv!==(editingStudent.member_status||''))u.member_status=mv;}
+    const jy=document.getElementById('edit_join_year');if(jy&&!jy.readOnly){const jyv=jy.value?parseInt(jy.value,10):null;if(jyv!==(editingStudent.join_year||null))u.join_year=jyv;}
+    const jm=document.getElementById('edit_join_month');if(jm&&!jm.readOnly){const jmv=jm.value?parseInt(jm.value,10):null;if(jmv!==(editingStudent.join_month||null))u.join_month=jmv;}
     const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(editingStudent.phone||''))u.phone=pv;}
     const ee=document.getElementById('edit_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(editingStudent.email||''))u.email=ev;}
     const be=document.getElementById('edit_birth');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(editingStudent.birth_date||''))u.birth_date=bv||null;}
@@ -391,7 +399,7 @@ async function saveStudent(){
     editingStudent = null;
     await loadStudents();
 }
-function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';const cy=new Date().getFullYear();const yearOpts=[];for(let y=2030;y>=2020;y--)yearOpts.push([String(y),String(y)+'年']);let h='';h+=fsel('加入年份 *','edit_join_year',yearOpts,String(cy));h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fsel('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fta('疾病史','edit_medical','');h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');h+=fsel('會員狀態','edit_member_status',[['','不設'],['OK','OK'],['vip_商務夥伴','vip_商務夥伴'],['親友','親友'],['過去夥伴','過去夥伴']],'');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('您沒有新增權限');return;}editingStudent=null;document.getElementById('editTitle').textContent='新增學員';const cy=new Date().getFullYear();const cm=new Date().getMonth()+1;const yearOpts=[];for(let y=2030;y>=2020;y--)yearOpts.push([String(y),String(y)+'年']);const monthOpts=[];for(let m=1;m<=12;m++)monthOpts.push([String(m),String(m)+'月']);let h='';h+=fsel('加入年份 *','edit_join_year',yearOpts,String(cy));h+=fsel('加入月份 *','edit_join_month',monthOpts,String(cm));h+=fg('姓名 *','text','edit_name','');h+=fg('暱稱','text','edit_nickname','');h+=fsel('性別 *','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('電話 *','tel','edit_phone','');h+=fg('信箱','email','edit_email','');h+=fg('生日','date','edit_birth','');h+=fta('疾病史','edit_medical','');h+=fsel('會員等級','edit_level',[['normal','一般'],['silver','銀卡'],['gold','金卡'],['diamond','鑽石'],['vip','VIP']],'normal');h+=fsel('會員狀態','edit_member_status',[['','不設'],['OK','OK'],['vip_商務夥伴','vip_商務夥伴'],['親友','親友'],['過去夥伴','過去夥伴']],'');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
