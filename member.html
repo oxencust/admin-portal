@@ -284,6 +284,8 @@ function editStudent(id){
     document.getElementById('editTitle').textContent='編輯：'+s.name;
     function ro(v){if(!v||v==='-')return !modulePerms.fill;return !modulePerms.edit;}
     let h='';
+    // ── 影響範圍預覽區（由 loadImpactPreview 非同步填入）──
+    h+='<div id="impactPreview" style="margin:0 0 16px;padding:12px;background:#e8f5ee;border-radius:10px;border-left:3px solid #7ac19a;"><div style="font-size:13px;font-weight:700;color:#5a9a7a;margin-bottom:6px;">📊 此學員相關資料</div><div id="impactBody" style="font-size:12px;color:#666;">載入中...</div></div>';
     h+=fg('編號','text','edit_id',s.id,true);h+=fg('姓名','text','edit_name',s.name,true);
     h+=fg('暱稱','text','edit_nickname',s.line_display_name,ro(s.line_display_name));
     h+=fsel('性別','edit_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],genderNorm(s.gender),ro(s.gender));
@@ -296,7 +298,32 @@ function editStudent(id){
     if(s.fitness_goal)h+=fg('健身目標','text','_',s.fitness_goal,true);
     if(s.line_uid)h+=fg('LINE ID','text','_',s.line_uid,true);
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
+    loadImpactPreview(s.id);
 }
+
+// ── 影響範圍預覽：呼叫 admin-api previewStudentImpact ──
+async function loadImpactPreview(id){
+    const body=document.getElementById('impactBody');
+    if(!body)return;
+    try{
+        const {data,error}=await sb.functions.invoke('admin-api',{
+            body:{action:'previewStudentImpact',studentId:id}
+        });
+        if(error||!data||!data.success){
+            body.innerHTML='<span style="color:#c66;">預覽失敗'+(error?(' ('+error.message+')'):'')+'</span>';
+            return;
+        }
+        const i=data.impact;
+        const labels=[['trial_feedback','體驗回報'],['consultation_records','諮詢單'],['class_sessions','課表紀錄'],['trial_slots','體驗預約'],['chat_backups','聊天備份']];
+        const items=labels.map(function(p){
+            return '<span style="display:inline-block;margin-right:12px;">'+p[1]+': <b style="color:#5a9a7a;">'+(i[p[0]]||0)+'</b> 筆</span>';
+        }).join('');
+        body.innerHTML=items+'<div style="width:100%;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e5e5;font-size:11px;color:#999;">變更姓名/電話時，以上 <b>'+data.total+'</b> 筆相關資料可能需要同步更新（目前尚未啟用 cascade）</div>';
+    }catch(e){
+        body.innerHTML='<span style="color:#c66;">預覽載入失敗: '+(e.message||'')+'</span>';
+    }
+}
+
 async function saveStudent(){
     // ===== 新增模式（Supabase-first + GAS callback）=====
     if(!editingStudent){
