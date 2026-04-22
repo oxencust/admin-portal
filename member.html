@@ -306,11 +306,9 @@ async function loadImpactPreview(id){
     const body=document.getElementById('impactBody');
     if(!body)return;
     try{
-        const {data,error}=await sb.functions.invoke('admin-api',{
-            body:{action:'previewStudentImpact',studentId:id}
-        });
-        if(error||!data||!data.success){
-            body.innerHTML='<span style="color:#c66;">預覽失敗'+(error?(' ('+error.message+')'):'')+'</span>';
+        const data=await callEdge('previewStudentImpact',{studentId:id});
+        if(!data||!data.success){
+            body.innerHTML='<span style="color:#c66;">預覽失敗</span>';
             return;
         }
         const i=data.impact;
