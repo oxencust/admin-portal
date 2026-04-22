@@ -176,7 +176,8 @@ function initPermissions(){
     if(!modulePerms.view){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>您沒有查看學員的權限</p></div>';return false;}
     return true;
 }
-function formatPhone(v){if(!v)return'';var s=String(v).trim();if(s.startsWith('+886'))s='0'+s.substring(4);if(s.startsWith('886')&&s.length>=11)s='0'+s.substring(3);return s;}
+function formatPhone(v){if(!v)return'';var s=String(v).trim();if(s.startsWith('+886'))s='0'+s.substring(4);if(s.startsWith('886')&&s.length>=11)s='0'+s.substring(3);var d=s.replace(/\D/g,'');if(d.length===10)return d.slice(0,4)+'-'+d.slice(4,7)+'-'+d.slice(7);if(d.length===9)return d.slice(0,2)+'-'+d.slice(2,5)+'-'+d.slice(5);return s;}
+function normalizePhone(v){return String(v||'').replace(/\D/g,'');}
 function getFieldDisplay(f,v,mt){if(mt==='phone')v=formatPhone(v);const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));if(mt==='email'){const a=s.indexOf('@');return a>2?escHtml(s.substring(0,2)+'***'+s.substring(a)):'***';}return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
 function isFieldVisible(f){const p=fieldPerms[f];return p===undefined||p===true||p==='masked';}
 function isFieldFull(f){const p=fieldPerms[f];return p===undefined||p===true;}
@@ -357,7 +358,7 @@ async function saveStudent(){
             const newId=idData.member_id;
 
             // ── 2. 主寫入：Edge Function（含 GAS 回寫 Google Sheet）──
-            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:phone,email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,member_status:memberStatus||'',join_year:parseInt(joinYear,10),join_month:parseInt(joinMonth,10),updated_at:new Date().toISOString()};
+            const student={id:newId,name:name,line_display_name:nickname||'',gender:genderZh,birth_date:birthDate,phone:normalizePhone(phone),email:email||'',medical_history:medicalHistory||'',member_level:memberLevel,member_status:memberStatus||'',join_year:parseInt(joinYear,10),join_month:parseInt(joinMonth,10),updated_at:new Date().toISOString()};
             const result=await callEdge('addStudent',{student});
             if(result.error){showToast('❌ 新增失敗：'+result.error);return;}
 
@@ -379,7 +380,7 @@ async function saveStudent(){
     const ms=document.getElementById('edit_member_status');if(ms&&!ms.readOnly){const mv=ms.value.trim();if(mv!==(editingStudent.member_status||''))u.member_status=mv;}
     const jy=document.getElementById('edit_join_year');if(jy&&!jy.readOnly){const jyv=jy.value?parseInt(jy.value,10):null;if(jyv!==(editingStudent.join_year||null))u.join_year=jyv;}
     const jm=document.getElementById('edit_join_month');if(jm&&!jm.readOnly){const jmv=jm.value?parseInt(jm.value,10):null;if(jmv!==(editingStudent.join_month||null))u.join_month=jmv;}
-    const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=pe.value.trim();if(pv!==formatPhone(editingStudent.phone||''))u.phone=pv;}
+    const pe=document.getElementById('edit_phone');if(pe&&!pe.readOnly){const pv=normalizePhone(pe.value);const ov=normalizePhone(editingStudent.phone||'');if(pv!==ov)u.phone=pv;}
     const ee=document.getElementById('edit_email');if(ee&&!ee.readOnly){const ev=ee.value.trim();if(ev!==(editingStudent.email||''))u.email=ev;}
     const be=document.getElementById('edit_birth');if(be&&!be.readOnly){const bv=be.value.trim();if(bv!==(editingStudent.birth_date||''))u.birth_date=bv||null;}
     const me=document.getElementById('edit_medical');if(me&&!me.readOnly){const mv=me.value.trim();if(mv!==(editingStudent.medical_history||''))u.medical_history=mv;}
