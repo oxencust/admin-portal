@@ -178,6 +178,7 @@ function initPermissions(){
 }
 function formatPhone(v){if(!v)return'';var s=String(v).trim();if(s.startsWith('+886'))s='0'+s.substring(4);if(s.startsWith('886')&&s.length>=11)s='0'+s.substring(3);var d=s.replace(/\D/g,'');if(d.length===10)return d.slice(0,4)+'-'+d.slice(4,7)+'-'+d.slice(7);if(d.length===9)return d.slice(0,2)+'-'+d.slice(2,5)+'-'+d.slice(5);return s;}
 function normalizePhone(v){return String(v||'').replace(/\D/g,'');}
+function calcAgeFromBirth(v){if(!v)return'';var m=String(v).match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);if(!m)return'';var b=new Date(+m[1],+m[2]-1,+m[3]);if(isNaN(b.getTime()))return'';var t=new Date(),a=t.getFullYear()-b.getFullYear(),d=t.getMonth()-b.getMonth();if(d<0||(d===0&&t.getDate()<b.getDate()))a--;return a<0?'':a;}
 function getFieldDisplay(f,v,mt){if(mt==='phone')v=formatPhone(v);const p=fieldPerms[f];if(p===undefined||p===true)return escHtml(v||'-');if(p===false)return'<span style="color:#ccc;font-size:11px;">無權限</span>';if(p==='masked'){if(!v)return'-';const s=String(v);if(mt==='phone'&&s.length>=7)return escHtml(s.substring(0,4)+'***'+s.substring(s.length-3));if(mt==='email'){const a=s.indexOf('@');return a>2?escHtml(s.substring(0,2)+'***'+s.substring(a)):'***';}return escHtml(s[0]+'***'+s[s.length-1]);}return escHtml(v||'-');}
 function isFieldVisible(f){const p=fieldPerms[f];return p===undefined||p===true||p==='masked';}
 function isFieldFull(f){const p=fieldPerms[f];return p===undefined||p===true;}
@@ -222,10 +223,10 @@ function renderStudents(){
         if(s.occupation)grid+=af('職業',escHtml(s.occupation));
         if(s.join_year||s.join_month)grid+=af('加入',(s.join_year||'?')+'/'+(s.join_month||'?'));
         if(s.booking_record_30d)grid+=af('30日',escHtml(s.booking_record_30d));
-        if(!s.occupation&&s.age)grid+=af('年齡',s.age+'歲');
+        var _age=calcAgeFromBirth(s.birth_date);
         let exp='';
         if(isFieldVisible('email')&&s.email)exp+=af('信箱',getFieldDisplay('email',s.email,'email'));
-        if(isFieldVisible('birth_date')&&s.birth_date)exp+=af('生日',escHtml(s.birth_date)+(s.age?' ('+s.age+'歲)':''));
+        if(isFieldVisible('birth_date')&&s.birth_date)exp+=af('生日',escHtml(s.birth_date)+(_age!==''?' ('+_age+'歲)':''));
         if(s.related_member)exp+=af('關係會員',escHtml(s.related_member));
         if(ed)exp+=af('初次體驗',ed);
         if(s.line_display_name)exp+=af('LINE',escHtml(s.line_display_name));
@@ -241,7 +242,7 @@ function renderStudents(){
             '<button class="record-btn moti" onclick="event.stopPropagation();openMotiHistory(\''+sid+'\',\''+escAttr(s.name)+'\')"><span class="r-icon">📊</span><span class="r-info"><div class="r-label">MOTI 檢測</div><div class="r-hint">體態分析紀錄</div></span><span class="r-arrow">→</span></button>'+
             '<button class="record-btn inbody" onclick="event.stopPropagation();openInbodyHistory(\''+sid+'\',\''+escAttr(s.name)+'\')"><span class="r-icon">🏋️</span><span class="r-info"><div class="r-label">InBody</div><div class="r-hint">身體組成紀錄</div></span><span class="r-arrow">→</span></button>'+
             '</div>';
-        return '<div class="a-card" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(s.age?'<span>'+s.age+'歲</span>':'')+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div></div>'+(tags?'<div class="a-tags">'+tags+'</div>':'')+'<div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div>'+recBtns+'<div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
+        return '<div class="a-card" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(s.name)+' <span class="badge '+lc+'">'+ld+'</span></div><div class="a-meta"><span>'+escHtml(s.id)+'</span>'+(ed?'<span>'+ed+'</span>':'')+(s.line_display_name?'<span>'+escHtml(s.line_display_name)+'</span>':'')+'</div></div></div>'+(tags?'<div class="a-tags">'+tags+'</div>':'')+'<div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div>'+recBtns+'<div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
     }).join('');
 }
 function af(l,v){return '<div class="a-field"><span class="a-field-label">'+l+'</span><span class="a-field-value">'+v+'</span></div>';}
@@ -259,7 +260,8 @@ function viewDetail(id){
     document.getElementById('detailTitle').textContent=s.name||'-';
     let h='<div class="detail-section"><div class="detail-section-title">基本資訊</div><div class="detail-grid">';
     h+=ddf('編號',escHtml(s.id));h+=ddf('姓名',escHtml(s.name));h+=ddf('暱稱',escHtml(s.line_display_name||'-'));h+=ddf('性別',genderNames[s.gender]||'-');
-    if(s.age)h+=ddf('年齡',s.age+'歲');if(isFieldVisible('birth_date'))h+=ddf('出生日期',getFieldDisplay('birth_date',s.birth_date)+(s.age?' ('+s.age+'歲)':''));
+    var _vdAge=calcAgeFromBirth(s.birth_date);
+    if(isFieldVisible('birth_date'))h+=ddf('出生日期',getFieldDisplay('birth_date',s.birth_date)+(_vdAge!==''?' ('+_vdAge+'歲)':''));
     if(s.occupation)h+=ddf('職業',escHtml(s.occupation));h+=ddf('會員等級',levelNames[s.member_level]||'一般');h+=ddf('初次體驗',expNames[s.first_experience]||'-');
     if(s.join_year||s.join_month)h+=ddf('加入時間',(s.join_year||'?')+'年'+(s.join_month||'?')+'月');
     h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
