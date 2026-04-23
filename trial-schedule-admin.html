@@ -77,7 +77,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .view-toggle button.active{background:var(--green);color:white}
 
 /* ── 週曆 ── */
-.week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.week-grid{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .week-header{padding:8px 2px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
 .week-header.today{background:var(--green)}
 .week-header .date-num{font-size:17px;font-weight:700}
@@ -86,7 +86,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .day-cell.today-col{background:rgba(122,193,154,.1)}
 
 /* ── 月曆 ── */
-.month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .month-header{padding:8px 4px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
 .month-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:90px;padding:4px;position:relative}
 .month-cell.other-month{background:#fafafa}
