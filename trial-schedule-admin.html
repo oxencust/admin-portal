@@ -1,1599 +1,2617 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>體驗課排程管理</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root {
-    --green:#7ac19a; --green-dark:#5f846f; --green-light:rgba(122,193,154,.12);
-    --pink:#f2ac98; --blue:#9fcccc; --danger:#e05252;
-    --text:#2d3436; --muted:#636e72; --bg:#f5f7f6;
-    /* 四種課種色系（配合日曆） */
-    --c-ai:#E84393;           /* AI 3D體態分析 — 紅鶴色 */
-    --c-ai-bg:#fce4ec;
-    --c-pilates:#FDCB6E;      /* 皮拉提斯 — 香蕉黃 */
-    --c-pilates-bg:#fef9e7;
-    --c-pilates-text:#b8860b;
-    --c-strength:#00B894;     /* 肌力訓練 — 開果綠 */
-    --c-strength-bg:#e0f5ef;
-    --c-stretch:#A0522D;      /* 伸展放鬆 — 可可棕 */
-    --c-stretch-bg:#f5ebe0;
-}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 100%);min-height:100vh;color:var(--text)}
-/* ── 固定寬度容器 ── */
-.page-wrap{width:900px;max-width:900px;min-width:900px;margin:0 auto}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>教練體驗課排程系統</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --green: #7ac19a;
+            --green-light: #e2ede6;
+            --green-dark: #5f846f;
+            --pink: #f2ac98;
+            --pink-light: #faece8;
+            --pink-dark: #c67566;
+            --yellow: #ffe08b;
+            --yellow-light: #fcf4e3;
+            --yellow-dark: #ba9e60;
+            --blue: #9fcccc;
+            --blue-light: #daedec;
+            --blue-dark: #66888e;
+            --white: #ffffff;
+            --gray: #808080;
+            --bg: #f8f9fa;
+            --text-dark: #2d3748;
+            --text-light: #718096;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+            --orange: #ff9800;
+            --orange-light: #fff3e0;
+            --purple: #9966cc;
+            --purple-light: #f0e6ff;
+        }
 
-/* ── Header ── */
-.header{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.06);padding:14px 16px;z-index:100}
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.header h1{font-size:17px;font-weight:700;color:var(--green-dark)}
-.header-sub{font-size:11px;color:var(--muted)}
-.refresh-btn{background:var(--green-light);border:1px solid var(--green);color:var(--green-dark);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit}
-.add-btn{background:var(--green-dark);color:white;border:none;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;margin-right:6px}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-x pan-y;
+        }
+        
+        button, a, .slot-cell, .week-btn, .action-btn, .stat-card {
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding-bottom: 20px;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
 
-/* ── 篩選列 ── */
-.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.filter-chip{padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid #ddd;background:white;cursor:pointer;transition:.2s;white-space:nowrap}
-.filter-chip.active{background:var(--green);color:white;border-color:var(--green)}
-.filter-chip:hover{border-color:var(--green)}
-select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;font-size:12px;font-family:inherit;background:white;outline:none}
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--green-light), var(--pink-light));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
 
-/* ── 課種標籤（可點擊篩選）── */
-.type-tags{display:flex;gap:8px;padding:8px 0 0;flex-wrap:wrap;align-items:center}
-.type-tag{display:flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;border:2px solid transparent;opacity:.6}
-.type-tag:hover{opacity:.9}
-.type-tag.active{opacity:1;border-color:currentColor;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-.type-tag .tag-dot{width:8px;height:8px;border-radius:50%}
-.type-tag .tag-count{font-size:10px;background:rgba(0,0,0,.1);padding:1px 6px;border-radius:10px;margin-left:2px}
-.type-tag[data-type="ai_analysis"]{background:var(--c-ai-bg);color:var(--c-ai)}
-.type-tag[data-type="pilates"]{background:var(--c-pilates-bg);color:var(--c-pilates-text)}
-.type-tag[data-type="strength_training"]{background:var(--c-strength-bg);color:var(--c-strength)}
-.type-tag[data-type="stretch"]{background:var(--c-stretch-bg);color:var(--c-stretch)}
+        .loading-screen.hidden {
+            display: none;
+        }
 
-/* 選中課種時顯示的教練列表 */
-.coach-chips{display:none;gap:6px;padding:6px 0 0;flex-wrap:wrap}
-.coach-chips.show{display:flex}
-.coach-chip{padding:3px 10px;border-radius:14px;font-size:11px;background:white;border:1px solid #ddd;cursor:pointer;transition:.2s}
-.coach-chip.active{background:var(--green-dark);color:white;border-color:var(--green-dark)}
-.coach-chip:hover{border-color:var(--green)}
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--green-light);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-/* ── 統計列 ── */
-.stats-bar{display:flex;gap:8px;padding:8px 16px;overflow-x:auto}
-.stat-card{flex-shrink:0;background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;border:1px solid rgba(255,255,255,.5)}
-.stat-num{font-size:22px;font-weight:700;color:var(--green-dark)}
-.stat-label{font-size:10px;color:var(--muted);margin-top:2px}
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-/* ── 日曆導覽 ── */
-.cal-nav{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:rgba(255,255,255,.6)}
-.cal-nav button{background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--green-dark)}
-.cal-nav button:hover{background:var(--green-light)}
-.cal-nav .month-label{font-size:15px;font-weight:600;min-width:160px;text-align:center}
-.today-btn{font-size:12px!important;padding:4px 12px!important;background:var(--green-light)!important;border-radius:8px!important}
-.view-toggle{display:flex;border:1px solid var(--green);border-radius:16px;overflow:hidden;margin-left:4px}
-.view-toggle button{padding:4px 12px;font-size:11px;border:none;background:white;cursor:pointer;font-family:inherit;color:var(--green-dark);font-weight:500}
-.view-toggle button.active{background:var(--green);color:white}
+        .loading-text {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
 
-/* ── 週曆 ── */
-.week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.week-header{padding:8px 2px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
-.week-header.today{background:var(--green)}
-.week-header .date-num{font-size:17px;font-weight:700}
-.time-label{padding:2px 6px;font-size:12px;color:var(--muted);text-align:right;border-right:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:flex-end;min-height:60px}
-.day-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:54px;padding:2px;position:relative}
-.day-cell.today-col{background:rgba(122,193,154,.1)}
+        .main-content {
+            display: none;
+        }
 
-/* ── 月曆 ── */
-.month-grid{display:grid;grid-template-columns:repeat(7,1fr);background:white;margin:8px 12px;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.month-header{padding:8px 4px;text-align:center;font-size:13px;font-weight:600;background:var(--green-dark);color:white}
-.month-cell{border-right:1px solid #f5f5f5;border-bottom:1px solid #f5f5f5;min-height:90px;padding:4px;position:relative}
-.month-cell.other-month{background:#fafafa}
-.month-cell.is-today{background:rgba(122,193,154,.15);box-shadow:inset 0 0 0 2px rgba(122,193,154,.3)}
-.month-cell .cell-date{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:3px}
-.month-cell.is-today .cell-date{color:var(--green);font-weight:700}
-.month-cell .slot-dots{display:flex;flex-direction:column;gap:1px}
-.month-cell .dot-slot{padding:3px 5px;border-radius:4px;font-size:11px;line-height:1.3;cursor:pointer;border-left:2px solid transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.month-cell .more-link{font-size:11px;color:var(--green-dark);cursor:pointer;text-decoration:underline;margin-top:2px;text-align:center}
-.month-cell .hidden-slot{display:none}
-.month-cell.expanded .hidden-slot{display:block}
+        .main-content.show {
+            display: block;
+        }
 
-/* ── 時段方塊 ── */
-.slot{padding:4px 6px;border-radius:6px;font-size:12px;margin:1px 0;cursor:pointer;line-height:1.3;transition:.15s;border-left:3px solid transparent}
-/* 課種顏色 */
-.slot[data-type="ai_analysis"], .dot-slot[data-type="ai_analysis"]{background:var(--c-ai-bg);color:var(--c-ai);border-left-color:var(--c-ai)}
-.slot[data-type="pilates"], .dot-slot[data-type="pilates"]{background:var(--c-pilates-bg);color:var(--c-pilates-text);border-left-color:var(--c-pilates)}
-.slot[data-type="strength_training"], .dot-slot[data-type="strength_training"]{background:var(--c-strength-bg);color:var(--c-strength);border-left-color:var(--c-strength)}
-.slot[data-type="stretch"], .dot-slot[data-type="stretch"]{background:var(--c-stretch-bg);color:var(--c-stretch);border-left-color:var(--c-stretch)}
-/* 狀態覆蓋 */
-.slot.booked{opacity:1}
-.slot.booked .coach-name::after{content:' ✦';font-size:8px}
-.slot.reserved{opacity:.85;border-style:dashed}
-.slot.reserved .coach-name::after{content:' ◐';font-size:8px}
-.slot.cancelled{opacity:.5;text-decoration:line-through}
+        .navbar {
+            background: linear-gradient(135deg, var(--green-light), var(--pink-light), var(--yellow-light));
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+        }
 
-.slot:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.slot .coach-name{font-weight:600;font-size:12px}
-.slot .slot-time{font-size:11px;opacity:.7}
-.slot .student{font-size:11px;font-weight:600}
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-/* ── Modal ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;justify-content:center;align-items:center}
-.modal-overlay.show{display:flex}
-.modal{background:white;border-radius:20px;padding:20px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
-.modal h3{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--green-dark)}
-.modal .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
-.modal .info-label{color:var(--muted)}
-.modal .info-val{font-weight:500}
-.modal input, .modal select, .modal textarea{width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:6px 0;outline:none;transition:.2s}
-.modal input:focus, .modal select:focus{border-color:var(--green)}
-.modal textarea{resize:vertical;min-height:60px}
-/* 學員姓名自動搜尋下拉 */
-.ac-wrap{position:relative}
-.ac-dropdown{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:#fff;border:1px solid #e0e0e0;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.08);z-index:20;margin-top:-2px}
-.ac-item{padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f5f5f5}
-.ac-item:last-child{border-bottom:none}
-.ac-item:hover{background:#f0f9f4}
-.ac-item .ac-name{font-weight:600;color:#2e7d32}
-.ac-item .ac-meta{font-size:11px;color:#888;margin-top:2px}
-.ac-empty{padding:10px 12px;font-size:12px;color:#999;text-align:center}
-.consult-badge{display:inline-block;margin:6px 0 4px;padding:4px 10px;border-radius:10px;font-size:11px;font-weight:600}
-.consult-badge.linked{background:#e8f5e9;color:#2e7d32}
-.consult-badge.linked-student{background:#e3f2fd;color:#1565c0}
-.consult-badge.manual{background:#fff3e0;color:#e65100}
-.ac-item.ac-student .ac-name{color:#1565c0}
-.ac-item.ac-student:hover{background:#e3f2fd}
-.ac-source-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:500}
-.ac-source-tag.consult{background:#e8f5e9;color:#2e7d32}
-.ac-source-tag.student{background:#e3f2fd;color:#1565c0}
-.modal .btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.modal .btn{flex:1;padding:11px;border:none;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:80px}
-.btn-cancel-modal{background:#f5f5f5;color:var(--muted)}
-.btn-book{background:var(--green-dark);color:white}
-.btn-reserve{background:#f39c12;color:white}
-.btn-unbook{background:var(--danger);color:white}
-.btn-edit{background:var(--blue);color:white}
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--green), var(--pink));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            flex-shrink: 0;
+        }
 
-/* ── Badge ── */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
-.badge-available{background:#e8f5e9;color:#2e7d32}
-.badge-booked{background:#fff3e0;color:#e65100}
-.badge-reserved{background:#fef5e7;color:#f39c12}
-.badge-cancelled{background:#f5f5f5;color:#999}
+        .user-info h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 3px;
+        }
 
-/* ── Toast ── */
-.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:10px 24px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;z-index:999;pointer-events:none}
-.toast.show{opacity:1}
+        .user-info p {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 1px;
+        }
 
-/* ── Loading ── */
-.loading-mask{display:none;position:fixed;inset:0;background:rgba(255,255,255,.6);z-index:300;justify-content:center;align-items:center}
-.loading-mask.show{display:flex}
-.spinner{width:36px;height:36px;border:3px solid #ddd;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+        .container {
+            padding: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 90px;
+            background: var(--white);
+            border-radius: 8px;
+            padding: 12px 8px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .stat-card.green::before { background: var(--green); }
+        .stat-card.orange::before { background: var(--orange); }
+        .stat-card.pink::before { background: var(--pink); }
+        .stat-card.yellow::before { background: var(--yellow); }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card:active {
+            transform: translateY(0);
+        }
+
+        .stat-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .stat-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .detail-modal.hidden {
+            display: none;
+        }
+
+        .detail-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .detail-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--green-light);
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .detail-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-modal-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .detail-modal-body {
+            padding: 20px;
+        }
+
+        .detail-slot-group {
+            margin-bottom: 16px;
+        }
+
+        .detail-slot-date {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .detail-slot-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-left: 12px;
+        }
+
+        .detail-slot-item {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detail-slot-item.confirmed {
+            background: var(--green-light);
+            color: var(--green-dark);
+            border: 1px solid var(--green);
+        }
+
+        .detail-slot-item.pending {
+            background: var(--orange-light);
+            color: var(--orange);
+            border: 1px dashed var(--orange);
+        }
+
+        .detail-slot-item.booked {
+            background: var(--pink-light);
+            color: var(--pink-dark);
+            border: 1px solid var(--pink);
+        }
+
+        .detail-slot-item.reserved {
+            background: var(--yellow-light);
+            color: var(--yellow-dark);
+            border: 1px solid var(--yellow);
+        }
+
+        .detail-slot-item.optimistic {
+            position: relative;
+            animation: pulse-optimistic 2s infinite;
+        }
+
+        .detail-slot-item.optimistic::after {
+            content: '待送出';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 9px;
+            background: var(--orange);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        @keyframes pulse-optimistic {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .detail-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .detail-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .detail-modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--green-light);
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .detail-close-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .detail-close-btn:hover {
+            background: var(--green-dark);
+        }
+
+        .week-selector {
+            background: var(--white);
+            border-radius: 12px 12px 0 0;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 12px;
+        }
+        
+        .week-selector > div:first-child {
+            flex-shrink: 0;
+            min-width: 120px;
+            order: 0 !important;
+        }
+        
+        .week-nav {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            order: 1 !important;
+        }
+        
+        @media (max-width: 480px) {
+            .week-selector {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+            
+            .week-selector > div:first-child {
+                order: 2 !important;
+                margin-top: 12px !important;
+            }
+            
+            .week-nav {
+                order: 1 !important;
+            }
+        }
+
+        .week-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--green-light);
+            color: var(--green-dark);
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .week-btn:hover {
+            background: var(--green);
+            color: white;
+        }
+
+        .week-display {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .week-display:hover {
+            background: var(--green-light);
+        }
+
+        .week-date {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .week-range {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .schedule-grid {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            min-height: 400px;
+        }
+
+        .day-header {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 8px;
+            padding: 16px;
+            background: #ffffff;
+            z-index: 50;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .schedule-header-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg);
+            margin-bottom: 16px;
+        }
+        
+        .schedule-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .day-label {
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-dark);
+            padding: 8px 4px;
+        }
+
+        .day-label.today {
+            color: var(--purple);
+            font-weight: 700;
+            background: linear-gradient(135deg, #f8f4ff, var(--purple-light));
+            border-radius: 8px;
+            position: relative;
+            border: 2px solid #c299ff;
+            box-shadow: 0 0 12px rgba(153, 102, 204, 0.25);
+        }
+
+        .day-label.today::before {
+            content: '📍';
+            position: absolute;
+            top: -10px;
+            right: 0px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        @keyframes highlight {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 20px rgba(122, 193, 154, 0.8); transform: scale(1.05); }
+        }
+
+        .day-label.today .day-date {
+            color: var(--purple);
+            font-weight: 700;
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .time-label {
+            font-size: 13px;
+            color: var(--text-light);
+            padding: 12px 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .slot-cell {
+            min-height: 70px;
+            border: 2px solid var(--green-light);
+            border-radius: 8px;
+            cursor: pointer;
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .slot-time {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d0d0d0;
+        }
+
+        .slot-cell:hover {
+            border-color: var(--green);
+            background: var(--green-light);
+        }
+
+        .slot-cell.confirmed {
+            background: var(--green-light);
+            border-color: var(--green);
+        }
+
+        .slot-cell.confirmed.optimistic {
+            position: relative;
+            animation: pulse-optimistic 2s infinite;
+        }
+
+        .slot-cell.confirmed.optimistic::before {
+            content: '待送出';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 9px;
+            background: var(--orange);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+            z-index: 1;
+        }
+
+        .slot-cell.pending {
+            background: var(--orange-light);
+            border-color: var(--orange);
+            border-style: dashed;
+        }
+
+        .slot-cell.pending::after {
+            content: '📝';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+        }
+
+        .slot-cell.booked {
+            background: var(--pink-light);
+            border-color: var(--pink);
+            cursor: not-allowed;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slot-cell.booked::after {
+            content: '';
+        }
+
+        .slot-cell.booked .slot-time {
+            color: var(--pink-dark);
+        }
+
+        .slot-cell.booked .student-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--pink-dark);
+        }
+
+        .slot-cell.reserved {
+            background: var(--yellow-light);
+            border-color: var(--yellow);
+            cursor: not-allowed;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slot-cell.reserved::after {
+            content: '⏱';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+        }
+
+        .slot-cell.reserved .slot-time {
+            color: var(--yellow-dark);
+        }
+
+        .slot-cell.reserved .student-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--yellow-dark);
+        }
+
+        .legend {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .legend-box.confirmed {
+            background: var(--green-light);
+            border: 2px solid var(--green);
+        }
+
+        .legend-box.pending {
+            background: var(--orange-light);
+            border: 2px dashed var(--orange);
+        }
+
+        .legend-box.booked {
+            background: var(--pink-light);
+            border: 2px solid var(--pink);
+        }
+
+        .legend-box.reserved {
+            background: var(--yellow-light);
+            border: 2px solid var(--yellow);
+        }
+
+        .legend-text {
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .action-buttons .btn-primary {
+            grid-column: 1 / -1;
+        }
+
+        .action-btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--green-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-secondary {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 2px solid var(--green-light);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--green);
+            background: var(--green-light);
+        }
+
+        .btn-danger {
+            background: var(--white);
+            color: var(--pink-dark);
+            border: 2px solid var(--pink-light);
+        }
+
+        .btn-danger:hover {
+            border-color: var(--pink);
+            background: var(--pink-light);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--green-light);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .modal-stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .modal-stat-number.add { color: var(--green); }
+        .modal-stat-number.delete { color: var(--pink); }
+        .modal-stat-number.total { color: var(--text-dark); }
+
+        .modal-stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .modal-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .schedule-item.add {
+            background: var(--green-light);
+            border-left: 3px solid var(--green);
+        }
+
+        .schedule-item.delete {
+            background: var(--pink-light);
+            border-left: 3px solid var(--pink);
+        }
+
+        .schedule-date {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .schedule-time {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--green-light);
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-cancel {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 2px solid var(--green-light);
+        }
+
+        .modal-btn-cancel:hover {
+            border-color: var(--green);
+        }
+
+        .modal-btn-confirm {
+            background: var(--green);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: var(--green-dark);
+        }
+
+        .modal-btn-confirm:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+
+            .schedule-grid {
+                padding: 8px;
+            }
+
+            .slot-cell {
+                min-height: 55px;
+                font-size: 13px;
+            }
+
+            .time-label {
+                font-size: 11px;
+            }
+
+            .day-label {
+                font-size: 12px;
+            }
+            
+            .day-header {
+                gap: 4px;
+                padding: 8px;
+                grid-template-columns: 50px repeat(7, 1fr);
+            }
+            
+            .time-row {
+                grid-template-columns: 50px repeat(7, 1fr);
+                gap: 4px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="page-wrap">
-
-<div class="header">
-    <div class="header-top">
-        <div>
-            <h1>📋 體驗排程管理</h1>
-            <div class="header-sub">行政端 · 時段管理與預約</div>
-        </div>
-        <div>
-            <button class="add-btn" onclick="openAddSlot()">＋ 新增時段</button>
-            <button class="refresh-btn" onclick="loadSlots()">↻ 重新整理</button>
-        </div>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">載入排程資料中...</div>
     </div>
-    <div class="filters">
-        <select class="coach-select" id="filterCoach" onchange="applyFilters()">
-            <option value="">所有教練</option>
-        </select>
-        <div class="filter-chip active" data-f="all" onclick="setStatusFilter('all',this)">全部</div>
-        <div class="filter-chip" data-f="available" onclick="setStatusFilter('available',this)">🟢 可預約</div>
-        <div class="filter-chip" data-f="booked" onclick="setStatusFilter('booked',this)">🟠 已預約</div>
-        <div class="filter-chip" data-f="reserved" onclick="setStatusFilter('reserved',this)">🟡 保留中</div>
-    </div>
-    <!-- 課種標籤（移入 header，隨捲動黏著） -->
-    <div class="type-tags" id="typeTags">
-        <div class="type-tag active" data-type="" onclick="setTypeFilter('',this)">
-            <span style="font-size:11px">全部課種</span>
-        </div>
-        <div class="type-tag" data-type="ai_analysis" onclick="setTypeFilter('ai_analysis',this)">
-            <div class="tag-dot" style="background:var(--c-ai)"></div>
-            AI分析 <span class="tag-count" id="countAi">0</span>
-        </div>
-        <div class="type-tag" data-type="pilates" onclick="setTypeFilter('pilates',this)">
-            <div class="tag-dot" style="background:var(--c-pilates)"></div>
-            皮拉提斯 <span class="tag-count" id="countPilates">0</span>
-        </div>
-        <div class="type-tag" data-type="strength_training" onclick="setTypeFilter('strength_training',this)">
-            <div class="tag-dot" style="background:var(--c-strength)"></div>
-            肌力訓練 <span class="tag-count" id="countStrength">0</span>
-        </div>
-        <div class="type-tag" data-type="stretch" onclick="setTypeFilter('stretch',this)">
-            <div class="tag-dot" style="background:var(--c-stretch)"></div>
-            伸展放鬆 <span class="tag-count" id="countStretch">0</span>
-        </div>
-    </div>
-    <!-- 選中課種後，顯示該課種的教練列表 -->
-    <div class="coach-chips" id="coachChips"></div>
-</div>
 
-<!-- 統計 -->
-<div class="stats-bar">
-    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">總時段</div></div>
-    <div class="stat-card"><div class="stat-num" id="statAvail">0</div><div class="stat-label">可預約</div></div>
-    <div class="stat-card"><div class="stat-num" id="statBooked">0</div><div class="stat-label">已預約</div></div>
-    <div class="stat-card"><div class="stat-num" id="statReserved">0</div><div class="stat-label">保留中</div></div>
-    <div class="stat-card"><div class="stat-num" id="statRate">0%</div><div class="stat-label">預約率</div></div>
-</div>
-
-<!-- 導覽列 -->
-<div class="cal-nav">
-    <button onclick="changePeriod(-1)">◀</button>
-    <div class="month-label" id="periodLabel">2026 年 4 月</div>
-    <button onclick="changePeriod(1)">▶</button>
-    <button class="today-btn" onclick="goToday()">今天</button>
-    <div class="view-toggle">
-        <button id="btnWeek" class="active" onclick="setView('week')">週</button>
-        <button id="btnMonth" onclick="setView('month')">月</button>
-    </div>
-</div>
-
-<!-- 週曆容器 -->
-<div class="week-grid" id="weekGrid" style="display:none"></div>
-
-<!-- 月曆容器 -->
-<div class="month-grid" id="monthGrid" style="display:none"></div>
-
-<!-- ═══ 預約 / 編輯 Modal ═══ -->
-<div class="modal-overlay" id="slotModal">
-    <div class="modal">
-        <h3 id="modalTitle">📝 預約體驗課</h3>
-        <div class="info-row"><span class="info-label">教練</span><span class="info-val" id="mCoach">-</span></div>
-        <div class="info-row"><span class="info-label">課種</span><span class="info-val" id="mType">-</span></div>
-        <div class="info-row"><span class="info-label">日期</span><span class="info-val" id="mDate">-</span></div>
-        <div class="info-row"><span class="info-label">時間</span><span class="info-val" id="mTime">-</span></div>
-        <div class="info-row"><span class="info-label">狀態</span><span id="mBadge"><span class="badge badge-available">可預約</span></span></div>
-
-        <div id="studentSection">
-            <div class="ac-wrap">
-                <input type="text" placeholder="學員姓名（輸入可搜尋諮詢單）" id="mStudentName" autocomplete="off">
-                <div class="ac-dropdown" id="mConsultationList" style="display:none"></div>
-            </div>
-            <div id="mConsultationBadge" class="consult-badge" style="display:none"></div>
-            <input type="hidden" id="mStudentPhone">
-            <input type="hidden" id="mConsultationId">
-            <input type="hidden" id="mMemberId">
-            <textarea placeholder="備註（選填）" id="mNote"></textarea>
-        </div>
-
-        <div id="editTimeSection" style="display:none">
-            <div style="font-size:12px;color:var(--muted);margin:8px 0 4px">更改預約時間：</div>
-            <input type="date" id="mNewDate">
-            <div style="display:flex;gap:8px">
-                <input type="time" id="mNewStart" style="flex:1">
-                <input type="time" id="mNewEnd" style="flex:1">
+    <div class="main-content" id="mainContent">
+        <div class="navbar">
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div style="font-size: 10px; color: var(--text-light); letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">教練體驗課排程系統</div>
+                    <h1 id="userName">教練姓名</h1>
+                    <p id="userType">教練類型</p>
+                </div>
             </div>
         </div>
+        <div class="container">
+            <div class="schedule-container">
+                <div class="schedule-header-sticky">
+                    <div class="week-selector">
+                        <div style="display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
+                            <button class="action-btn btn-secondary" onclick="toggleViewMode()" id="viewModeBtn">
+                                🎯 詳細模式
+                            </button>
+                            <div style="text-align: center; font-size: 10px; color: var(--text-light); line-height: 1.2;" id="viewModeDesc">
+                                切換可選15/30/45分
+                            </div>
+                        </div>
+                        <div class="week-nav">
+                            <button class="week-btn" onclick="previousWeek()">◀</button>
+                            <div class="week-display" onclick="showWeekJumpModal()">
+                                <div class="week-date" id="weekDisplay">第 1 週</div>
+                                <div class="week-range" id="weekRange">2024/01/01 - 2024/01/07</div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">點擊快速跳轉</div>
+                            </div>
+                            <button class="week-btn" onclick="nextWeek()">▶</button>
+                        </div>
+                    </div>
+                    <div class="day-header" id="dayHeader"></div>
+                </div>
 
-        <div class="btn-row" id="modalBtns"></div>
-    </div>
-</div>
+                <div class="schedule-grid">
+                    <div class="time-table" id="timeTable"></div>
+                </div>
+            </div>
 
-<!-- ═══ 新增時段 Modal ═══ -->
-<div class="modal-overlay" id="addSlotModal">
-    <div class="modal">
-        <h3>＋ 新增可約時段</h3>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">行政手動新增教練的可預約時段</div>
-        <label style="font-size:12px;color:var(--muted)">教練</label>
-        <select id="addCoach" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:4px 0 10px;outline:none">
-            <option value="">請選擇教練</option>
-        </select>
-        <label style="font-size:12px;color:var(--muted)">日期</label>
-        <input type="date" id="addDate">
-        <label style="font-size:12px;color:var(--muted)">時間</label>
-        <div style="display:flex;gap:8px">
-            <input type="time" id="addStart" style="flex:1" placeholder="開始">
-            <input type="time" id="addEnd" style="flex:1" placeholder="結束">
+            <div class="stats-container">
+                <div class="stat-card green" onclick="showSlotDetails('confirmed')">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-number" id="statConfirmed">0</div>
+                    <div class="stat-label">已確認</div>
+                </div>
+                <div class="stat-card orange" onclick="showSlotDetails('pending')">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-number" id="statPending">0</div>
+                    <div class="stat-label">待送出</div>
+                </div>
+                <div class="stat-card pink" onclick="showSlotDetails('booked')">
+                    <div class="stat-icon">🔒</div>
+                    <div class="stat-number" id="statBooked">0</div>
+                    <div class="stat-label">已預約</div>
+                </div>
+                <div class="stat-card yellow" onclick="showSlotDetails('reserved')">
+                    <div class="stat-icon">⏱</div>
+                    <div class="stat-number" id="statReserved">0</div>
+                    <div class="stat-label">保留中</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn btn-primary" onclick="showSaveModal()" id="saveBtn">
+                    ✔️ 送出排程
+                </button>
+                <button class="action-btn btn-secondary" onclick="reloadFromCalendar()">
+                    🔄 重新載入
+                </button>
+                <button class="action-btn btn-secondary" onclick="copyLastWeek()">
+                    📋 複製上週
+                </button>
+                <button class="action-btn btn-danger" onclick="clearCurrentWeek()">
+                    🗑️ 清除本週
+                </button>
+                <button class="action-btn btn-danger" onclick="clearAllWeeks()">
+                    🗑️ 清除全部
+                </button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">📋 時段狀態說明</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-box confirmed"></div>
+                        <span class="legend-text">已確認</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box pending"></div>
+                        <span class="legend-text">待送出</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box booked"></div>
+                        <span class="legend-text">已預約</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box reserved"></div>
+                        <span class="legend-text">保留中</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 16px; padding: 12px; background: var(--purple-light); border-radius: 8px; border-left: 4px solid var(--purple);">
+                    <div style="font-weight: 600; margin-bottom: 4px;">💡 使用提示</div>
+                    <div style="font-size: 13px; color: var(--text-dark);">
+                        • 點擊統計卡片可查看詳細時段列表<br>
+                        • 點擊日曆格子可新增/刪除時段<br>
+                        • <span style="color: var(--orange); font-weight: 600;">帶「待送出」標記的時段尚未同步到日曆</span><br>
+                        • 記得送出變更才會儲存到日曆
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="btn-row">
-            <button class="btn btn-cancel-modal" onclick="closeAddSlot()">取消</button>
-            <button class="btn btn-book" onclick="doAddSlot()">✅ 新增</button>
+    </div>
+
+    <!-- 詳細時段彈窗 -->
+    <div class="detail-modal hidden" id="detailModal">
+        <div class="detail-modal-content">
+            <div class="detail-modal-header">
+                <div class="detail-modal-title">
+                    <span id="detailModalIcon">✅</span>
+                    <span id="detailModalTitle">已確認時段</span>
+                </div>
+                <div class="detail-modal-subtitle" id="detailModalSubtitle">共 0 個時段</div>
+            </div>
+            <div class="detail-modal-body" id="detailModalBody"></div>
+            <div class="detail-modal-footer">
+                <button class="detail-close-btn" onclick="hideSlotDetails()">關閉</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Loading -->
-<div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-</div><!-- /page-wrap -->
+    <!-- 確認送出彈窗 -->
+    <div class="modal-overlay hidden" id="saveModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">確認送出排程</div>
+                <div class="modal-subtitle">請確認以下變更內容</div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-stats">
+                    <div class="modal-stat">
+                        <div class="modal-stat-number add" id="modalAddCount">0</div>
+                        <div class="modal-stat-label">新增時段</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-number delete" id="modalDeleteCount">0</div>
+                        <div class="modal-stat-label">刪除時段</div>
+                    </div>
+                    <div class="modal-stat">
+                        <div class="modal-stat-number total" id="modalTotalCount">0</div>
+                        <div class="modal-stat-label">總計時段</div>
+                    </div>
+                </div>
+                <div class="modal-list" id="confirmScheduleList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="hideSaveModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmSave()" id="confirmSaveBtn">確認送出</button>
+            </div>
+        </div>
+    </div>
 
-<script>
-// ═══════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════
-const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
-const CONSULTATION_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
-const CHAT_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api';
-const NOTIFY_COACHES_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/notify-coaches';
-const TYPE_LABELS = {
-    ai_analysis: 'AI 3D體態分析',
-    pilates: '皮拉提斯',
-    strength_training: '肌力訓練',
-    stretch: '伸展放鬆'
-};
-const STATUS_LABELS = { available: '可預約', booked: '已預約', reserved: '保留中', cancelled: '已取消' };
-const STATUS_BADGE  = { available: 'badge-available', booked: 'badge-booked', reserved: 'badge-reserved', cancelled: 'badge-cancelled' };
+    <!-- 快速跳轉週次彈窗 -->
+    <div class="modal-overlay hidden" id="weekJumpModalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🗓️ 快速跳轉週次</div>
+                <div class="modal-subtitle">選擇要跳轉的日期</div>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">選擇日期</label>
+                    <input type="date" id="jumpToDate" style="width: 100%; padding: 12px; border: 2px solid var(--green-light); border-radius: 8px; font-size: 16px;"/>
+                </div>
+                <div style="background: var(--green-light); padding: 12px; border-radius: 8px; font-size: 13px;">
+                    💡 系統會自動跳轉到選擇日期所在的週次(週一開始)
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="hideWeekJumpModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmWeekJump()">確認跳轉</button>
+            </div>
+        </div>
+    </div>
 
-// ═══════════════════════════════════════════════
-//  Edge Function 呼叫
-// ═══════════════════════════════════════════════
-async function callEdge(action, params = {}) {
-    const res = await fetch(BOOKING_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...params })
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        // 帶結構化 payload 的錯誤（例如 409 duplicate_booking）
-        const e = new Error(json.message || json.error || `API error: ${res.status}`);
-        e.status = res.status;
-        e.code = json.error;
-        e.payload = json;
-        throw e;
-    }
-    return json;
-}
+    <div class="toast" id="toast"></div>
 
-// 將後端回傳的 duplicate slot 轉成友善提示文字（只呈現資訊，由呼叫端決定追加提示語）
-function formatDuplicateSlotMsg(dup) {
-    if (!dup) return '⚠️ 此學員已有預約';
-    const dateStr = dup.slot_date || '';
-    const dayStr  = dup.day_name ? '(' + dup.day_name + ')' : '';
-    const timeStr = (dup.start_time || '') + (dup.end_time ? '-' + dup.end_time : '');
-    const statusLabel = STATUS_LABELS[dup.status] || dup.status;
-    const coachStr = dup.coach_name || '-';
-    const nameStr  = dup.student_name || '-';
-    return [
-        '⚠️ 此學員已有預約',
-        '',
-        '👥 學員：' + nameStr,
-        '📅 ' + dateStr + ' ' + dayStr + ' ' + timeStr,
-        '👤 教練：' + coachStr,
-        '📌 狀態：' + statusLabel
-    ].join('\n');
-}
+    <script>
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) event.preventDefault();
+        }, { passive: false });
 
-// ── 軟擋：遇到 409 duplicate_booking 時彈 confirm，按確定則帶 force:true 重送 ──
-//   actionLabel 範例：'建立預約'、'保留時段'、'儲存變更'
-async function callWithDupConfirm(action, params, actionLabel) {
-    try {
-        return await callEdge(action, params);
-    } catch (e) {
-        if (e && e.code === 'duplicate_booking') {
-            const info = formatDuplicateSlotMsg(e.payload && e.payload.duplicate);
-            const msg  = info + '\n\n仍要強制' + (actionLabel || '繼續') + '嗎？';
-            if (!confirm(msg)) {
-                const cancelled = new Error('user_cancelled_duplicate');
-                cancelled.code = 'user_cancelled_duplicate';
-                throw cancelled;
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) event.preventDefault();
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        const TEST_MODE = false;
+        const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
+        const PRELOAD_WEEKS = 10;
+
+        // Edge Function helper
+        async function callEdge(action, payload) {
+            try {
+                const response = await fetch(EDGE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action,
+                        ...payload
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text().catch(() => '');
+                    console.error(`callEdge(${action}) HTTP ${response.status}:`, errText);
+                    throw new Error(`HTTP ${response.status}: ${errText.substring(0, 200)}`);
+                }
+
+                const text = await response.text();
+                if (!text || text === 'Accepted' || text === 'OK' || text.trim() === '') {
+                    return null;
+                }
+
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON parse error:', e, 'raw:', text.substring(0, 300));
+                    return null;
+                }
+            } catch (error) {
+                console.error(`callEdge(${action}) error:`, error);
+                throw error;
             }
-            return await callEdge(action, Object.assign({}, params, { force: true }));
         }
-        throw e;
-    }
-}
-
-// ═══════════════════════════════════════════════
-//  諮詢單同步 helper（doBook / doReserve / doCancel / doSaveEdit 共用）
-//  目的：時段狀態變更後，同步更新 consultation_records.booking_status 與 coach
-//       讓諮詢單列表看到最新預約狀態；status_key 由 DB trigger 自動維護。
-// ═══════════════════════════════════════════════
-
-// 產生諮詢單 booking_status 文字：「2026/04/01(五) 14:00」
-// - 日期轉 YYYY/MM/DD
-// - 星期只取單字（「週五」→「五」），避免太冗長
-// - 只帶開始時間（HH:MM）
-function formatBookingStatusText(slot) {
-    if (!slot || !slot.slot_date || !slot.start_time) return '';
-    const datePart = String(slot.slot_date).replace(/-/g, '/');
-    const timePart = String(slot.start_time).substring(0, 5);
-    const dayFull = slot.day_name || getDayName(slot.slot_date) || '';
-    const dayShort = dayFull.replace(/^週/, '');
-    const dayPart = dayShort ? `(${dayShort})` : '';
-    return `${datePart}${dayPart} ${timePart}`.trim();
-}
-
-// 呼叫 consultation-api update action 更新諮詢單
-// 失敗不 throw，只 console.warn + 回傳結構讓 caller 決定是否 toast 警告
-// opts: { consultationId, updateData, actionLabel, options? }
-//   options.auto_reopen_if_closed_no_trial: true
-//     → Edge Function 會先讀該筆，若 closed=true 且 booking_status 為空
-//       則自動把 closed 設為 false（讓結案未體驗學員回遊時自動解除結案）
-async function syncConsultationRecord(opts) {
-    const { consultationId, updateData, actionLabel, options } = opts || {};
-    if (!consultationId) return { skipped: true, reason: 'no_consultation_id' };
-    if (!updateData || Object.keys(updateData).length === 0) {
-        return { skipped: true, reason: 'empty_update' };
-    }
-    try {
-        const body = { action: 'update', id: consultationId, updateData };
-        if (options) body.options = options;
-        const res = await fetch(CONSULTATION_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || json.success === false) {
-            const msg = json.message || json.error || `HTTP ${res.status}`;
-            console.warn(`⚠️ 諮詢單同步失敗（${actionLabel || 'sync'}）:`, msg, json);
-            return { ok: false, error: msg };
-        }
-        console.log(`✅ 諮詢單同步成功（${actionLabel || 'sync'}）`,
-            'autoReopened:', json.autoReopened, 'gasSync:', json.gasSync);
-        return { ok: true, data: json.data, autoReopened: json.autoReopened, gasSync: json.gasSync };
-    } catch (e) {
-        console.warn(`⚠️ 諮詢單同步例外（${actionLabel || 'sync'}）:`, e);
-        return { ok: false, error: String(e && e.message || e) };
-    }
-}
-
-// ═══════════════════════════════════════════════
-//  諮詢單自動搜尋（mStudentName 輸入時 debounce 查 consultation-api）
-// ═══════════════════════════════════════════════
-let consultationSearchTimer = null;
-
-async function searchConsultationsByName(keyword) {
-    const k = (keyword || '').trim();
-    if (!k) return [];
-    try {
-        const res = await fetch(CONSULTATION_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'search', keyword: k })
-        });
-        const json = await res.json().catch(() => ({}));
-        return (json.data || []);
-    } catch (e) {
-        console.warn('searchConsultationsByName failed:', e);
-        return [];
-    }
-}
-
-async function searchStudentsByName(keyword) {
-    const k = (keyword || '').trim();
-    if (!k) return [];
-    try {
-        const res = await fetch(CHAT_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'searchStudents', keyword: k })
-        });
-        const json = await res.json().catch(() => ({}));
-        return (json.data || []);
-    } catch (e) {
-        console.warn('searchStudentsByName failed:', e);
-        return [];
-    }
-}
-
-/**
- * 下拉項目 source 類型：
- *   'consult'  → consultation_records（優先顯示）
- *   'student'  → students（consult 沒結果時 fallback）
- */
-function renderConsultationDropdown(items, keyword) {
-    const box = document.getElementById('mConsultationList');
-    if (!items || items.length === 0) {
-        box.innerHTML = `<div class="ac-empty">找不到「${escHtml(keyword)}」的資料，直接輸入即為手動建立</div>`;
-        box.style.display = '';
-        return;
-    }
-    // items: [{source:'consult'|'student', rec:{...}}]
-    const html = items.slice(0, 8).map((it, idx) => {
-        const rec = it.rec;
-        const src = it.source;
-        if (src === 'consult') {
-            const name  = rec.member_name || '-';
-            const phone = rec.member_phone || '';
-            const tail4 = phone ? phone.slice(-4) : '';
-            const created = (rec.created_at || '').slice(0, 10);
-            const metaParts = [];
-            if (tail4) metaParts.push('尾碼 ' + tail4);
-            if (created) metaParts.push(created);
-            if (rec.coach) metaParts.push('教練 ' + rec.coach);
-            return `<div class="ac-item" data-idx="${idx}">
-                <div class="ac-name">${escHtml(name)}<span class="ac-source-tag consult">諮詢單</span></div>
-                <div class="ac-meta">${escHtml(metaParts.join(' · '))}</div>
-            </div>`;
-        } else {
-            const name  = rec.name || '-';
-            const phone = rec.phone || '';
-            const tail4 = phone ? phone.slice(-4) : '';
-            const metaParts = [];
-            if (tail4) metaParts.push('尾碼 ' + tail4);
-            if (rec.id) metaParts.push('ID ' + rec.id);
-            return `<div class="ac-item ac-student" data-idx="${idx}">
-                <div class="ac-name">${escHtml(name)}<span class="ac-source-tag student">學員</span></div>
-                <div class="ac-meta">${escHtml(metaParts.join(' · '))}</div>
-            </div>`;
-        }
-    }).join('');
-    box.innerHTML = html;
-    box.style.display = '';
-
-    // 綁定點擊
-    [...box.querySelectorAll('.ac-item')].forEach(el => {
-        el.addEventListener('mousedown', (ev) => {
-            ev.preventDefault();  // 避免 blur 先觸發把下拉收起
-            const idx = parseInt(el.getAttribute('data-idx'), 10);
-            const picked = items[idx];
-            if (picked) pickAutocomplete(picked);
-        });
-    });
-}
-
-function hideConsultationDropdown() {
-    const box = document.getElementById('mConsultationList');
-    if (box) box.style.display = 'none';
-}
-
-function pickAutocomplete(item) {
-    if (!item || !item.rec) return;
-    const rec = item.rec;
-    if (item.source === 'consult') {
-        document.getElementById('mStudentName').value = rec.member_name || '';
-        document.getElementById('mStudentPhone').value = rec.member_phone || '';
-        document.getElementById('mConsultationId').value = rec.id || '';
-        document.getElementById('mMemberId').value = rec.member_id || '';
-        updateConsultationBadge('linked', rec);
-    } else {
-        document.getElementById('mStudentName').value = rec.name || '';
-        document.getElementById('mStudentPhone').value = rec.phone || '';
-        document.getElementById('mConsultationId').value = '';
-        document.getElementById('mMemberId').value = rec.id || '';
-        updateConsultationBadge('linked_student', rec);
-    }
-    // 同步 lastSearchedValue 避免 focus 回來時誤判「值變了」而清除連結
-    lastSearchedValue = document.getElementById('mStudentName').value;
-    hideConsultationDropdown();
-}
-
-function clearConsultationSelection(reason /* 'manual' | 'clear' */) {
-    document.getElementById('mConsultationId').value = '';
-    document.getElementById('mMemberId').value = '';
-    document.getElementById('mStudentPhone').value = '';
-    if (reason === 'manual') {
-        updateConsultationBadge('manual', null);
-    } else {
-        updateConsultationBadge('hide', null);
-    }
-}
-
-function updateConsultationBadge(mode, rec) {
-    const el = document.getElementById('mConsultationBadge');
-    if (!el) return;
-    if (mode === 'linked') {
-        const label = rec && rec.member_name ? rec.member_name : '已選';
-        el.className = 'consult-badge linked';
-        el.textContent = '✓ 已連結諮詢單：' + label;
-        el.style.display = '';
-    } else if (mode === 'linked_student') {
-        const label = rec && rec.name ? rec.name : '已選';
-        el.className = 'consult-badge linked-student';
-        el.textContent = '✓ 已連結學員：' + label;
-        el.style.display = '';
-    } else if (mode === 'manual') {
-        el.className = 'consult-badge manual';
-        el.textContent = '⚠ 手動輸入（無諮詢單/學員資料）';
-        el.style.display = '';
-    } else {
-        el.style.display = 'none';
-    }
-}
-
-// 記錄上一次的輸入值，避免 focus 時在已連結狀態下重複查詢/清除連結
-let lastSearchedValue = '';
-
-async function runAutocompleteSearch(keyword) {
-    // 1. 先查諮詢單（優先）
-    const consults = await searchConsultationsByName(keyword);
-    if (consults && consults.length > 0) {
-        return consults.map(r => ({ source: 'consult', rec: r }));
-    }
-    // 2. 諮詢單沒結果 → fallback 查學員
-    const students = await searchStudentsByName(keyword);
-    return students.map(r => ({ source: 'student', rec: r }));
-}
-
-function handleStudentNameInput(e) {
-    const input = document.getElementById('mStudentName');
-    const val = (input.value || '').trim();
-
-    // 若為 focus 事件且值沒變 + 已有連結 → 不清除也不重查（修 focus bug）
-    const isFocus = e && e.type === 'focus';
-    const linkedConsultId = document.getElementById('mConsultationId').value;
-    const linkedMemberId  = document.getElementById('mMemberId').value;
-    const hasLink = !!(linkedConsultId || linkedMemberId);
-    if (isFocus && hasLink && val === lastSearchedValue) {
-        // 保持連結狀態，什麼都不做
-        return;
-    }
-
-    // 值變了 → 清除連結（因為名字跟已連結對象可能不一致）
-    if (hasLink && val !== lastSearchedValue) {
-        document.getElementById('mConsultationId').value = '';
-        document.getElementById('mMemberId').value = '';
-    }
-
-    lastSearchedValue = val;
-
-    if (consultationSearchTimer) clearTimeout(consultationSearchTimer);
-    if (!val) {
-        hideConsultationDropdown();
-        updateConsultationBadge('hide', null);
-        return;
-    }
-    // 尚未選取 → 顯示 manual badge（會在 pick 後被覆蓋）
-    updateConsultationBadge('manual', null);
-
-    consultationSearchTimer = setTimeout(async () => {
-        const items = await runAutocompleteSearch(val);
-        // 只有 input 仍有值才顯示
-        if ((document.getElementById('mStudentName').value || '').trim() !== '') {
-            renderConsultationDropdown(items, val);
-        }
-    }, 250);
-}
-
-function bindConsultationAutocomplete() {
-    const input = document.getElementById('mStudentName');
-    if (!input || input.dataset.acBound === '1') return;
-    input.dataset.acBound = '1';
-    input.addEventListener('input', handleStudentNameInput);
-    input.addEventListener('blur', () => setTimeout(hideConsultationDropdown, 150));
-    input.addEventListener('focus', handleStudentNameInput);
-}
-
-function escHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
-        ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
-
-// ═══════════════════════════════════════════════
-//  教練通知（booked / updated / cancelled）— 非阻塞、失敗不影響儲存
-// ═══════════════════════════════════════════════
-async function notifyCoach(action, payload) {
-    try {
-        const res = await fetch(NOTIFY_COACHES_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, ...payload })
-        });
-        const j = await res.json().catch(() => ({}));
-        return j;
-    } catch (e) {
-        console.warn('notifyCoach failed:', e);
-        return { success: false, reason: 'fetch_error' };
-    }
-}
-
-function reportNotifyResult(nf, coachLabel, okMsg) {
-    if (nf && nf.success) {
-        toast('📨 ' + okMsg.replace('{coach}', nf.coach_name || coachLabel));
-    } else if (nf && nf.reason === 'coach_not_found') {
-        toast('⚠️ 找不到教練「' + coachLabel + '」的群組，請確認教練資料');
-    } else if (nf && nf.reason === 'line_group_id_missing') {
-        toast('⚠️ 該教練尚未設定 LINE 群組 ID');
-    } else if (nf && nf.error === 'internal_error') {
-        // notify-coaches 內部 500：顯示具體錯誤供除錯
-        console.warn('notifyCoach internal_error:', nf);
-        toast('⚠️ 通知失敗（內部錯誤）：' + (nf.detail || '未知'));
-    } else {
-        console.warn('notifyCoach unknown result:', nf);
-        toast('⚠️ 通知教練失敗，請手動提醒');
-    }
-}
-
-function buildBookingTimeLabel(slot) {
-    const d = slot.slot_date || '';
-    const s = slot.start_time || '';
-    const e = slot.end_time || '';
-    const day = slot.day_name ? `(${slot.day_name})` : '';
-    return `${d} ${day} ${s}${e ? '-' + e : ''}`.trim();
-}
-
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
-let allSlots = [];
-let weekStart = null;       // 週視圖：星期一
-let monthDate = null;       // 月視圖：該月 1 號
-let viewMode = 'week';      // 'week' or 'month'
-let statusFilter = 'all';
-let typeFilter = '';         // 課種篩選
-let coachFilter = '';        // 教練篩選（來自課種標籤下方的教練chip）
-let currentSlot = null;
-let isEditMode = false;
-
-// ═══════════════════════════════════════════════
-//  初始化
-// ═══════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-    goToday();
-});
-
-function goToday() {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    weekStart = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
-    monthDate = new Date(d.getFullYear(), d.getMonth(), 1);
-    loadSlots();
-}
-
-function changePeriod(delta) {
-    if (viewMode === 'week') {
-        weekStart = new Date(weekStart.getTime() + delta * 7 * 86400000);
-    } else {
-        monthDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + delta, 1);
-    }
-    loadSlots();
-}
-
-function setView(mode) {
-    viewMode = mode;
-    document.getElementById('btnWeek').classList.toggle('active', mode === 'week');
-    document.getElementById('btnMonth').classList.toggle('active', mode === 'month');
-    // 切換視圖時重新載入資料（週→月資料範圍不同）
-    loadSlots();
-}
-
-// ═══════════════════════════════════════════════
-//  載入時段
-// ═══════════════════════════════════════════════
-async function loadSlots() {
-    showLoading(true);
-    try {
-        let startDate, endDate;
-        if (viewMode === 'week') {
-            startDate = fmt(weekStart);
-            endDate = fmt(new Date(weekStart.getTime() + 6 * 86400000));
-        } else {
-            // 月視圖：取前後各一週的資料以涵蓋邊界
-            const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-            const last = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-            const padStart = new Date(first.getTime() - 7 * 86400000);
-            const padEnd = new Date(last.getTime() + 7 * 86400000);
-            startDate = fmt(padStart);
-            endDate = fmt(padEnd);
-        }
-        const res = await callEdge('getAvailableSlots', { startDate, endDate });
-        allSlots = (res.data || []);
-        populateCoachFilter();
-        updateTypeCounts();
-        render();
-        updateStats();
-    } catch (e) {
-        toast('載入失敗：' + e.message);
-    }
-    showLoading(false);
-}
-
-function populateCoachFilter() {
-    const sel = document.getElementById('filterCoach');
-    const old = sel.value;
-    const coaches = [...new Set(allSlots.map(s => s.coach_name))].sort();
-    sel.innerHTML = '<option value="">所有教練</option>' + coaches.map(c => `<option value="${c}">${c}</option>`).join('');
-    sel.value = old;
-}
-
-// 更新課種標籤上的數量
-function updateTypeCounts() {
-    const types = { ai_analysis: 0, pilates: 0, strength_training: 0, stretch: 0 };
-    allSlots.forEach(s => { if (types[s.coach_type] !== undefined) types[s.coach_type]++; });
-    document.getElementById('countAi').textContent = types.ai_analysis;
-    document.getElementById('countPilates').textContent = types.pilates;
-    document.getElementById('countStrength').textContent = types.strength_training;
-    document.getElementById('countStretch').textContent = types.stretch;
-}
-
-// ═══════════════════════════════════════════════
-//  課種標籤篩選
-// ═══════════════════════════════════════════════
-function setTypeFilter(type, el) {
-    typeFilter = type;
-    coachFilter = ''; // 切換課種時重置教練篩選
-    // 更新標籤 active
-    document.querySelectorAll('.type-tag').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    // 如果選了某課種，顯示該課種所有教練
-    updateCoachChips();
-    render();
-    updateStats();
-}
-
-function updateCoachChips() {
-    const container = document.getElementById('coachChips');
-    if (!typeFilter) {
-        container.classList.remove('show');
-        container.innerHTML = '';
-        return;
-    }
-    // 找出該課種的所有教練
-    const coaches = [...new Set(allSlots.filter(s => s.coach_type === typeFilter).map(s => s.coach_name))].sort();
-    if (coaches.length === 0) {
-        container.classList.remove('show');
-        container.innerHTML = '';
-        return;
-    }
-    let html = `<div class="coach-chip ${coachFilter===''?'active':''}" onclick="setCoachChip('')">全部教練</div>`;
-    coaches.forEach(c => {
-        const count = allSlots.filter(s => s.coach_type === typeFilter && s.coach_name === c).length;
-        html += `<div class="coach-chip ${coachFilter===c?'active':''}" onclick="setCoachChip('${esc(c)}')">${esc(c)} (${count})</div>`;
-    });
-    container.innerHTML = html;
-    container.classList.add('show');
-}
-
-function setCoachChip(name) {
-    coachFilter = name;
-    updateCoachChips();
-    render();
-    updateStats();
-}
-
-// ═══════════════════════════════════════════════
-//  渲染入口
-// ═══════════════════════════════════════════════
-function render() {
-    const weekEl = document.getElementById('weekGrid');
-    const monthEl = document.getElementById('monthGrid');
-    if (viewMode === 'week') {
-        weekEl.style.display = '';
-        monthEl.style.display = 'none';
-        renderWeek();
-    } else {
-        weekEl.style.display = 'none';
-        monthEl.style.display = '';
-        renderMonth();
-    }
-    updatePeriodLabel();
-}
-
-function updatePeriodLabel() {
-    const label = document.getElementById('periodLabel');
-    if (viewMode === 'week') {
-        const wNum = getWeekNumber(weekStart);
-        label.textContent = `${weekStart.getFullYear()} 年 ${weekStart.getMonth()+1} 月 W${wNum}`;
-    } else {
-        label.textContent = `${monthDate.getFullYear()} 年 ${monthDate.getMonth()+1} 月`;
-    }
-}
-
-// ═══════════════════════════════════════════════
-//  篩選
-// ═══════════════════════════════════════════════
-function getFilteredSlots() {
-    let list = allSlots;
-    const coachVal = document.getElementById('filterCoach').value;
-    if (coachVal) list = list.filter(s => s.coach_name === coachVal);
-    if (typeFilter) list = list.filter(s => s.coach_type === typeFilter);
-    if (coachFilter) list = list.filter(s => s.coach_name === coachFilter);
-    if (statusFilter !== 'all') list = list.filter(s => s.status === statusFilter);
-    return list;
-}
-
-function setStatusFilter(f, el) {
-    statusFilter = f;
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    el.classList.add('active');
-    render();
-    updateStats();
-}
-
-function applyFilters() {
-    render();
-    updateStats();
-}
-
-// ═══════════════════════════════════════════════
-//  渲染週曆
-// ═══════════════════════════════════════════════
-function renderWeek() {
-    const grid = document.getElementById('weekGrid');
-    const dayNames = ['一','二','三','四','五','六','日'];
-    const today = fmt(new Date());
-
-    const dates = [];
-    for (let i = 0; i < 7; i++) dates.push(new Date(weekStart.getTime() + i * 86400000));
-
-    const filtered = getFilteredSlots();
-
-    // 只顯示有資料的小時（不再固定 09-21）
-    const hourSet = new Set();
-    filtered.forEach(s => { const h = parseInt(s.start_time.split(':')[0], 10); hourSet.add(h); });
-    if (hourSet.size === 0) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">本週沒有可顯示的時段</div>'; return; }
-    const hours = [...hourSet].sort((a,b) => a - b);
-
-    // slot lookup
-    const slotMap = {};
-    filtered.forEach(s => {
-        const h = parseInt(s.start_time.split(':')[0], 10);
-        const key = s.slot_date + '_' + h;
-        if (!slotMap[key]) slotMap[key] = [];
-        slotMap[key].push(s);
-    });
-
-    let html = '<div class="week-header"></div>';
-    dates.forEach((d, i) => {
-        const isToday = fmt(d) === today;
-        html += `<div class="week-header${isToday?' today':''}">${dayNames[i]}<br><span class="date-num">${d.getDate()}</span></div>`;
-    });
-
-    hours.forEach(h => {
-        html += `<div class="time-label">${String(h).padStart(2,'0')}:00</div>`;
-        dates.forEach(d => {
-            const key = fmt(d) + '_' + h;
-            const slots = slotMap[key] || [];
-            const todayCls = fmt(d) === today ? ' today-col' : '';
-            html += `<div class="day-cell${todayCls}">`;
-            slots.forEach(s => {
-                const studentHtml = s.student_name ? `<div class="student">${esc(s.student_name)}</div>` : '';
-                html += `<div class="slot ${s.status||'available'}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">
-                    <div class="coach-name">${esc(s.coach_name)}</div>
-                    <div class="slot-time">${s.start_time}${s.end_time?'-'+s.end_time:''}</div>
-                    ${studentHtml}
-                </div>`;
-            });
-            html += '</div>';
-        });
-    });
-
-    grid.innerHTML = html;
-}
-
-// ═══════════════════════════════════════════════
-//  渲染月曆
-// ═══════════════════════════════════════════════
-function renderMonth() {
-    const grid = document.getElementById('monthGrid');
-    const today = fmt(new Date());
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
-
-    // 月份第一天和最後一天
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    // 日曆開始：找到第一天那週的星期一
-    let calStart = new Date(firstDay);
-    const fwd = firstDay.getDay(); // 0=Sun
-    const offset = fwd === 0 ? -6 : 1 - fwd;
-    calStart.setDate(calStart.getDate() + offset);
-
-    // 日曆結束：至少到月底那週的星期日
-    let calEnd = new Date(lastDay);
-    const lwd = lastDay.getDay();
-    const endOffset = lwd === 0 ? 0 : 7 - lwd;
-    calEnd.setDate(calEnd.getDate() + endOffset);
-
-    const filtered = getFilteredSlots();
-
-    // 按日期分組
-    const dayMap = {};
-    filtered.forEach(s => {
-        if (!dayMap[s.slot_date]) dayMap[s.slot_date] = [];
-        dayMap[s.slot_date].push(s);
-    });
-
-    let html = '';
-    // 星期 header
-    ['一','二','三','四','五','六','日'].forEach(d => {
-        html += `<div class="month-header">${d}</div>`;
-    });
-
-    // 日期格
-    let cursor = new Date(calStart);
-    while (cursor <= calEnd) {
-        const dateStr = fmt(cursor);
-        const isThisMonth = cursor.getMonth() === month;
-        const isToday = dateStr === today;
-        const slots = dayMap[dateStr] || [];
-        const MAX_SHOW = 3;
-
-        const cellId = 'mc_' + dateStr.replace(/-/g,'');
-        html += `<div class="month-cell${isThisMonth?'':' other-month'}${isToday?' is-today':''}" id="${cellId}">`;
-        html += `<div class="cell-date">${cursor.getDate()}</div>`;
-        html += '<div class="slot-dots">';
-        slots.forEach((s, idx) => {
-            const statusIcon = s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '';
-            const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
-            const stuName = s.student_name ? ' · ' + esc(s.student_name) : '';
-            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
-        });
-        if (slots.length > MAX_SHOW) {
-            html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
-        }
-        html += '</div></div>';
-        cursor.setDate(cursor.getDate() + 1);
-    }
-
-    grid.innerHTML = html;
-}
-
-function toggleExpand(cellId, linkEl, extraCount) {
-    const cell = document.getElementById(cellId);
-    if (!cell) return;
-    const isExpanded = cell.classList.toggle('expanded');
-    if (isExpanded) {
-        linkEl.textContent = '收合';
-    } else {
-        linkEl.textContent = '+' + extraCount + ' 更多';
-    }
-}
-
-// ═══════════════════════════════════════════════
-//  統計
-// ═══════════════════════════════════════════════
-function updateStats() {
-    const filtered = getFilteredSlots();
-    const total = filtered.length;
-    const avail = filtered.filter(s => s.status === 'available').length;
-    const booked = filtered.filter(s => s.status === 'booked').length;
-    const reserved = filtered.filter(s => s.status === 'reserved').length;
-    const rate = total > 0 ? Math.round((booked + reserved) / total * 100) : 0;
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statAvail').textContent = avail;
-    document.getElementById('statBooked').textContent = booked;
-    document.getElementById('statReserved').textContent = reserved;
-    document.getElementById('statRate').textContent = rate + '%';
-}
-
-// ═══════════════════════════════════════════════
-//  開啟 Slot Modal
-// ═══════════════════════════════════════════════
-function openSlot(slotId) {
-    const slot = allSlots.find(s => String(s.id) === String(slotId));
-    if (!slot) return;
-    currentSlot = slot;
-    isEditMode = false;
-
-    document.getElementById('mCoach').textContent = slot.coach_name || '-';
-    document.getElementById('mType').textContent = TYPE_LABELS[slot.coach_type] || slot.coach_type || '-';
-    document.getElementById('mDate').textContent = slot.slot_date + ' (' + (slot.day_name || '') + ')';
-    document.getElementById('mTime').textContent = slot.start_time + (slot.end_time ? ' - ' + slot.end_time : '');
-
-    const status = slot.status || 'available';
-    document.getElementById('mBadge').innerHTML =
-        `<span class="badge ${STATUS_BADGE[status] || ''}">${STATUS_LABELS[status] || status}</span>`;
-
-    document.getElementById('mStudentName').value = slot.student_name || '';
-    document.getElementById('mStudentPhone').value = slot.student_phone || '';
-    document.getElementById('mConsultationId').value = slot.consultation_id || '';
-    document.getElementById('mMemberId').value = slot.member_id || '';
-    document.getElementById('mNote').value = slot.notes || '';
-
-    // 同步 lastSearchedValue 避免 focus 後誤清連結
-    lastSearchedValue = slot.student_name || '';
-
-    // 初始化 badge：優先 consultation → member → manual → hide
-    if (slot.consultation_id) {
-        updateConsultationBadge('linked', { member_name: slot.student_name || '' });
-    } else if (slot.member_id) {
-        updateConsultationBadge('linked_student', { name: slot.student_name || '' });
-    } else if (slot.student_name) {
-        updateConsultationBadge('manual', null);
-    } else {
-        updateConsultationBadge('hide', null);
-    }
-    hideConsultationDropdown();
-    bindConsultationAutocomplete();
-
-    document.getElementById('editTimeSection').style.display = 'none';
-    document.getElementById('mNewDate').value = slot.slot_date || '';
-    document.getElementById('mNewStart').value = slot.start_time || '';
-    document.getElementById('mNewEnd').value = slot.end_time || '';
-
-    renderModalButtons(status);
-
-    if (status === 'available') {
-        document.getElementById('modalTitle').textContent = '📝 預約 / 保留體驗課';
-        document.getElementById('studentSection').style.display = '';
-    } else if (status === 'booked' || status === 'reserved') {
-        document.getElementById('modalTitle').textContent = '📋 預約詳情';
-        document.getElementById('studentSection').style.display = '';
-    } else {
-        document.getElementById('modalTitle').textContent = '📋 時段資訊';
-        document.getElementById('studentSection').style.display = 'none';
-    }
-
-    document.getElementById('slotModal').classList.add('show');
-}
-
-function renderModalButtons(status) {
-    const btns = document.getElementById('modalBtns');
-    let html = '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>';
-    if (status === 'available') {
-        html += '<button class="btn btn-reserve" onclick="doReserve()">🟡 保留</button>';
-        html += '<button class="btn btn-book" onclick="doBook()">✅ 確認預約</button>';
-    } else if (status === 'reserved') {
-        html += '<button class="btn btn-unbook" onclick="doCancel()">取消保留</button>';
-        html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
-        html += '<button class="btn btn-book" onclick="doBook()">✅ 轉為預約</button>';
-    } else if (status === 'booked') {
-        html += '<button class="btn btn-unbook" onclick="doCancel()">取消預約</button>';
-        html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
-    }
-    btns.innerHTML = html;
-}
-
-function toggleEdit() {
-    isEditMode = !isEditMode;
-    document.getElementById('editTimeSection').style.display = isEditMode ? '' : 'none';
-    if (isEditMode) {
-        const btns = document.getElementById('modalBtns');
-        btns.innerHTML = '<button class="btn btn-cancel-modal" onclick="toggleEdit()">取消編輯</button>' +
-            '<button class="btn btn-book" onclick="doSaveEdit()">💾 儲存變更</button>';
-    } else {
-        renderModalButtons(currentSlot.status);
-    }
-}
-
-function closeModal() {
-    document.getElementById('slotModal').classList.remove('show');
-    currentSlot = null;
-    isEditMode = false;
-}
-
-// ═══════════════════════════════════════════════
-//  新增時段
-// ═══════════════════════════════════════════════
-const ADMIN_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
-let coachList = []; // {id, name, coach_type}
-
-async function loadCoachList() {
-    if (coachList.length > 0) return;
-    try {
-        const res = await fetch(ADMIN_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'getCoaches' })
-        });
-        const json = await res.json();
-        coachList = (json.data || []).filter(c => c.is_active !== false).map(c => ({
-            id: c.id, name: (c.name || '').trim(), coachType: (c.coach_type || '').trim()
-        }));
-    } catch (e) {
-        // fallback: 從現有 allSlots 取教練
-        const map = {};
-        allSlots.forEach(s => { if (s.coach_id && !map[s.coach_id]) map[s.coach_id] = { id: s.coach_id, name: s.coach_name, coachType: s.coach_type }; });
-        coachList = Object.values(map);
-    }
-}
-
-function openAddSlot() {
-    loadCoachList().then(() => {
-        const sel = document.getElementById('addCoach');
-        sel.innerHTML = '<option value="">請選擇教練</option>' +
-            coachList.map(c => `<option value="${c.id}" data-type="${c.coachType}">${c.name} (${TYPE_LABELS[c.coachType] || c.coachType || '未分類'})</option>`).join('');
-        // 預設日期為今天
-        document.getElementById('addDate').value = fmt(new Date());
-        document.getElementById('addStart').value = '';
-        document.getElementById('addEnd').value = '';
-        document.getElementById('addSlotModal').classList.add('show');
-    });
-}
-
-function closeAddSlot() {
-    document.getElementById('addSlotModal').classList.remove('show');
-}
-
-async function doAddSlot() {
-    const sel = document.getElementById('addCoach');
-    const coachId = sel.value;
-    if (!coachId) { toast('請選擇教練'); return; }
-    const coachOpt = sel.options[sel.selectedIndex];
-    const coachName = coachOpt.textContent.split(' (')[0];
-    const coachType = coachOpt.dataset.type || '';
-    const date = document.getElementById('addDate').value;
-    const startTime = document.getElementById('addStart').value;
-    const endTime = document.getElementById('addEnd').value;
-    if (!date || !startTime) { toast('請填入日期和開始時間'); return; }
-
-    showLoading(true);
-    try {
-        // 計算 endTime / endDateTime（若使用者未填 endTime，預設 60 分鐘）
-        let finalEndTime = endTime;
-        let endInfo;
-        if (endTime) {
-            // 使用者有填 endTime：用它計算 endDate / isCrossDay
-            const [eh, em] = endTime.split(':').map(Number);
-            const [sh, sm] = startTime.split(':').map(Number);
-            const duration = (eh * 60 + em) - (sh * 60 + sm);
-            endInfo = calculateEndTimeAndDate(date, startTime, duration > 0 ? duration : 60);
-        } else {
-            // 沒填 endTime：預設 60 分鐘
-            endInfo = calculateEndTimeAndDate(date, startTime, 60);
-            finalEndTime = endInfo.endTime;
-        }
-
-        await callEdge('saveSlots', {
-            coachId, coachName, coachType,
-            changes: [{
-                action: 'add',
-                date,
-                startTime,
-                endTime: finalEndTime,
-                endDate: endInfo.endDate,
-                isCrossDay: endInfo.isCrossDay,
-                dayName: getDayName(date),
-                startDateTime: `${date} ${startTime}`,
-                endDateTime: endInfo.endDateTime,
-                eventId: null
-            }]
-        });
-        toast('✅ 時段已新增');
-        closeAddSlot();
-        await loadSlots();
-    } catch (e) {
-        toast('新增失敗：' + e.message);
-    }
-    showLoading(false);
-}
-
-// ═══════════════════════════════════════════════
-//  動作：預約 / 保留 / 取消 / 編輯
-// ═══════════════════════════════════════════════
-async function doBook() {
-    if (!currentSlot) return;
-    const name = document.getElementById('mStudentName').value.trim();
-    if (!name) { toast('請輸入學員姓名'); return; }
-    const consultationId = document.getElementById('mConsultationId').value || null;
-    const memberId = document.getElementById('mMemberId').value || null;
-
-    // 記錄原本狀態（判斷是「保留 → 預約」還是「新預約」，兩者都發 booked 通知）
-    const wasBooked = currentSlot.status === 'booked';
-    const snap = { ...currentSlot };
-
-    showLoading(true);
-    try {
-        await callWithDupConfirm('updateSlotStatus', {
-            slotId: currentSlot.id,
-            status: 'booked',
-            studentName: name,
-            studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim(),
-            consultationId: consultationId,
-            memberId: memberId
-        }, '建立預約');
-        toast('✅ 預約成功');
-
-        // 觸發教練通知（booked）— 保留→預約 或 從 available→預約 均算新預約
-        if (!wasBooked && snap.coach_name) {
-            const nf = await notifyCoach('consultation_trial_booked', {
-                coach_name: snap.coach_name,
-                booking_time: buildBookingTimeLabel(snap),
-                consultation_id: consultationId,
-                student: { name: name }
-            });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（新體驗預約）');
-        }
-
-        // 諮詢單同步：寫入 booking_status + coach（status_key 由 DB trigger 自動重算）
-        // options.auto_reopen_if_closed_no_trial：若該筆是「結案未體驗」(closed=true + booking_status 為空)
-        //   Edge Function 會自動把 closed 設為 false，讓回遊學員狀態回到「已預約」而不是停在「結案」
-        const syncCid = consultationId || snap.consultation_id || null;
-        if (syncCid) {
-            const syncSlot = {
-                slot_date: snap.slot_date,
-                start_time: snap.start_time,
-                day_name:   snap.day_name,
-                coach_name: snap.coach_name
+        
+        let currentTeacher = '';
+        let currentTeacherType = '';
+        let currentCoachId = '';        // 教練編號（HD26xxxxx）
+        let currentCoachNickname = '';   // 教練顯示名稱（從 API 取得）
+        let currentWeekStart = new Date();
+        let currentWeekEnd = new Date();
+        let calendarData = {};
+        let pendingChanges = {};
+        let viewMode = 'simple';
+        let baseWeekStart = null;
+        let isSaving = false;
+        let isToggling = false;  // ✅ 新增：防止快速點擊
+        
+        const timeSlotsSimple = ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+        const timeSlotsDetail = ['06:00', '06:15', '06:30', '06:45', '07:00', '07:15', '07:30', '07:45', '08:00', '08:15', '08:30', '08:45', '09:00', '09:15', '09:30', '09:45', '10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30', '11:45', '12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15', '17:30', '17:45', '18:00', '18:15', '18:30', '18:45', '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45', '21:00', '21:15', '21:30', '21:45', '22:00', '22:15', '22:30', '22:45', '23:00', '23:15', '23:30', '23:45'];
+        const dayLabels = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+        function calculateEndTimeAndDate(dateStr, startTime, durationMinutes = 60) {
+            const startDateTime = new Date(`${dateStr}T${startTime}:00`);
+            const endDateTime = new Date(startDateTime);
+            endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+            
+            const endYear = endDateTime.getFullYear();
+            const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
+            const endDay = String(endDateTime.getDate()).padStart(2, '0');
+            const endDate = `${endYear}-${endMonth}-${endDay}`;
+            
+            const endHour = String(endDateTime.getHours()).padStart(2, '0');
+            const endMinute = String(endDateTime.getMinutes()).padStart(2, '0');
+            const endTime = `${endHour}:${endMinute}`;
+            
+            return {
+                endDate,
+                endTime,
+                endDateTime: `${endDate} ${endTime}`,
+                isCrossDay: dateStr !== endDate
             };
-            const sync = await syncConsultationRecord({
-                consultationId: syncCid,
-                updateData: {
-                    booking_status: formatBookingStatusText(syncSlot),
-                    coach:          snap.coach_name || ''
-                },
-                options: { auto_reopen_if_closed_no_trial: true },
-                actionLabel: 'doBook'
+        }
+
+        function updateSaveStatus() {
+            const saveBtn = document.getElementById('saveBtn');
+            
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) {
+                    totalPending += pendingChanges[weekKey].length;
+                }
             });
-            if (sync && sync.ok === false) {
-                toast('⚠️ 諮詢單同步失敗：' + sync.error);
-            } else if (sync && sync.autoReopened) {
-                toast('🔓 此諮詢單原為「結案未體驗」，已自動解除結案');
+            
+            if (totalPending > 0) {
+                saveBtn.disabled = false;
+            } else {
+                saveBtn.disabled = true;
             }
         }
 
-        closeModal();
-        await loadSlots();
-    } catch (e) {
-        if (e && e.code === 'user_cancelled_duplicate') {
-            toast('已取消預約');
-        } else {
-            toast('預約失敗：' + e.message);
-        }
-    }
-    showLoading(false);
-}
-
-async function doReserve() {
-    if (!currentSlot) return;
-    const name = document.getElementById('mStudentName').value.trim();
-    if (!name) { toast('請輸入學員姓名'); return; }
-    const consultationId = document.getElementById('mConsultationId').value || null;
-    const memberId = document.getElementById('mMemberId').value || null;
-
-    // 記錄原本狀態（若原本已是 reserved 則不再重複發通知）
-    const wasReserved = currentSlot.status === 'reserved';
-    const snap = { ...currentSlot };
-
-    showLoading(true);
-    try {
-        await callWithDupConfirm('updateSlotStatus', {
-            slotId: currentSlot.id,
-            status: 'reserved',
-            studentName: name,
-            studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim(),
-            consultationId: consultationId,
-            memberId: memberId
-        }, '保留時段');
-        toast('🟡 已保留');
-
-        // 觸發教練通知（reserved）— 首次保留才發，避免重複打擾
-        if (!wasReserved && snap.coach_name) {
-            const nf = await notifyCoach('consultation_trial_reserved', {
-                coach_name: snap.coach_name,
-                booking_time: buildBookingTimeLabel(snap),
-                consultation_id: consultationId,
-                student: { name: name }
-            });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（體驗保留中）');
-        }
-
-        // 諮詢單同步：保留中只寫 coach（booking_status 留待 doBook 轉正式才寫）
-        // → 諮詢單 status_key 仍停留在 new（待處理），但可看到已指派教練
-        const syncCid = consultationId || snap.consultation_id || null;
-        if (syncCid && snap.coach_name) {
-            const sync = await syncConsultationRecord({
-                consultationId: syncCid,
-                updateData: { coach: snap.coach_name },
-                actionLabel: 'doReserve'
-            });
-            if (sync && sync.ok === false) {
-                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+        async function init() {
+            try {
+                console.log('🚀 系統初始化 v2.3 去重修復版');
+                resetStats();
+                await getUserInfo();
+                setCurrentWeek();
+                updateWeekDisplay();
+                
+                calendarData = {};
+                pendingChanges = {};
+                
+                await loadFromCalendar();
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('show');
+                console.log('✅ 初始化完成');
+            } catch (error) {
+                console.error('❌ 初始化失敗:', error);
+                showToast('❌ 載入失敗');
             }
         }
 
-        closeModal();
-        await loadSlots();
-    } catch (e) {
-        if (e && e.code === 'user_cancelled_duplicate') {
-            toast('已取消保留');
-        } else {
-            toast('保留失敗：' + e.message);
-        }
-    }
-    showLoading(false);
-}
-
-async function doCancel() {
-    if (!currentSlot) return;
-
-    // 原本是 booked → 需要帶取消原因到教練卡（reserved 取消不顯示原因，故只對 booked 問）
-    const wasBooked   = currentSlot.status === 'booked';
-    const wasReserved = currentSlot.status === 'reserved';
-
-    let cancelReason = '行政端取消';
-    if (wasBooked) {
-        const input = prompt('請輸入取消原因（留白＝「行政端取消」）\n例如：學員請假、臨時改期、結案未體驗…', '');
-        if (input === null) return;  // 使用者按「取消」按鈕 → 中止整個動作
-        const trimmed = (input || '').trim();
-        if (trimmed) cancelReason = trimmed;
-    } else {
-        if (!confirm('確定要取消保留嗎？將恢復為可預約狀態')) return;
-    }
-
-    // 快照：供取消後通知使用（此時 currentSlot 仍為原資料）
-    const snap = { ...currentSlot };
-
-    showLoading(true);
-    try {
-        await callEdge('updateSlotStatus', {
-            slotId: currentSlot.id,
-            status: 'available',
-            studentName: '',
-            studentPhone: '',
-            note: ''
-            // consultationId / memberId 不傳 → updateSlotStatus 內 available 分支會自動 null 掉
-        });
-        toast('已取消，時段恢復可預約');
-
-        // 原本 booked → 發 cancelled 通知（完整取消，帶行政人員填的取消原因）
-        if (wasBooked && snap.coach_name) {
-            const nf = await notifyCoach('consultation_trial_cancelled', {
-                coach_name: snap.coach_name,
-                booking_time: buildBookingTimeLabel(snap),  // 原本預約時間
-                cancel_reason: cancelReason,
-                consultation_id: snap.consultation_id || null,
-                student: { name: snap.student_name || '' }
-            });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約取消）');
+        function resetStats() {
+            console.log('🔄 重置統計數字為 0');
+            document.getElementById('statConfirmed').textContent = '0';
+            document.getElementById('statPending').textContent = '0';
+            document.getElementById('statBooked').textContent = '0';
+            document.getElementById('statReserved').textContent = '0';
         }
 
-        // 原本 reserved → 發 reserved_cancelled 通知（對稱 reserved 發過的「保留中」）
-        if (wasReserved && snap.coach_name) {
-            const nf = await notifyCoach('consultation_trial_reserved_cancelled', {
-                coach_name: snap.coach_name,
-                booking_time: buildBookingTimeLabel(snap),  // 原保留時段
-                consultation_id: snap.consultation_id || null,
-                student: { name: snap.student_name || '' }
-            });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（保留已取消）');
-        }
+        async function loadFromCalendar(startDate = null, endDate = null) {
+            try {
+                if (!startDate) startDate = new Date(currentWeekStart);
+                if (!endDate) {
+                    endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + (PRELOAD_WEEKS * 7));
+                }
+                
+                console.log(`📅 載入: ${formatDate(startDate)} ~ ${formatDate(endDate)}`);
+                showToast(`📥 載入 ${PRELOAD_WEEKS} 週資料...`);
+                
+                if (TEST_MODE) {
+                    calendarData = {};
+                    pendingChanges = {};
+                    showToast('✅ 測試模式');
+                    return;
+                }
 
-        // 諮詢單同步：
-        //   booked   → 清空 booking_status + coach（status_key 會自動回 new 或 closed_no_trial）
-        //   reserved → 只清空 coach（當初 doReserve 本來就沒寫 booking_status）
-        if (snap.consultation_id) {
-            const updateData = wasBooked
-                ? { booking_status: '', coach: '' }
-                : { coach: '' };
-            const sync = await syncConsultationRecord({
-                consultationId: snap.consultation_id,
-                updateData,
-                actionLabel: 'doCancel(' + (wasBooked ? 'booked' : 'reserved') + ')'
-            });
-            if (sync && sync.ok === false) {
-                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+                console.log('🗑️ 清空所有資料');
+                calendarData = {};
+                pendingChanges = {};
+                resetStats();
+
+                // ── 從 Supabase trial_slots 讀取 ──
+                let uniqueEvents = [];
+                try {
+                    console.log('📅 從 Supabase trial_slots 載入...');
+                    const queryParams = currentCoachId
+                        ? { coachId: currentCoachId }
+                        : { userId: currentTeacher, coachType: currentTeacherType };
+                    const dbData = await callEdge('getCoachSchedule', {
+                        ...queryParams,
+                        startDate: formatDate(startDate),
+                        endDate: formatDate(endDate)
+                    });
+                    if (dbData) {
+                        // 補回 coachId（防止 getUserInfo 查不到的情況）
+                        if (!currentCoachId && dbData.coach?.id) {
+                            currentCoachId = dbData.coach.id;
+                            console.log('✅ loadFromCalendar 補回 coachId:', currentCoachId);
+                        }
+                        const dbEvents = dbData?.events || dbData?.schedules || dbData?.slots || [];
+                        uniqueEvents = dbEvents.map(s => s.slot_date && !s.date
+                            ? { ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }
+                            : s
+                        );
+                        console.log(`📅 trial_slots: ${uniqueEvents.length} 筆`);
+                    }
+                } catch (e) {
+                    console.error('❌ trial_slots 載入失敗:', e.message);
+                    showToast('❌ 載入失敗，請稍後重試', 4000);
+                }
+
+                if (uniqueEvents.length === 0) {
+                    console.log('✅ 載入完成 (無資料)');
+                    showToast('✅ 載入完成 (目前無排程)');
+                    return;
+                }
+
+                const newData = processCalendarData({ events: uniqueEvents });
+                Object.keys(newData).forEach(weekKey => {
+                    calendarData[weekKey] = newData[weekKey];
+                });
+
+                const totalEvents = Object.values(calendarData).reduce((sum, arr) => sum + arr.length, 0);
+                console.log(`✅ 載入 ${totalEvents} 個時段（舊+新合併）`);
+                showToast(`✅ 載入 ${totalEvents} 個時段`);
+            } catch (error) {
+                console.error('❌ 載入失敗:', error);
+                calendarData = {};
+                pendingChanges = {};
+                resetStats();
+                showToast('❌ 載入失敗');
             }
         }
 
-        closeModal();
-        await loadSlots();
-    } catch (e) {
-        toast('取消失敗：' + e.message);
-    }
-    showLoading(false);
-}
-
-async function doSaveEdit() {
-    if (!currentSlot) return;
-    const newDate = document.getElementById('mNewDate').value;
-    const newStart = document.getElementById('mNewStart').value;
-    const newEnd = document.getElementById('mNewEnd').value;
-    const name = document.getElementById('mStudentName').value.trim();
-    const phone = document.getElementById('mStudentPhone').value.trim();
-    const note = document.getElementById('mNote').value.trim();
-    const consultationId = document.getElementById('mConsultationId').value || null;
-    const memberId = document.getElementById('mMemberId').value || null;
-
-    // 快照原始時間（用於判斷是否變更，以及組「原本時間」標籤）
-    const snap = { ...currentSlot };
-    const finalDate  = newDate  || currentSlot.slot_date;
-    const finalStart = newStart || currentSlot.start_time;
-    const finalEnd   = newEnd   || currentSlot.end_time;
-    const timeChanged =
-        finalDate  !== currentSlot.slot_date ||
-        finalStart !== currentSlot.start_time ||
-        finalEnd   !== currentSlot.end_time;
-
-    showLoading(true);
-    try {
-        await callWithDupConfirm('updateSlotDetails', {
-            slotId: currentSlot.id,
-            updates: {
-                slot_date: finalDate,
-                start_time: finalStart,
-                end_time: finalEnd,
-                student_name: name,
-                student_phone: phone,
-                notes: note,
-                day_name: getDayName(finalDate),
-                consultation_id: consultationId,
-                member_id: memberId
+        function processCalendarData(data) {
+            const processed = {};
+            // 相容 events / schedules / slots（booking-api 回傳 slots）
+            let eventList = data?.events || data?.schedules || data?.slots || [];
+            // 如果是 trial_slots 原始格式（slot_date/start_time），自動轉換
+            if (eventList.length > 0 && eventList[0].slot_date && !eventList[0].date) {
+                eventList = eventList.map(s => ({ ...s, date: s.slot_date, startTime: s.start_time, endTime: s.end_time }));
             }
-        }, '儲存變更');
-        toast('💾 已儲存變更');
-
-        // 僅對「原本 booked + 時間真的變動」才發 updated 通知
-        if (snap.status === 'booked' && timeChanged && snap.coach_name) {
-            const nf = await notifyCoach('consultation_trial_updated', {
-                coach_name: snap.coach_name,
-                old_booking_time: buildBookingTimeLabel(snap),
-                booking_time: buildBookingTimeLabel({
-                    slot_date: finalDate, start_time: finalStart, end_time: finalEnd,
-                    day_name: getDayName(finalDate)
-                }),
-                consultation_id: consultationId,
-                student: { name: name }
-            });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約時間變更）');
+            
+            console.log(`📋 原始資料: ${eventList.length} 個事件`);
+            
+            // ✅ 新增：用於去重的 Set
+            const seenKeys = new Set();
+            
+            if (eventList && eventList.length > 0) {
+                eventList.forEach((event, index) => {
+                    if (!event || typeof event !== 'object') {
+                        console.warn(`⚠️ 跳過無效事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    if (!event.date || !event.startTime || !event.endTime) {
+                        console.warn(`⚠️ 跳過不完整事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    if (typeof event.date !== 'string' || 
+                        typeof event.startTime !== 'string' || 
+                        typeof event.endTime !== 'string') {
+                        console.warn(`⚠️ 跳過型別錯誤事件 #${index}:`, event);
+                        return;
+                    }
+                    
+                    let eventDate = event.date;
+                    if (eventDate.includes('/')) {
+                        eventDate = eventDate.replace(/\//g, '-');
+                    }
+                    
+                    // ✅ 先標準化時間格式（只取 HH:MM）
+                    const normalizedStartTime = event.startTime.substring(0, 5);
+                    const normalizedEndTime = event.endTime.substring(0, 5);
+                    
+                    // ✅ 用標準化後的格式去重
+                    const uniqueKey = `${eventDate}_${normalizedStartTime}_${normalizedEndTime}`;
+                    if (seenKeys.has(uniqueKey)) {
+                        console.warn(`⚠️ 跳過重複事件: ${uniqueKey}`);
+                        return;
+                    }
+                    seenKeys.add(uniqueKey);
+                    
+                    let studentName = event.studentName || event.memberName || '';
+                    if (studentName && typeof studentName === 'string') {
+                        studentName = studentName
+                            .replace(/\)/g, '')
+                            .replace(/\(/g, '')
+                            .replace(/\[/g, '')
+                            .replace(/\]/g, '')
+                            .trim();
+                        
+                        if (studentName === 'null' || studentName === 'undefined') {
+                            studentName = '';
+                        }
+                    }
+                    
+                    const weekKey = getWeekKeyFromDate(eventDate);
+                    if (!processed[weekKey]) processed[weekKey] = [];
+                    
+                    processed[weekKey].push({
+                        date: eventDate,
+                        startTime: normalizedStartTime,
+                        endTime: normalizedEndTime,
+                        status: event.status || 'available',
+                        eventId: event.eventId || event.id,
+                        studentName: studentName,
+                        optimistic: false
+                    });
+                });
+            }
+            
+            const validCount = Object.values(processed).reduce((sum, arr) => sum + arr.length, 0);
+            console.log(`✅ 處理完成: ${validCount} 個有效時段 (去重後)`);
+            
+            return processed;
         }
 
-        // 諮詢單同步（僅 booked 且時間有動才更新 booking_status；保留中時間不動諮詢單）
-        const syncCid = consultationId || snap.consultation_id || null;
-        if (syncCid && snap.status === 'booked' && timeChanged) {
-            const newSlotForSync = {
-                slot_date:  finalDate,
-                start_time: finalStart,
-                day_name:   getDayName(finalDate),
-                coach_name: snap.coach_name
+        function updateStats() {
+            let confirmed = 0, pending = 0, booked = 0, reserved = 0;
+            
+            console.log('📊 開始統計 (v2.3 去重修復版)');
+            
+            const toBeDeleted = new Set();
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) {
+                    pendingChanges[weekKey].forEach(change => {
+                        if (change.action === 'delete') {
+                            toBeDeleted.add(`${change.date}_${change.startTime}_${change.endTime}`);
+                        }
+                        pending++;
+                    });
+                }
+            });
+            
+            if (calendarData && typeof calendarData === 'object') {
+                Object.keys(calendarData).forEach(weekKey => {
+                    const weekData = calendarData[weekKey];
+                    
+                    if (!weekData || !Array.isArray(weekData) || weekData.length === 0) {
+                        return;
+                    }
+                    
+                    weekData.forEach(e => {
+                        if (!e || typeof e !== 'object' || !e.status || typeof e.status !== 'string') {
+                            console.warn('⚠️ 跳過無效時段:', e);
+                            return;
+                        }
+                        
+                        if (!e.date || !e.startTime || !e.endTime) {
+                            console.warn('⚠️ 跳過不完整時段:', e);
+                            return;
+                        }
+                        
+                        const key = `${e.date}_${e.startTime}_${e.endTime}`;
+                        
+                        if (e.status === 'available' && !e.optimistic && !toBeDeleted.has(key)) {
+                            confirmed++;
+                        } else if (e.status === 'booked') {
+                            booked++;
+                        } else if (e.status === 'reserved') {
+                            reserved++;
+                        }
+                    });
+                });
+            }
+            
+            console.log('📊 統計結果:', { confirmed, pending, booked, reserved });
+            
+            document.getElementById('statConfirmed').textContent = confirmed.toString();
+            document.getElementById('statPending').textContent = pending.toString();
+            document.getElementById('statBooked').textContent = booked.toString();
+            document.getElementById('statReserved').textContent = reserved.toString();
+            
+            console.log('✅ 統計更新完成');
+        }
+
+        function showSlotDetails(type) {
+            const typeConfig = {
+                confirmed: { title: '已確認時段', icon: '✅', class: 'confirmed', status: 'available' },
+                pending: { title: '待送出時段', icon: '📝', class: 'pending', isPending: true },
+                booked: { title: '已預約時段', icon: '🔒', class: 'booked', status: 'booked' },
+                reserved: { title: '保留中時段', icon: '⏱', class: 'reserved', status: 'reserved' }
             };
-            const sync = await syncConsultationRecord({
-                consultationId: syncCid,
-                updateData: { booking_status: formatBookingStatusText(newSlotForSync) },
-                actionLabel: 'doSaveEdit'
+            
+            const config = typeConfig[type];
+            const slots = [];
+            
+            if (config.isPending) {
+                const slotKeys = new Set();
+                
+                Object.keys(pendingChanges).forEach(weekKey => {
+                    if (pendingChanges[weekKey] && Array.isArray(pendingChanges[weekKey])) {
+                        pendingChanges[weekKey].forEach(change => {
+                            if (change && change.date && change.startTime && change.endTime) {
+                                const key = `${change.date}_${change.startTime}_${change.endTime}`;
+                                
+                                if (!slotKeys.has(key)) {
+                                    slotKeys.add(key);
+                                    
+                                    slots.push({
+                                        date: change.date,
+                                        startTime: change.startTime,
+                                        endTime: change.endTime,
+                                        action: change.action,
+                                        optimistic: change.action === 'add' && calendarData[weekKey]?.some(e =>
+                                            e.date === change.date &&
+                                            e.startTime === change.startTime &&
+                                            e.endTime === change.endTime &&
+                                            e.optimistic
+                                        )
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            } else {
+                Object.keys(calendarData).forEach(weekKey => {
+                    if (calendarData[weekKey] && Array.isArray(calendarData[weekKey])) {
+                        calendarData[weekKey].forEach(event => {
+                            if (event && 
+                                typeof event === 'object' && 
+                                event.status === config.status &&
+                                event.date &&
+                                event.startTime &&
+                                event.endTime &&
+                                !event.optimistic) {
+                                slots.push({
+                                    date: event.date,
+                                    startTime: event.startTime,
+                                    endTime: event.endTime,
+                                    studentName: event.studentName || event.memberName || ''
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+            
+            document.getElementById('detailModalIcon').textContent = config.icon;
+            document.getElementById('detailModalTitle').textContent = config.title;
+            document.getElementById('detailModalSubtitle').textContent = `共 ${slots.length} 個時段`;
+            
+            const modalBody = document.getElementById('detailModalBody');
+            
+            if (slots.length === 0) {
+                modalBody.innerHTML = `
+                    <div class="detail-empty">
+                        <div class="detail-empty-icon">${config.icon}</div>
+                        <div>目前沒有${config.title}</div>
+                    </div>
+                `;
+            } else {
+                const slotsByDate = {};
+                slots.forEach(slot => {
+                    if (!slotsByDate[slot.date]) slotsByDate[slot.date] = [];
+                    slotsByDate[slot.date].push(slot);
+                });
+                
+                const sortedDates = Object.keys(slotsByDate).sort();
+                
+                modalBody.innerHTML = sortedDates.map(date => {
+                    const dateSlots = slotsByDate[date].sort((a, b) => 
+                        a.startTime.localeCompare(b.startTime)
+                    );
+                    
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const dayOfWeek = dayLabels[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+                    
+                    return `
+                        <div class="detail-slot-group">
+                            <div class="detail-slot-date">
+                                ${date} (${dayOfWeek})
+                            </div>
+                            <div class="detail-slot-list">
+                                ${dateSlots.map(slot => `
+                                    <div class="detail-slot-item ${config.class}${slot.optimistic ? ' optimistic' : ''}" onclick="jumpToSlot('${date}', '${slot.startTime}', event)" style="cursor: pointer;">
+                                        ${slot.startTime} - ${slot.endTime}
+                                        ${slot.studentName ? ` (${slot.studentName})` : ''}
+                                        ${slot.action === 'delete' ? ' <span style="color: var(--pink);">❌</span>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function hideSlotDetails() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function jumpToSlot(dateStr, timeStr, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            hideSlotDetails();
+            
+            const targetDate = new Date(dateStr + 'T00:00:00');
+            const dayOfWeek = targetDate.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const weekStart = new Date(targetDate);
+            weekStart.setDate(targetDate.getDate() + diff);
+            weekStart.setHours(0, 0, 0, 0);
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            currentWeekStart = weekStart;
+            currentWeekEnd = weekEnd;
+            
+            const hasMinutes = timeStr.includes(':') && !timeStr.endsWith(':00');
+            if (hasMinutes && viewMode === 'simple') {
+                viewMode = 'detail';
+                document.getElementById('viewModeBtn').innerHTML = '⚡ 簡易模式';
+                document.getElementById('viewModeDesc').textContent = '切換只選"整點"時段';
+                showToast('🎯 已切換至詳細模式');
+            }
+            
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            setTimeout(() => {
+                const timeSlots = getCurrentTimeSlots();
+                const timeIndex = timeSlots.indexOf(timeStr);
+                
+                if (timeIndex !== -1) {
+                    const dayIndex = targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1;
+                    
+                    const timeRows = document.querySelectorAll('.time-row');
+                    if (timeRows[timeIndex]) {
+                        const slotCells = timeRows[timeIndex].querySelectorAll('.slot-cell');
+                        if (slotCells[dayIndex]) {
+                            slotCells[dayIndex].scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                            
+                            slotCells[dayIndex].style.animation = 'highlight 2s';
+                        }
+                    }
+                }
+                
+                showToast(`📍 已跳轉至 ${dateStr} ${timeStr}`);
+            }, 100);
+        }
+
+        function generateCalendar() {
+            const timeSlots = getCurrentTimeSlots();
+            
+            const dayHeaderHtml = `
+                <div class="day-label">時間</div>
+                ${dayLabels.map((day, i) => {
+                    const date = new Date(currentWeekStart);
+                    date.setDate(date.getDate() + i);
+                    return `<div class="day-label ${isDateToday(date) ? 'today' : ''}">${day}<div class="day-date">${formatDateShort(date)}</div></div>`;
+                }).join('')}
+            `;
+            
+            const tableHtml = timeSlots.map((time, timeIndex) => `
+                <div class="time-row">
+                    <div class="time-label">${time}</div>
+                    ${[0, 1, 2, 3, 4, 5, 6].map(dayIndex => {
+                        const slotInfo = getSlotInfo(dayIndex, timeIndex);
+                        let content = `<span class="slot-time">${time}</span>`;
+                        
+                        if (slotInfo.studentName) {
+                            const icon = slotInfo.class === 'booked' ? '🔒' : '⏱';
+                            content = `
+                                <span class="slot-time">${time}</span>
+                                <span class="student-name">${icon} ${slotInfo.studentName}</span>
+                            `;
+                        }
+                        
+                        return `<div class="slot-cell ${slotInfo.class}${slotInfo.optimistic ? ' optimistic' : ''}" onclick="toggleSlot(${dayIndex}, ${timeIndex}, event)">${content}</div>`;
+                    }).join('')}
+                </div>
+            `).join('');
+            
+            document.getElementById('dayHeader').innerHTML = dayHeaderHtml;
+            document.getElementById('timeTable').innerHTML = tableHtml;
+        }
+
+        function getSlotInfo(dayIndex, timeIndex) {
+            const timeSlots = getCurrentTimeSlots();
+            const date = new Date(currentWeekStart);
+            date.setDate(date.getDate() + dayIndex);
+            const dateStr = formatDate(date);
+            const startTime = timeSlots[timeIndex];
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            const endTimeInfo = calculateEndTimeAndDate(dateStr, startTime, 60);
+            const endTime = endTimeInfo.endTime;
+            
+            if (pendingChanges[weekKey]) {
+                const pending = pendingChanges[weekKey].find(p => 
+                    p.date === dateStr && p.startTime === startTime && p.endTime === endTime
+                );
+                
+                if (pending) {
+                    if (pending.action === 'add') {
+                        const calEvent = calendarData[weekKey]?.find(e =>
+                            e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                        );
+                        
+                        if (calEvent) {
+                            return { class: 'confirmed', optimistic: true };
+                        } else {
+                            return { class: 'pending' };
+                        }
+                    } else if (pending.action === 'delete') {
+                        return { class: '' };
+                    }
+                }
+            }
+            
+            if (calendarData[weekKey]) {
+                const calEvent = calendarData[weekKey].find(e => 
+                    e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                if (calEvent) {
+                    if (calEvent.status === 'booked') return { 
+                        class: 'booked', 
+                        studentName: calEvent.studentName || calEvent.memberName || ''
+                    };
+                    if (calEvent.status === 'reserved') return { 
+                        class: 'reserved', 
+                        studentName: calEvent.studentName || calEvent.memberName || ''
+                    };
+                    if (calEvent.status === 'available' && !calEvent.optimistic) return { 
+                        class: 'confirmed'
+                    };
+                    if (calEvent.status === 'available' && calEvent.optimistic) return {
+                        class: 'confirmed',
+                        optimistic: true
+                    };
+                }
+            }
+            
+            return { class: '' };
+        }
+
+        function toggleViewMode() {
+            if (viewMode === 'simple') {
+                viewMode = 'detail';
+                document.getElementById('viewModeBtn').innerHTML = '⚡ 簡易模式';
+                document.getElementById('viewModeDesc').textContent = '切換只選"整點"時段';
+                showToast('🎯 詳細模式');
+            } else {
+                viewMode = 'simple';
+                document.getElementById('viewModeBtn').innerHTML = '🎯 詳細模式';
+                document.getElementById('viewModeDesc').textContent = '切換可選15/30/45分';
+                showToast('⚡ 簡易模式');
+            }
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        function getCurrentTimeSlots() {
+            return viewMode === 'simple' ? timeSlotsSimple : timeSlotsDetail;
+        }
+
+        // ✅ 修復版 toggleSlot - 防止快速點擊造成重複
+        function toggleSlot(dayIndex, timeIndex, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // ✅ 防止快速點擊
+            if (isToggling) {
+                console.log('⏳ 操作中，請稍候...');
+                return;
+            }
+            isToggling = true;
+            setTimeout(() => { isToggling = false; }, 300);  // 300ms 防抖
+            
+            const timeSlots = getCurrentTimeSlots();
+            const date = new Date(currentWeekStart);
+            date.setDate(date.getDate() + dayIndex);
+            const dateStr = formatDate(date);
+            const startTime = timeSlots[timeIndex];
+            
+            const durationMinutes = 60;
+            const endTimeInfo = calculateEndTimeAndDate(dateStr, startTime, durationMinutes);
+            const endTime = endTimeInfo.endTime;
+            
+            if (endTimeInfo.isCrossDay) {
+                console.log(`⏰ 跨日時段: ${dateStr} ${startTime} → ${endTimeInfo.endDate} ${endTime}`);
+            }
+            
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            // 檢查是否為已預約/保留的時段
+            if (calendarData[weekKey]) {
+                const existingEvent = calendarData[weekKey].find(e => 
+                    e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                if (existingEvent && (existingEvent.status === 'booked' || existingEvent.status === 'reserved')) {
+                    showToast('❌ 此時段無法修改');
+                    return;
+                }
+            }
+            
+            if (!pendingChanges[weekKey]) pendingChanges[weekKey] = [];
+            
+            // ✅ 修復：同時檢查 optimistic 和非 optimistic
+            const existsInCalendar = calendarData[weekKey] && calendarData[weekKey].some(e => 
+                e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime && 
+                e.status === 'available' && !e.optimistic
+            );
+            
+            const existsOptimistic = calendarData[weekKey] && calendarData[weekKey].some(e =>
+                e && e.date === dateStr && e.startTime === startTime && e.endTime === endTime &&
+                e.status === 'available' && e.optimistic
+            );
+            
+            const pendingIndex = pendingChanges[weekKey].findIndex(p => 
+                p.date === dateStr && p.startTime === startTime && p.endTime === endTime
+            );
+            
+            if (pendingIndex >= 0) {
+                const pendingAction = pendingChanges[weekKey][pendingIndex].action;
+                pendingChanges[weekKey].splice(pendingIndex, 1);
+                
+                if (pendingAction === 'add') {
+                    const eventIndex = calendarData[weekKey]?.findIndex(e =>
+                        e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                    );
+                    if (eventIndex >= 0) {
+                        calendarData[weekKey].splice(eventIndex, 1);
+                    }
+                }
+                
+                showToast(`❌ 已取消 ${startTime}-${endTime}`);
+            }
+            else if (existsInCalendar) {
+                const calEvent = calendarData[weekKey].find(e =>
+                    e.date === dateStr && e.startTime === startTime && e.endTime === endTime
+                );
+                
+                pendingChanges[weekKey].push({
+                    action: 'delete',
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    endDate: endTimeInfo.endDate,
+                    isCrossDay: endTimeInfo.isCrossDay,
+                    dayIndex,
+                    dayLabel: dayLabels[dayIndex],
+                    duration: durationMinutes,
+                    eventId: calEvent ? calEvent.eventId : null
+                });
+                
+                showToast(`📝 已標記刪除 ${startTime}-${endTime}`);
+            }
+            else if (existsOptimistic) {
+                // ✅ 新增：如果已經有 optimistic，就取消它
+                const eventIndex = calendarData[weekKey]?.findIndex(e =>
+                    e.date === dateStr && e.startTime === startTime && e.endTime === endTime && e.optimistic
+                );
+                if (eventIndex >= 0) {
+                    calendarData[weekKey].splice(eventIndex, 1);
+                }
+                
+                // 找到對應的 pending 並移除
+                const pendingIdx = pendingChanges[weekKey].findIndex(p =>
+                    p.date === dateStr && p.startTime === startTime && p.endTime === endTime && p.action === 'add'
+                );
+                if (pendingIdx >= 0) {
+                    pendingChanges[weekKey].splice(pendingIdx, 1);
+                }
+                
+                showToast(`❌ 已取消 ${startTime}-${endTime}`);
+            }
+            else {
+                if (!calendarData[weekKey]) calendarData[weekKey] = [];
+                
+                const tempEventId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                
+                calendarData[weekKey].push({
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    status: 'available',
+                    eventId: tempEventId,
+                    optimistic: true
+                });
+                
+                pendingChanges[weekKey].push({
+                    action: 'add',
+                    date: dateStr,
+                    startTime,
+                    endTime,
+                    endDate: endTimeInfo.endDate,
+                    isCrossDay: endTimeInfo.isCrossDay,
+                    dayIndex,
+                    dayLabel: dayLabels[dayIndex],
+                    duration: durationMinutes,
+                    tempEventId: tempEventId
+                });
+                
+                showToast(`✅ 已新增 ${startTime}-${endTime} (待送出)${endTimeInfo.isCrossDay ? ' (跨日)' : ''}`);
+            }
+            
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        // ✅ 修復版 showSaveModal - 加入去重顯示
+        function showSaveModal() {
+            const allChangesRaw = [];
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey] && pendingChanges[weekKey].length > 0) {
+                    allChangesRaw.push(...pendingChanges[weekKey]);
+                }
             });
-            if (sync && sync.ok === false) {
-                toast('⚠️ 諮詢單同步失敗：' + sync.error);
+            
+            if (allChangesRaw.length === 0) {
+                showToast('ℹ️ 沒有需要送出的變更');
+                return;
+            }
+            
+            // ✅ 去重
+            const seenKeys = new Set();
+            const allChanges = [];
+            
+            allChangesRaw.forEach(change => {
+                const key = `${change.action}_${change.date}_${change.startTime}_${change.endTime}`;
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    allChanges.push(change);
+                }
+            });
+            
+            const added = allChanges.filter(c => c.action === 'add');
+            const deleted = allChanges.filter(c => c.action === 'delete');
+            
+            document.getElementById('modalAddCount').textContent = added.length;
+            document.getElementById('modalDeleteCount').textContent = deleted.length;
+            document.getElementById('modalTotalCount').textContent = allChanges.length;
+            
+            const changesList = [...added, ...deleted].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            document.getElementById('confirmScheduleList').innerHTML = changesList.map(c => `
+                <div class="schedule-item ${c.action}">
+                    <div><div class="schedule-date">${c.date} (${c.dayLabel})</div></div>
+                    <div class="schedule-time">${c.startTime} - ${c.endTime}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('saveModalOverlay').classList.remove('hidden');
+        }
+
+        function hideSaveModal() {
+            document.getElementById('saveModalOverlay').classList.add('hidden');
+        }
+
+        function showWeekJumpModal() {
+            document.getElementById('jumpToDate').value = formatDate(currentWeekStart);
+            document.getElementById('weekJumpModalOverlay').classList.remove('hidden');
+        }
+
+        function hideWeekJumpModal() {
+            document.getElementById('weekJumpModalOverlay').classList.add('hidden');
+        }
+
+        function confirmWeekJump() {
+            const dateInput = document.getElementById('jumpToDate').value;
+            if (!dateInput) {
+                showToast('⚠️ 請選擇日期');
+                return;
+            }
+
+            const selectedDate = new Date(dateInput + 'T00:00:00');
+            const dayOfWeek = selectedDate.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const weekStart = new Date(selectedDate);
+            weekStart.setDate(selectedDate.getDate() + diff);
+            weekStart.setHours(0, 0, 0, 0);
+            
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            currentWeekStart = weekStart;
+            currentWeekEnd = weekEnd;
+            
+            hideWeekJumpModal();
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            showToast(`📅 已跳轉至 ${formatDate(weekStart)}`);
+        }
+
+        // ✅ 修復版 confirmSave - 加入去重邏輯
+        async function confirmSave() {
+            if (isSaving) {
+                showToast('⚠️ 正在送出中,請稍候...');
+                return;
+            }
+            
+            // ✅ 收集所有變更
+            const allChangesRaw = [];
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey] && pendingChanges[weekKey].length > 0) {
+                    allChangesRaw.push(...pendingChanges[weekKey]);
+                }
+            });
+            
+            if (allChangesRaw.length === 0) {
+                hideSaveModal();
+                return;
+            }
+            
+            // ✅ 關鍵修復：去重邏輯
+            const seenKeys = new Set();
+            const allChanges = [];
+            
+            allChangesRaw.forEach(change => {
+                // 建立唯一 key：action + date + startTime + endTime
+                const key = `${change.action}_${change.date}_${change.startTime}_${change.endTime}`;
+                
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    allChanges.push(change);
+                } else {
+                    console.warn('⚠️ 跳過重複項目:', key);
+                }
+            });
+            
+            console.log(`📊 去重前: ${allChangesRaw.length} 項, 去重後: ${allChanges.length} 項`);
+            
+            if (allChanges.length === 0) {
+                hideSaveModal();
+                showToast('ℹ️ 沒有需要送出的變更');
+                return;
+            }
+            
+            const deleteChanges = allChanges.filter(c => c.action === 'delete');
+            const missingEventIds = deleteChanges.filter(c => !c.eventId);
+            
+            if (missingEventIds.length > 0) {
+                console.warn('⚠️ 以下刪除操作缺少 eventId:', missingEventIds);
+            }
+            
+            if (!currentCoachId) {
+                showToast('❌ 無法辨識教練身份，請重新載入頁面', 4000);
+                return;
+            }
+
+            isSaving = true;
+
+            const confirmBtn = document.getElementById('confirmSaveBtn');
+            const originalText = confirmBtn ? confirmBtn.textContent : '確認送出';
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.style.cursor = 'not-allowed';
+                confirmBtn.textContent = '送出中...';
+            }
+            
+            hideSaveModal();
+            showToast(`📤 送出 ${allChanges.length} 個時段...`);
+            
+            try {
+                // 準備 changes 資料（共用）
+                const mappedChanges = allChanges.map(c => {
+                    const endTimeInfo = calculateEndTimeAndDate(c.date, c.startTime, c.duration || 60);
+                    return {
+                        action: c.action,
+                        date: c.date,
+                        startTime: c.startTime,
+                        endTime: endTimeInfo.endTime,
+                        endDate: endTimeInfo.endDate,
+                        isCrossDay: endTimeInfo.isCrossDay,
+                        dayName: c.dayLabel,
+                        startDateTime: `${c.date} ${c.startTime}`,
+                        endDateTime: endTimeInfo.endDateTime,
+                        eventId: c.eventId || null
+                    };
+                });
+
+                // ── 寫入 Supabase trial_slots ──
+                const result = await callEdge('saveSlots', {
+                    coachId: currentCoachId,
+                    coachName: currentTeacher,
+                    coachType: currentTeacherType,
+                    changes: mappedChanges
+                });
+
+                if (result?.success) {
+                    console.log('✅ trial_slots 寫入成功');
+
+                    pendingChanges = {};
+                    await loadFromCalendar();
+                    generateCalendar();
+                    updateStats();
+                    updateSaveStatus();
+
+                    showToast(`🎉 已送出 ${allChanges.length} 個時段!`);
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+
+                } else {
+                    const detail = result?.errors ? result.errors.join('; ') : (result?.error || '寫入失敗');
+                    console.error('❌ saveSlots 失敗:', JSON.stringify(result));
+                    throw new Error(detail);
+                }
+
+            } catch (error) {
+                console.error('❌ 送出錯誤:', error);
+                const errMsg = error?.message || String(error);
+                showToast(`❌ 送出失敗: ${errMsg.substring(0, 100)}`, 6000);
+
+                if (confirm(`送出失敗: ${errMsg.substring(0, 150)}\n\n是否要重新載入頁面以確保資料一致性?`)) {
+                    location.reload();
+                }
+            } finally {
+                isSaving = false;
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.cursor = 'pointer';
+                    confirmBtn.textContent = originalText;
+                }
             }
         }
 
-        closeModal();
-        await loadSlots();
-    } catch (e) {
-        if (e && e.code === 'user_cancelled_duplicate') {
-            toast('已取消變更');
-        } else {
-            toast('儲存失敗：' + e.message);
+        async function reloadFromCalendar() {
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) totalPending += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalUnsaved = totalPending + optimisticCount;
+            
+            if (totalUnsaved > 0) {
+                if (!confirm(`確定要重新載入嗎?有 ${totalUnsaved} 個未儲存的變更將會遺失。`)) {
+                    return;
+                }
+            } else {
+                if (!confirm('確定要重新載入嗎?')) {
+                    return;
+                }
+            }
+            
+            document.getElementById('loadingScreen').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = '重新載入資料中...';
+            
+            calendarData = {};
+            pendingChanges = {};
+            
+            await loadFromCalendar();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            document.getElementById('loadingScreen').classList.add('hidden');
+            showToast('✅ 重新載入完成');
         }
-    }
-    showLoading(false);
-}
 
-// ═══════════════════════════════════════════════
-//  工具函數
-// ═══════════════════════════════════════════════
-function fmt(d) {
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-function getWeekNumber(d) {
-    const onejan = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
-}
-function getDayName(dateStr) {
-    const names = ['週日','週一','週二','週三','週四','週五','週六'];
-    return names[new Date(dateStr + 'T00:00:00').getDay()] || '';
-}
-function calculateEndTimeAndDate(dateStr, startTime, durationMinutes = 60) {
-    const startDateTime = new Date(`${dateStr}T${startTime}:00`);
-    const endDateTime = new Date(startDateTime);
-    endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
-    const endYear = endDateTime.getFullYear();
-    const endMonth = String(endDateTime.getMonth() + 1).padStart(2, '0');
-    const endDay = String(endDateTime.getDate()).padStart(2, '0');
-    const endDate = `${endYear}-${endMonth}-${endDay}`;
-    const endHour = String(endDateTime.getHours()).padStart(2, '0');
-    const endMinute = String(endDateTime.getMinutes()).padStart(2, '0');
-    const endTime = `${endHour}:${endMinute}`;
-    return {
-        endDate,
-        endTime,
-        endDateTime: `${endDate} ${endTime}`,
-        isCrossDay: dateStr !== endDate
-    };
-}
-function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
-}
-function showLoading(on) {
-    document.getElementById('loadingMask').classList.toggle('show', on);
-}
-</script>
+        function clearCurrentWeek() {
+            const weekKey = getWeekKey(currentWeekStart);
+            
+            let pendingCount = 0;
+            if (pendingChanges[weekKey]) {
+                pendingCount = pendingChanges[weekKey].length;
+            }
+            
+            let optimisticCount = 0;
+            if (calendarData[weekKey]) {
+                optimisticCount = calendarData[weekKey].filter(e => e.optimistic).length;
+            }
+            
+            const totalCount = pendingCount + optimisticCount;
+            
+            if (totalCount === 0) {
+                showToast('ℹ️ 本週沒有待送出的變更');
+                return;
+            }
+            
+            if (confirm(`確定要清除本週 ${totalCount} 個待送出的變更嗎?`)) {
+                if (pendingChanges[weekKey]) {
+                    delete pendingChanges[weekKey];
+                }
+                
+                if (calendarData[weekKey]) {
+                    calendarData[weekKey] = calendarData[weekKey].filter(e => !e.optimistic);
+                }
+                
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                showToast(`🗑️ 已清除 ${totalCount} 個變更`);
+            }
+        }
+        
+        function clearAllWeeks() {
+            let pendingCount = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) pendingCount += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalCount = pendingCount + optimisticCount;
+            
+            if (totalCount === 0) {
+                showToast('ℹ️ 沒有待送出的變更');
+                return;
+            }
+            
+            if (confirm(`確定要清除全部 ${totalCount} 個待送出的變更嗎?`)) {
+                pendingChanges = {};
+                
+                Object.keys(calendarData).forEach(weekKey => {
+                    if (calendarData[weekKey]) {
+                        calendarData[weekKey] = calendarData[weekKey].filter(e => !e.optimistic);
+                    }
+                });
+                
+                generateCalendar();
+                updateStats();
+                updateSaveStatus();
+                showToast(`🗑️ 已清除 ${totalCount} 個變更`);
+            }
+        }
+
+        // ✅ 修復版 copyLastWeek - 同時檢查 calendarData 和 pendingChanges
+        function copyLastWeek() {
+            const lastWeekStart = new Date(currentWeekStart);
+            lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+            const lastWeekKey = getWeekKey(lastWeekStart);
+            
+            if (!calendarData[lastWeekKey] || calendarData[lastWeekKey].length === 0) {
+                showToast('❌ 上週沒有排程資料');
+                return;
+            }
+            
+            const currentWeekKey = getWeekKey(currentWeekStart);
+            if (!pendingChanges[currentWeekKey]) pendingChanges[currentWeekKey] = [];
+            if (!calendarData[currentWeekKey]) calendarData[currentWeekKey] = [];
+            
+            let copiedCount = 0;
+            let skippedCount = 0;
+            
+            calendarData[lastWeekKey].forEach(event => {
+                if (event && event.status === 'available' && !event.optimistic) {
+                    const lastWeekDate = new Date(event.date + 'T00:00:00');
+                    const currentWeekDate = new Date(lastWeekDate);
+                    currentWeekDate.setDate(currentWeekDate.getDate() + 7);
+                    const newDateStr = formatDate(currentWeekDate);
+                    
+                    // ✅ 修復：同時檢查 calendarData 和 pendingChanges
+                    const existsInCalendar = calendarData[currentWeekKey].some(e => 
+                        e.date === newDateStr && e.startTime === event.startTime && e.endTime === event.endTime
+                    );
+                    
+                    const existsInPending = pendingChanges[currentWeekKey].some(p =>
+                        p.date === newDateStr && p.startTime === event.startTime && p.endTime === event.endTime
+                    );
+                    
+                    if (existsInCalendar || existsInPending) {
+                        skippedCount++;
+                        console.log(`⏭️ 跳過已存在: ${newDateStr} ${event.startTime}`);
+                        return;
+                    }
+                    
+                    const dayIndex = currentWeekDate.getDay() === 0 ? 6 : currentWeekDate.getDay() - 1;
+                    const tempEventId = `temp-${Date.now()}-${copiedCount}-${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    calendarData[currentWeekKey].push({
+                        date: newDateStr,
+                        startTime: event.startTime,
+                        endTime: event.endTime,
+                        status: 'available',
+                        eventId: tempEventId,
+                        optimistic: true
+                    });
+                    
+                    pendingChanges[currentWeekKey].push({
+                        action: 'add',
+                        date: newDateStr,
+                        startTime: event.startTime,
+                        endTime: event.endTime,
+                        dayIndex,
+                        dayLabel: dayLabels[dayIndex],
+                        tempEventId: tempEventId
+                    });
+                    
+                    copiedCount++;
+                }
+            });
+            
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+            
+            if (skippedCount > 0) {
+                showToast(`📋 複製 ${copiedCount} 個時段 (跳過 ${skippedCount} 個重複)`);
+            } else {
+                showToast(`📋 已複製 ${copiedCount} 個時段 (待送出)`);
+            }
+        }
+
+        function previousWeek() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            if (weekDiff + 1 <= 1) {
+                showToast('⚠️ 已經是本週了');
+                return;
+            }
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            currentWeekEnd.setDate(currentWeekEnd.getDate() - 7);
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        function nextWeek() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            if (weekDiff + 1 >= PRELOAD_WEEKS) {
+                showToast(`⚠️ 最多${PRELOAD_WEEKS}週`);
+                return;
+            }
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            currentWeekEnd.setDate(currentWeekEnd.getDate() + 7);
+            updateWeekDisplay();
+            generateCalendar();
+            updateStats();
+            updateSaveStatus();
+        }
+
+        async function getUserInfo() {
+            const params = new URLSearchParams(window.location.search);
+            // 優先用 coachId（新流程），向下相容舊參數
+            currentCoachId = params.get('coach_id') || params.get('coachId') || '';
+            currentTeacher = params.get('userId') || params.get('teacher') || params.get('coach') || params.get('name') || '';
+            currentTeacherType = params.get('type') || params.get('coach_type') || '';
+
+            // 從 API 取得教練完整資訊（名稱、課種、ID）
+            try {
+                const queryParams = currentCoachId
+                    ? { coachId: currentCoachId }
+                    : currentTeacher
+                        ? { userId: currentTeacher, coachType: currentTeacherType }
+                        : null;
+                if (queryParams) {
+                    const coachRes = await callEdge('getCoachSchedule', queryParams);
+                    if (coachRes?.success && coachRes.coach) {
+                        const coach = coachRes.coach;
+                        if (!currentCoachId && coach.id) {
+                            currentCoachId = coach.id;
+                            console.log('✅ 從 API 取得 coachId:', currentCoachId);
+                        }
+                        currentCoachNickname = coach.name || coach.nickname || currentTeacher;
+                        currentTeacher = currentCoachNickname;
+                        currentTeacherType = coach.coach_type || currentTeacherType;
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ 查詢教練失敗:', e.message);
+            }
+
+            // 顯示教練名稱（首字母大寫已在 DB nickname 處理）
+            document.getElementById('userName').textContent = currentTeacher || 'test-coach';
+
+            // 顯示課種中文名稱
+            const TYPE_DISPLAY = {
+                'ai_analysis': 'AI 3D體態分析',
+                'pilates': '皮拉提斯',
+                'stretch': '肌肉賦能伸展',
+                'strength_training': '重訓',
+                'stretching': '肌肉賦能伸展'
+            };
+            document.getElementById('userType').textContent = TYPE_DISPLAY[currentTeacherType] || currentTeacherType;
+            document.getElementById('userAvatar').textContent = getCoachTypeIcon(currentTeacherType);
+        }
+        
+        function getCoachTypeIcon(type) {
+            const typeMap = {
+                'ai_analysis': '🤖',
+                'aianalysis': '🤖',
+                'pilates': '🧘',
+                'stretch': '🤸',
+                'stretching': '🤸',
+                'strength_training': '💪',
+                'strengthtraining': '💪',
+                'AI分析': '🤖',
+                'ai分析': '🤖',
+                'AI 3D體態分析': '🤖',
+                '皮拉提斯': '🧘',
+                '重訓': '💪',
+                '肌肉賦能伸展': '🤸',
+                '伸展': '🤸'
+            };
+            
+            if (typeMap[type]) return typeMap[type];
+            
+            const normalized = type.toLowerCase().replace(/_/g, '');
+            return typeMap[normalized] || '👤';
+        }
+
+        function setCurrentWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            currentWeekStart = new Date(today);
+            currentWeekStart.setDate(today.getDate() + diff);
+            currentWeekStart.setHours(0, 0, 0, 0);
+            currentWeekEnd = new Date(currentWeekStart);
+            currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+            baseWeekStart = new Date(currentWeekStart);
+        }
+
+        function updateWeekDisplay() {
+            const weekDiff = Math.round((currentWeekStart - baseWeekStart) / (7 * 24 * 60 * 60 * 1000));
+            const year = currentWeekStart.getFullYear();
+            document.getElementById('weekDisplay').textContent = `${year}年 第 ${weekDiff + 1} 週`;
+            document.getElementById('weekRange').textContent = `${formatDateShort(currentWeekStart)} - ${formatDateShort(currentWeekEnd)}`;
+        }
+
+        function getWeekKey(date) {
+            // ✅ 使用 ISO 週年，而不是日期的年份
+            const isoWeekYear = getISOWeekYear(date);
+            return `${isoWeekYear}-W${String(getWeekNumber(date)).padStart(2, '0')}`;
+        }
+
+        function getWeekKeyFromDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return getWeekKey(date);
+        }
+
+        // ✅ 新增：計算 ISO 週年（處理跨年問題）
+        function getISOWeekYear(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            // 調整到該週的週四
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            // 週四所在的年份就是 ISO 週年
+            return d.getFullYear();
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function formatDate(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatDateShort(date) {
+            return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function isDateToday(date) {
+            const today = new Date();
+            return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        }
+
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+        
+        window.addEventListener('beforeunload', function(e) {
+            let totalPending = 0;
+            Object.keys(pendingChanges).forEach(weekKey => {
+                if (pendingChanges[weekKey]) totalPending += pendingChanges[weekKey].length;
+            });
+            
+            let optimisticCount = 0;
+            Object.keys(calendarData).forEach(weekKey => {
+                if (calendarData[weekKey]) {
+                    optimisticCount += calendarData[weekKey].filter(e => e.optimistic).length;
+                }
+            });
+            
+            const totalUnsaved = totalPending + optimisticCount;
+            
+            if (totalUnsaved > 0) {
+                const message = `您有 ${totalUnsaved} 個未送出的變更,確定要離開嗎?`;
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        });
+    </script>
 </body>
 </html>
