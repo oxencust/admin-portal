@@ -182,10 +182,30 @@ select.date-select { padding: 5px 10px; border-radius: 20px; border: 1px solid #
     .card-ident .name { font-size: 14px; }
     .thumb, .thumb-ph { width: 42px; height: 42px; }
 }
+
+/* Auth gate（未登入顯示） */
+.auth-gate { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.auth-gate-box { max-width: 360px; width: 100%; text-align: center; padding: 32px 24px; border-radius: 18px; }
+.auth-gate-icon { font-size: 48px; margin-bottom: 12px; }
+.auth-gate-box h2 { margin: 0 0 8px; color: var(--green-dark); font-size: 20px; }
+.auth-gate-box p { color: var(--muted); font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
+.auth-gate-btn { display: inline-block; background: var(--green); color: #fff; padding: 10px 24px; border-radius: 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.auth-gate-btn:hover { background: var(--green-dark); }
 </style>
 </head>
 <body>
-<div class="page-wrap">
+
+<!-- 未登入遮罩（portalUser 為 null 時顯示） -->
+<div id="authGate" class="auth-gate" style="display:none">
+    <div class="auth-gate-box glass">
+        <div class="auth-gate-icon">🔒</div>
+        <h2>未登入</h2>
+        <p>請先從行政管理入口登入後再進入本頁。</p>
+        <a class="auth-gate-btn" href="./">回到入口</a>
+    </div>
+</div>
+
+<div class="page-wrap" id="mainWrap">
 
     <!-- Header -->
     <div class="header glass">
@@ -299,6 +319,19 @@ select.date-select { padding: 5px 10px; border-radius: 20px; border: 1px solid #
 //  CONFIG
 // ═══════════════════════════════════════════════
 const MOTI_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api';
+
+// ═══════════════════════════════════════════════
+//  當前登入者（從入口頁 sessionStorage 讀）
+// ═══════════════════════════════════════════════
+function getPortalUser() {
+    try {
+        const raw = sessionStorage.getItem('currentStaff')
+                 || localStorage.getItem('pwa_currentStaff');
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+const portalUser = getPortalUser();
+const defaultReviewer = (portalUser && (portalUser.realName || portalUser.name)) || '';
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -567,7 +600,7 @@ function openApprove(id) {
          <div class="info-row"><span class="k">請假</span><span>${fmtDate(r.leave_date)} ${esc(r.leave_time || '')}</span></div>
          <div class="info-row"><span class="k">課程</span><span>${esc(r.course || '')} · ${esc(r.coach_name || '')}</span></div>
          <div class="info-row"><span class="k">類型</span><span>${esc(r.leave_type || '')}</span></div>`;
-    document.getElementById('approveReviewer').value = loadSavedReviewer();
+    document.getElementById('approveReviewer').value = defaultReviewer;
     document.getElementById('approveNote').value = '';
     document.getElementById('approveModal').classList.add('show');
 }
@@ -580,7 +613,7 @@ function openReject(id) {
          <div class="info-row"><span class="k">請假</span><span>${fmtDate(r.leave_date)} ${esc(r.leave_time || '')}</span></div>
          <div class="info-row"><span class="k">課程</span><span>${esc(r.course || '')} · ${esc(r.coach_name || '')}</span></div>
          <div class="info-row"><span class="k">類型</span><span>${esc(r.leave_type || '')}</span></div>`;
-    document.getElementById('rejectReviewer').value = loadSavedReviewer();
+    document.getElementById('rejectReviewer').value = defaultReviewer;
     document.getElementById('rejectNote').value = '';
     document.getElementById('rejectModal').classList.add('show');
 }
@@ -610,9 +643,9 @@ async function submitDecision(type) {
         await callEdge(isApprove ? 'approveLeaveRequest' : 'rejectLeaveRequest', {
             id: currentTarget.id,
             adminNote: note || null,
-            reviewer
+            reviewer,                       // 送進 reviewed_by（可被覆寫為代審人）
+            reviewerActual: defaultReviewer // 送進 reviewed_by_actual（實際登入者，審計用）
         });
-        saveReviewer(reviewer);
         closeModal(isApprove ? 'approveModal' : 'rejectModal');
         toast(isApprove ? '已核准' : '已拒絕');
         await loadData();
@@ -622,9 +655,6 @@ async function submitDecision(type) {
     }
     showLoading(false);
 }
-
-function loadSavedReviewer() { try { return localStorage.getItem('leave_admin_reviewer') || ''; } catch { return ''; } }
-function saveReviewer(name)  { try { localStorage.setItem('leave_admin_reviewer', name); } catch {} }
 
 // ═══════════════════════════════════════════════
 //  Lightbox
@@ -658,7 +688,13 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════
 //  Init
 // ═══════════════════════════════════════════════
-loadData();
+if (!portalUser) {
+    // 方案 α：未登入時顯示遮罩，停用主內容與審核動作
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('mainWrap').style.display = 'none';
+} else {
+    loadData();
+}
 </script>
 
 </body>
