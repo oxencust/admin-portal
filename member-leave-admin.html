@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>學員請假管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --green: #7ac19a; --green-dark: #5f846f; --green-light: rgba(122,193,154,.12);
+    --mint: #93c6c5;   /* 待審核主色 */
+    --pink: #f2ac98;
+    --terracotta: #b16056; /* 拒絕/病假主色 */
+    --yellow: #ffe08b;
+    --blue: #9fcccc;
+    --text: #2d3436;
+    --muted: #636e72;
+    --bg: #f5f7f6;
+    --danger: #e05252;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+    background-attachment: fixed;
+    color: var(--text);
+}
+body::before {
+    content: ''; position: fixed; top: -20%; right: -10%;
+    width: 50vw; height: 50vw;
+    background: radial-gradient(circle, rgba(147,198,197,0.22) 0%, transparent 60%);
+    border-radius: 50%; z-index: 0; pointer-events: none;
+}
+body::after {
+    content: ''; position: fixed; bottom: -10%; left: -15%;
+    width: 60vw; height: 60vw;
+    background: radial-gradient(circle, rgba(242,172,152,0.18) 0%, transparent 60%);
+    border-radius: 50%; z-index: 0; pointer-events: none;
+}
+
+.glass {
+    background: rgba(255,255,255,0.62);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.55);
+}
+
+/* 響應式容器（最大 900，允許在窄 iframe 或小螢幕內縮小）*/
+.page-wrap { width: 100%; max-width: 900px; margin: 0 auto; position: relative; z-index: 1; padding: 16px 14px 80px; }
+
+/* Header */
+.header { padding: 14px 16px; border-radius: 18px; margin-bottom: 12px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.header h1 { font-size: 17px; font-weight: 700; color: var(--green-dark); display: flex; align-items: center; gap: 8px; }
+.header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.refresh-btn { background: var(--green-light); border: 1px solid var(--green); color: var(--green-dark); border-radius: 20px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.refresh-btn:hover { background: rgba(122,193,154,0.25); }
+
+/* 統計條 */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+.stat { padding: 10px 8px; border-radius: 14px; text-align: center; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.stat:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+.stat .num { font-size: 22px; font-weight: 700; }
+.stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stat.pending .num { color: var(--mint); }
+.stat.approved .num { color: var(--green-dark); }
+.stat.rejected .num { color: var(--terracotta); }
+.stat.total .num { color: var(--muted); }
+.stat.active { box-shadow: 0 0 0 2px currentColor; }
+.stat.pending.active { color: var(--mint); }
+.stat.approved.active { color: var(--green-dark); }
+.stat.rejected.active { color: var(--terracotta); }
+.stat.total.active { color: var(--muted); }
+
+/* 篩選條 */
+.filters { padding: 10px 12px; border-radius: 16px; margin-bottom: 12px; }
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.filter-row:last-child { margin-bottom: 0; }
+.filter-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: white; cursor: pointer; transition: .2s; white-space: nowrap; font-family: inherit; }
+.filter-chip.active { background: var(--green); color: white; border-color: var(--green); }
+.filter-chip:hover { border-color: var(--green); }
+.search-box { flex: 1; min-width: 180px; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; font-size: 12px; font-family: inherit; outline: none; background: white; }
+.search-box:focus { border-color: var(--green); }
+select.date-select { padding: 5px 10px; border-radius: 20px; border: 1px solid #ddd; font-size: 12px; font-family: inherit; background: white; outline: none; }
+
+/* 卡片清單 */
+.list { display: flex; flex-direction: column; gap: 10px; }
+.card { padding: 14px 14px 12px; border-radius: 16px; position: relative; }
+.card.sick { border-left: 4px solid var(--terracotta); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.card-ident { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.card-ident .name { font-size: 15px; font-weight: 700; color: var(--text); }
+.card-ident .mid { font-size: 11px; color: var(--muted); background: rgba(0,0,0,.04); padding: 1px 7px; border-radius: 8px; }
+.card-ident .phone { font-size: 11px; color: var(--muted); }
+.badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-pending { background: rgba(147,198,197,0.2); color: #5a9796; }
+.badge-approved { background: rgba(122,193,154,0.22); color: var(--green-dark); }
+.badge-rejected { background: rgba(177,96,86,0.2); color: var(--terracotta); }
+.badge-cancelled { background: rgba(0,0,0,.08); color: #888; }
+.badge-type-regular { background: rgba(159,204,204,0.25); color: #4a7a7a; }
+.badge-type-urgent { background: rgba(255,224,139,0.4); color: #a07a1a; }
+.badge-type-sick { background: rgba(177,96,86,0.18); color: var(--terracotta); }
+
+.card-body { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 8px; }
+.info-line { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--text); }
+.info-line .k { color: var(--muted); margin-right: 2px; }
+.sub-line { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* 圖片縮圖 */
+.thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.thumb-group { display: flex; align-items: center; gap: 4px; }
+.thumb-group-lbl { font-size: 11px; color: var(--muted); margin-right: 2px; }
+.thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 1px solid rgba(0,0,0,.05); background: #eee; transition: transform .2s; }
+.thumb:hover { transform: scale(1.08); }
+.thumb-ph { width: 48px; height: 48px; border-radius: 8px; background: rgba(0,0,0,.04); display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 10px; }
+
+.admin-note-display { background: rgba(0,0,0,.04); padding: 7px 10px; border-radius: 10px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.admin-note-display .k { font-weight: 600; color: var(--text); margin-right: 4px; }
+
+/* 動作按鈕 */
+.card-actions { display: flex; gap: 6px; margin-top: 10px; }
+.btn { padding: 8px 14px; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex: 1; transition: .15s; }
+.btn-approve { background: var(--green-dark); color: white; }
+.btn-approve:hover { background: #4f7360; }
+.btn-reject { background: var(--terracotta); color: white; }
+.btn-reject:hover { background: #9b4c43; }
+.btn-secondary { background: rgba(0,0,0,.05); color: var(--muted); }
+.btn-secondary:hover { background: rgba(0,0,0,.1); }
+
+/* Empty state */
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+.empty .emoji { font-size: 36px; margin-bottom: 8px; opacity: .5; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; justify-content: center; align-items: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: 20px; padding: 22px; width: 92%; max-width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+.modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--green-dark); }
+.modal .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+.modal .info-row:last-of-type { border-bottom: none; }
+.modal .info-row .k { color: var(--muted); }
+.modal textarea { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 13px; font-family: inherit; margin: 10px 0 4px; outline: none; transition: .2s; resize: vertical; min-height: 70px; }
+.modal textarea:focus { border-color: var(--green); }
+.modal input[type="text"] { width: 100%; padding: 9px 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 13px; font-family: inherit; margin-top: 6px; outline: none; }
+.modal input[type="text"]:focus { border-color: var(--green); }
+.field-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 10px; }
+.modal .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+.modal .btn-row .btn { flex: 1; padding: 11px; }
+
+/* Lightbox */
+.lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 400; justify-content: center; align-items: center; padding: 20px; cursor: zoom-out; }
+.lightbox.show { display: flex; }
+.lightbox img { max-width: 100%; max-height: 92vh; border-radius: 12px; }
+.lightbox .lb-close { position: absolute; top: 18px; right: 22px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.18); border: none; color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.lightbox .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.18); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.lightbox .lb-prev { left: 18px; }
+.lightbox .lb-next { right: 18px; }
+.lightbox .lb-idx { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; font-size: 13px; background: rgba(0,0,0,.4); padding: 4px 12px; border-radius: 12px; }
+
+/* Loading */
+.loading-mask { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.55); backdrop-filter: blur(4px); z-index: 500; justify-content: center; align-items: center; }
+.loading-mask.show { display: flex; }
+.spinner { width: 36px; height: 36px; border: 3px solid #ddd; border-top-color: var(--green); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.8); color: white; padding: 10px 22px; border-radius: 20px; font-size: 13px; opacity: 0; transition: .3s; z-index: 600; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* 小螢幕調整 */
+@media (max-width: 480px) {
+    .stats { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .stat .num { font-size: 18px; }
+    .stat .lbl { font-size: 10px; }
+    .card { padding: 12px 12px 10px; }
+    .card-ident .name { font-size: 14px; }
+    .thumb, .thumb-ph { width: 42px; height: 42px; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <!-- Header -->
+    <div class="header glass">
+        <div class="header-top">
+            <div>
+                <h1>🏥 學員請假管理</h1>
+                <div class="header-sub">審核學員送出的請假申請</div>
+            </div>
+            <button class="refresh-btn" onclick="loadData()">↻ 重新整理</button>
+        </div>
+    </div>
+
+    <!-- 統計 / 快速篩選 -->
+    <div class="stats">
+        <div class="stat glass pending active" data-status="待審核" onclick="setStatusFilter('待審核', this)">
+            <div class="num" id="statPending">-</div>
+            <div class="lbl">待審核</div>
+        </div>
+        <div class="stat glass approved" data-status="已核准" onclick="setStatusFilter('已核准', this)">
+            <div class="num" id="statApproved">-</div>
+            <div class="lbl">已核准</div>
+        </div>
+        <div class="stat glass rejected" data-status="已拒絕" onclick="setStatusFilter('已拒絕', this)">
+            <div class="num" id="statRejected">-</div>
+            <div class="lbl">已拒絕</div>
+        </div>
+        <div class="stat glass total" data-status="all" onclick="setStatusFilter('all', this)">
+            <div class="num" id="statTotal">-</div>
+            <div class="lbl">全部</div>
+        </div>
+    </div>
+
+    <!-- 篩選 -->
+    <div class="filters glass">
+        <div class="filter-row">
+            <span style="font-size: 12px; color: var(--muted); font-weight: 500;">類型：</span>
+            <div class="filter-chip active" data-type="all" onclick="setTypeFilter('all', this)">全部</div>
+            <div class="filter-chip" data-type="事假" onclick="setTypeFilter('事假', this)">事假</div>
+            <div class="filter-chip" data-type="病假" onclick="setTypeFilter('病假', this)">病假</div>
+            <div class="filter-chip" data-type="臨時請假" onclick="setTypeFilter('臨時請假', this)">臨時請假</div>
+        </div>
+        <div class="filter-row">
+            <select class="date-select" id="dateRange" onchange="applyFilters()">
+                <option value="all">全部日期</option>
+                <option value="7">近 7 天送出</option>
+                <option value="30" selected>近 30 天送出</option>
+                <option value="month">本月送出</option>
+            </select>
+            <input type="text" class="search-box" id="searchBox" placeholder="搜尋姓名 / 電話 / 教練 / 學員編號" oninput="onSearchInput()">
+        </div>
+    </div>
+
+    <!-- 清單 -->
+    <div class="list" id="listContainer"></div>
+
+    <!-- Empty -->
+    <div class="empty" id="emptyState" style="display:none;">
+        <div class="emoji">📭</div>
+        <div>目前沒有符合條件的請假申請</div>
+    </div>
+
+</div>
+
+<!-- 核准 Modal -->
+<div class="modal-overlay" id="approveModal" onclick="if(event.target===this)closeModal('approveModal')">
+    <div class="modal">
+        <h3>✅ 核准請假申請</h3>
+        <div id="approveInfo" style="margin-bottom:10px;"></div>
+        <div class="field-label">審核人員姓名</div>
+        <input type="text" id="approveReviewer" placeholder="例：王小美">
+        <div class="field-label">備註（選填，學員看不到此欄）</div>
+        <textarea id="approveNote" placeholder="給行政同仁自己看的筆記"></textarea>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="closeModal('approveModal')">取消</button>
+            <button class="btn btn-approve" onclick="submitDecision('approved')">確認核准</button>
+        </div>
+    </div>
+</div>
+
+<!-- 拒絕 Modal -->
+<div class="modal-overlay" id="rejectModal" onclick="if(event.target===this)closeModal('rejectModal')">
+    <div class="modal">
+        <h3>❌ 拒絕請假申請</h3>
+        <div id="rejectInfo" style="margin-bottom:10px;"></div>
+        <div class="field-label">審核人員姓名</div>
+        <input type="text" id="rejectReviewer" placeholder="例：王小美">
+        <div class="field-label">備註（必填，說明拒絕原因）</div>
+        <textarea id="rejectNote" placeholder="請說明拒絕原因（僅供內部留存）"></textarea>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="closeModal('rejectModal')">取消</button>
+            <button class="btn btn-reject" onclick="submitDecision('rejected')">確認拒絕</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+    <button class="lb-close" onclick="closeLightbox()">×</button>
+    <button class="lb-nav lb-prev" onclick="event.stopPropagation(); navLightbox(-1)">‹</button>
+    <img id="lightboxImg" src="" alt="">
+    <button class="lb-nav lb-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
+    <div class="lb-idx" id="lbIdx"></div>
+</div>
+
+<!-- Loading / Toast -->
+<div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const MOTI_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api';
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let allRecords = [];
+let filter = { status: '待審核', type: 'all', date: '30', keyword: '' };
+let currentTarget = null;   // 正在審核的那一筆
+let lightboxImages = [];
+let lightboxIndex = 0;
+let searchDebounce = null;
+
+// ═══════════════════════════════════════════════
+//  Edge Function 呼叫
+// ═══════════════════════════════════════════════
+async function callEdge(action, params = {}) {
+    const res = await fetch(MOTI_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...params })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) {
+        throw new Error(json.error || json.message || `API error: ${res.status}`);
+    }
+    return json;
+}
+
+// ═══════════════════════════════════════════════
+//  工具
+// ═══════════════════════════════════════════════
+function showLoading(b) { document.getElementById('loadingMask').classList.toggle('show', b); }
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// ImageKit 轉檔參數（HEIC 原生瀏覽器不支援，統一轉 JPG）
+function thumb(url) { return url ? url + '?tr=f-jpg,w-200,q-80' : ''; }
+function full(url)  { return url ? url + '?tr=f-jpg,q-90' : ''; }
+
+function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    // YYYY-MM-DD → MM/DD（週X）
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d)) return dateStr;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const week = ['日','一','二','三','四','五','六'][d.getDay()];
+    return `${mm}/${dd}（${week}）`;
+}
+function fmtDateTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+}
+
+// ═══════════════════════════════════════════════
+//  載入資料
+// ═══════════════════════════════════════════════
+async function loadData() {
+    showLoading(true);
+    try {
+        // 統計
+        const stats = await callEdge('getLeaveStats');
+        const c = stats.counts || {};
+        document.getElementById('statPending').textContent = c.pending || 0;
+        document.getElementById('statApproved').textContent = c.approved || 0;
+        document.getElementById('statRejected').textContent = c.rejected || 0;
+        document.getElementById('statTotal').textContent = c.total || 0;
+
+        // 清單
+        const params = {};
+        if (filter.status && filter.status !== 'all') params.status = filter.status;
+        if (filter.keyword) params.keyword = filter.keyword;
+        params.limit = 200;
+
+        const res = await callEdge('listLeaveRequests', params);
+        allRecords = res.data || [];
+        render();
+    } catch (e) {
+        console.error(e);
+        toast('載入失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+// ═══════════════════════════════════════════════
+//  篩選 + 渲染
+// ═══════════════════════════════════════════════
+function setStatusFilter(status, el) {
+    filter.status = status;
+    document.querySelectorAll('.stat').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+    loadData();
+}
+function setTypeFilter(type, el) {
+    filter.type = type;
+    document.querySelectorAll('.filter-chip[data-type]').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+    render();
+}
+function applyFilters() {
+    filter.date = document.getElementById('dateRange').value;
+    render();
+}
+function onSearchInput() {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+        filter.keyword = document.getElementById('searchBox').value.trim();
+        loadData();
+    }, 400);
+}
+
+function getFiltered() {
+    let list = allRecords;
+
+    // 類型
+    if (filter.type !== 'all') {
+        list = list.filter(r => r.leave_type === filter.type);
+    }
+
+    // 日期（依 submitted_at）
+    if (filter.date !== 'all') {
+        const now = new Date();
+        let cutoff;
+        if (filter.date === 'month') {
+            cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else {
+            const days = parseInt(filter.date, 10) || 30;
+            cutoff = new Date(now.getTime() - days * 86400000);
+        }
+        list = list.filter(r => {
+            const d = new Date(r.submitted_at || r.created_at);
+            return d >= cutoff;
+        });
+    }
+
+    return list;
+}
+
+function render() {
+    const list = getFiltered();
+    const container = document.getElementById('listContainer');
+    const empty = document.getElementById('emptyState');
+
+    if (list.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    container.innerHTML = list.map(r => cardHTML(r)).join('');
+}
+
+function cardHTML(r) {
+    const statusBadgeClass = {
+        '待審核': 'badge-pending',
+        '已核准': 'badge-approved',
+        '已拒絕': 'badge-rejected',
+        '已取消': 'badge-cancelled'
+    }[r.status] || 'badge-cancelled';
+
+    const typeBadgeClass = {
+        '事假': 'badge-type-regular',
+        '病假': 'badge-type-sick',
+        '臨時請假': 'badge-type-urgent'
+    }[r.leave_type] || 'badge-type-regular';
+
+    const isSick = r.leave_type === '病假';
+    const isPending = r.status === '待審核';
+
+    const chatUrls = (r.chat_image_urls || []).filter(u => u);
+    const medUrls  = (r.medical_image_urls || []).filter(u => u);
+
+    let thumbsHTML = '';
+    if (chatUrls.length > 0 || medUrls.length > 0) {
+        thumbsHTML = '<div class="thumbs">';
+        if (chatUrls.length > 0) {
+            thumbsHTML += `<div class="thumb-group"><span class="thumb-group-lbl">📸 聊天 ${chatUrls.length}</span>`;
+            chatUrls.slice(0, 3).forEach((u, i) => {
+                thumbsHTML += `<img class="thumb" src="${esc(thumb(u))}" alt="聊天截圖" onclick='openLightbox(${JSON.stringify(chatUrls).replace(/'/g,"&#39;")}, ${i})'>`;
+            });
+            if (chatUrls.length > 3) {
+                thumbsHTML += `<div class="thumb-ph" onclick='openLightbox(${JSON.stringify(chatUrls).replace(/'/g,"&#39;")}, 3)'>+${chatUrls.length - 3}</div>`;
+            }
+            thumbsHTML += `</div>`;
+        }
+        if (medUrls.length > 0) {
+            thumbsHTML += `<div class="thumb-group"><span class="thumb-group-lbl">🏥 醫證 ${medUrls.length}</span>`;
+            medUrls.slice(0, 3).forEach((u, i) => {
+                thumbsHTML += `<img class="thumb" src="${esc(thumb(u))}" alt="醫療證明" onclick='openLightbox(${JSON.stringify(medUrls).replace(/'/g,"&#39;")}, ${i})'>`;
+            });
+            if (medUrls.length > 3) {
+                thumbsHTML += `<div class="thumb-ph" onclick='openLightbox(${JSON.stringify(medUrls).replace(/'/g,"&#39;")}, 3)'>+${medUrls.length - 3}</div>`;
+            }
+            thumbsHTML += `</div>`;
+        }
+        thumbsHTML += '</div>';
+    }
+
+    let actionHTML = '';
+    if (isPending) {
+        actionHTML = `
+            <div class="card-actions">
+                <button class="btn btn-reject" onclick="openReject('${r.id}')">❌ 拒絕</button>
+                <button class="btn btn-approve" onclick="openApprove('${r.id}')">✅ 核准</button>
+            </div>`;
+    }
+
+    let noteHTML = '';
+    if (!isPending && (r.admin_note || r.reviewed_by || r.reviewed_at)) {
+        const who = r.reviewed_by ? esc(r.reviewed_by) : '—';
+        const when = r.reviewed_at ? fmtDateTime(r.reviewed_at) : '';
+        noteHTML = `<div class="admin-note-display">
+            <span class="k">審核：</span>${who}${when ? ' · ' + when : ''}
+            ${r.admin_note ? `<br><span class="k">備註：</span>${esc(r.admin_note)}` : ''}
+        </div>`;
+    }
+
+    return `
+    <div class="card glass ${isSick ? 'sick' : ''}">
+        <div class="card-head">
+            <div class="card-ident">
+                <span class="name">${esc(r.member_name || '—')}</span>
+                ${r.member_id ? `<span class="mid">${esc(r.member_id)}</span>` : ''}
+                <span class="phone">${esc(r.phone || '')}</span>
+            </div>
+            <div class="badges">
+                <span class="badge ${typeBadgeClass}">${esc(r.leave_type || '')}</span>
+                <span class="badge ${statusBadgeClass}">${esc(r.status || '')}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="info-line">
+                <span><span class="k">請假：</span>${fmtDate(r.leave_date)} ${esc(r.leave_time || '')}</span>
+                <span><span class="k">課程：</span>${esc(r.course || '')} · ${esc(r.coach_name || '')}</span>
+            </div>
+            <div class="sub-line">送出時間：${fmtDateTime(r.submitted_at || r.created_at)}${r.line_display_name ? ' · LINE：' + esc(r.line_display_name) : ''}</div>
+        </div>
+        ${thumbsHTML}
+        ${noteHTML}
+        ${actionHTML}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  核准 / 拒絕 Modal
+// ═══════════════════════════════════════════════
+function openApprove(id) {
+    const r = allRecords.find(x => String(x.id) === String(id));
+    if (!r) return;
+    currentTarget = r;
+    document.getElementById('approveInfo').innerHTML =
+        `<div class="info-row"><span class="k">學員</span><span>${esc(r.member_name)} / ${esc(r.phone || '')}</span></div>
+         <div class="info-row"><span class="k">請假</span><span>${fmtDate(r.leave_date)} ${esc(r.leave_time || '')}</span></div>
+         <div class="info-row"><span class="k">課程</span><span>${esc(r.course || '')} · ${esc(r.coach_name || '')}</span></div>
+         <div class="info-row"><span class="k">類型</span><span>${esc(r.leave_type || '')}</span></div>`;
+    document.getElementById('approveReviewer').value = loadSavedReviewer();
+    document.getElementById('approveNote').value = '';
+    document.getElementById('approveModal').classList.add('show');
+}
+function openReject(id) {
+    const r = allRecords.find(x => String(x.id) === String(id));
+    if (!r) return;
+    currentTarget = r;
+    document.getElementById('rejectInfo').innerHTML =
+        `<div class="info-row"><span class="k">學員</span><span>${esc(r.member_name)} / ${esc(r.phone || '')}</span></div>
+         <div class="info-row"><span class="k">請假</span><span>${fmtDate(r.leave_date)} ${esc(r.leave_time || '')}</span></div>
+         <div class="info-row"><span class="k">課程</span><span>${esc(r.course || '')} · ${esc(r.coach_name || '')}</span></div>
+         <div class="info-row"><span class="k">類型</span><span>${esc(r.leave_type || '')}</span></div>`;
+    document.getElementById('rejectReviewer').value = loadSavedReviewer();
+    document.getElementById('rejectNote').value = '';
+    document.getElementById('rejectModal').classList.add('show');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+async function submitDecision(type) {
+    if (!currentTarget) return;
+    const isApprove = type === 'approved';
+    const reviewerEl = document.getElementById(isApprove ? 'approveReviewer' : 'rejectReviewer');
+    const noteEl = document.getElementById(isApprove ? 'approveNote' : 'rejectNote');
+    const reviewer = reviewerEl.value.trim();
+    const note = noteEl.value.trim();
+
+    if (!reviewer) {
+        toast('請填寫審核人員姓名');
+        reviewerEl.focus();
+        return;
+    }
+    if (!isApprove && !note) {
+        toast('拒絕必須填寫原因');
+        noteEl.focus();
+        return;
+    }
+
+    showLoading(true);
+    try {
+        await callEdge(isApprove ? 'approveLeaveRequest' : 'rejectLeaveRequest', {
+            id: currentTarget.id,
+            adminNote: note || null,
+            reviewer
+        });
+        saveReviewer(reviewer);
+        closeModal(isApprove ? 'approveModal' : 'rejectModal');
+        toast(isApprove ? '已核准' : '已拒絕');
+        await loadData();
+    } catch (e) {
+        console.error(e);
+        toast('送出失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+function loadSavedReviewer() { try { return localStorage.getItem('leave_admin_reviewer') || ''; } catch { return ''; } }
+function saveReviewer(name)  { try { localStorage.setItem('leave_admin_reviewer', name); } catch {} }
+
+// ═══════════════════════════════════════════════
+//  Lightbox
+// ═══════════════════════════════════════════════
+function openLightbox(urls, idx) {
+    if (!urls || urls.length === 0) return;
+    lightboxImages = urls;
+    lightboxIndex = idx || 0;
+    renderLightbox();
+    document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+function navLightbox(dir) {
+    const n = lightboxImages.length;
+    lightboxIndex = ((lightboxIndex + dir) % n + n) % n;
+    renderLightbox();
+}
+function renderLightbox() {
+    const url = lightboxImages[lightboxIndex];
+    document.getElementById('lightboxImg').src = full(url);
+    document.getElementById('lbIdx').textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+}
+document.addEventListener('keydown', e => {
+    const lb = document.getElementById('lightbox');
+    if (!lb.classList.contains('show')) return;
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') navLightbox(-1);
+    else if (e.key === 'ArrowRight') navLightbox(1);
+});
+
+// ═══════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════
+loadData();
+</script>
+
+</body>
+</html>
