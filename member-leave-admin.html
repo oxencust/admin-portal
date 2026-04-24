@@ -319,6 +319,7 @@ select.date-select { padding: 5px 10px; border-radius: 20px; border: 1px solid #
 //  CONFIG
 // ═══════════════════════════════════════════════
 const MOTI_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api';
+const LEAVE_REVIEW_WEBHOOK = 'https://hook.us2.make.com/tkjdtruiim6zvm9n4bofmx6y654ob9dh';
 
 // ═══════════════════════════════════════════════
 //  當前登入者（從入口頁 sessionStorage 讀）
@@ -331,7 +332,11 @@ function getPortalUser() {
     } catch { return null; }
 }
 const portalUser = getPortalUser();
-const defaultReviewer = (portalUser && (portalUser.realName || portalUser.name)) || '';
+// 預設顯示 nickname（staff.nickname）— 比本名親切、UI 友善
+// portalUser.name 的 fallback 鏈：nickname → name → LINE displayName（由入口系統組）
+const defaultReviewer = (portalUser && (portalUser.name || portalUser.realName)) || '';
+// 稽核用「實際操作者」— 永遠用本名，追查時精準
+const actualReviewer  = (portalUser && (portalUser.realName || portalUser.name)) || '';
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -643,9 +648,11 @@ async function submitDecision(type) {
         await callEdge(isApprove ? 'approveLeaveRequest' : 'rejectLeaveRequest', {
             id: currentTarget.id,
             adminNote: note || null,
-            reviewer,                       // 送進 reviewed_by（可被覆寫為代審人）
-            reviewerActual: defaultReviewer // 送進 reviewed_by_actual（實際登入者，審計用）
+            reviewer,                      // 送進 reviewed_by（nickname，可被覆寫為代審人）
+            reviewerActual: actualReviewer // 送進 reviewed_by_actual（永遠 realName，審計用）
         });
+        // Supabase 寫入成功後，推通知到 LINE 群組（失敗不影響審核）
+        notifyLeaveReview(isApprove ? 'approve' : 'reject', currentTarget, reviewer, note);
         closeModal(isApprove ? 'approveModal' : 'rejectModal');
         toast(isApprove ? '已核准' : '已拒絕');
         await loadData();
@@ -654,6 +661,46 @@ async function submitDecision(type) {
         toast('送出失敗：' + e.message);
     }
     showLoading(false);
+}
+
+// ═══════════════════════════════════════════════
+//  推送審核結果到 LINE 群組（透過 Make webhook）
+//  fire-and-forget：失敗只記 log，不影響審核流程
+// ═══════════════════════════════════════════════
+function notifyLeaveReview(action, record, reviewer, note) {
+    if (!LEAVE_REVIEW_WEBHOOK || !record) return;
+    const payload = {
+        action: action,                                          // "approve" | "reject"
+        leaveId: record.id || '',
+        memberId: record.member_id || '',
+        memberName: record.member_name || '',
+        memberPhone: record.phone || '',
+        lineDisplayName: record.line_display_name || '',         // LINE 顯示名稱（LIFF 登入時抓的）
+        lineUid: record.line_uid || '',                          // LINE UID（@mention 用，可選）
+        leaveType: record.leave_type || '',
+        leaveDate: record.leave_date || '',
+        leaveTime: record.leave_time || '',
+        course: record.course || '',
+        coach: record.coach_name || '',
+        reviewer: reviewer || '',                                // nickname（UI 帶入、可被覆寫）
+        reviewerActual: actualReviewer || '',                    // realName（稽核用）
+        adminNote: note || '',                                   // 拒絕時為拒絕原因
+        reviewedAt: new Date().toISOString()
+    };
+    try {
+        fetch(LEAVE_REVIEW_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true  // 即使 modal 關閉也保證送達
+        }).then(r => {
+            if (!r.ok) console.warn('[LINE webhook] HTTP', r.status);
+        }).catch(err => {
+            console.warn('[LINE webhook] 送出失敗', err);
+        });
+    } catch (err) {
+        console.warn('[LINE webhook] 例外', err);
+    }
 }
 
 // ═══════════════════════════════════════════════
