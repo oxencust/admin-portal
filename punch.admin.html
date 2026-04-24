@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>打卡紀錄管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --green: #7ac19a; --green-dark: #5f846f; --green-light: rgba(122,193,154,.12);
+    --mint: #93c6c5;
+    --pink: #f2ac98;
+    --terracotta: #b16056;
+    --yellow: #ffe08b;
+    --blue: #9fcccc;
+    --text: #2d3436;
+    --muted: #636e72;
+    --bg: #f5f7f6;
+    --danger: #e05252;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+    background-attachment: fixed;
+    color: var(--text);
+}
+body::before {
+    content: ''; position: fixed; top: -20%; right: -10%;
+    width: 50vw; height: 50vw;
+    background: radial-gradient(circle, rgba(147,198,197,0.22) 0%, transparent 60%);
+    border-radius: 50%; z-index: 0; pointer-events: none;
+}
+body::after {
+    content: ''; position: fixed; bottom: -10%; left: -15%;
+    width: 60vw; height: 60vw;
+    background: radial-gradient(circle, rgba(242,172,152,0.18) 0%, transparent 60%);
+    border-radius: 50%; z-index: 0; pointer-events: none;
+}
+
+.glass {
+    background: rgba(255,255,255,0.62);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.55);
+}
+
+/* 響應式容器 */
+.page-wrap { width: 100%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; padding: 16px 14px 80px; }
+
+/* Header */
+.header { padding: 14px 16px; border-radius: 18px; margin-bottom: 12px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 10px; }
+.header h1 { font-size: 17px; font-weight: 700; color: var(--green-dark); display: flex; align-items: center; gap: 8px; }
+.header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.user-chip { font-size: 12px; color: var(--green-dark); background: var(--green-light); border: 1px solid rgba(122,193,154,0.35); padding: 5px 12px; border-radius: 20px; }
+.refresh-btn, .csv-btn {
+    background: var(--green-light); border: 1px solid var(--green); color: var(--green-dark);
+    border-radius: 20px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: .15s;
+}
+.refresh-btn:hover, .csv-btn:hover { background: rgba(122,193,154,0.25); }
+.csv-btn { background: var(--green); color: white; border-color: var(--green-dark); }
+.csv-btn:hover { background: var(--green-dark); }
+
+/* 統計卡 */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+.stat { padding: 10px 8px; border-radius: 14px; text-align: center; }
+.stat .num { font-size: 22px; font-weight: 700; }
+.stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stat.today .num { color: var(--green-dark); }
+.stat.month .num { color: var(--mint); }
+.stat.pending .num { color: var(--yellow); color: #c99300; }
+.stat.total .num { color: var(--muted); }
+
+/* 篩選 */
+.filters { padding: 12px; border-radius: 16px; margin-bottom: 12px; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.filter-row:last-child { margin-bottom: 0; }
+.filter-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.filter-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: white; cursor: pointer; transition: .2s; white-space: nowrap; font-family: inherit; }
+.filter-chip.active { background: var(--green); color: white; border-color: var(--green); }
+.filter-chip:hover { border-color: var(--green); }
+.search-box { flex: 1; min-width: 180px; padding: 7px 14px; border-radius: 20px; border: 1px solid #ddd; font-size: 13px; font-family: inherit; outline: none; background: white; }
+.search-box:focus { border-color: var(--green); }
+input.date-input {
+    padding: 5px 10px; border-radius: 14px; border: 1px solid #ddd; font-size: 12px;
+    font-family: inherit; background: white; outline: none;
+}
+input.date-input:focus { border-color: var(--green); }
+.toggle-wrap { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); }
+.toggle-wrap input { accent-color: var(--green); }
+
+/* 表格（桌機）/ 卡片（手機） */
+.table-wrap { overflow-x: auto; border-radius: 16px; }
+table.punch-table {
+    width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.62);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    font-size: 12.5px; border-radius: 16px; overflow: hidden;
+}
+table.punch-table thead th {
+    background: rgba(122,193,154,0.18); color: var(--green-dark); font-weight: 600; text-align: left;
+    padding: 10px 12px; border-bottom: 2px solid rgba(122,193,154,0.3); white-space: nowrap; font-size: 12px;
+}
+table.punch-table tbody td {
+    padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.05); vertical-align: middle;
+}
+table.punch-table tbody tr:hover { background: rgba(122,193,154,0.08); }
+table.punch-table tbody tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-in { background: rgba(122,193,154,0.22); color: var(--green-dark); }
+.badge-out { background: rgba(147,198,197,0.25); color: #3f6a69; }
+.badge-extra { background: rgba(255,224,139,0.45); color: #8a6a12; }
+.badge-auto { background: rgba(159,204,204,0.25); color: #4a7a7a; }
+.badge-manual { background: rgba(0,0,0,.06); color: var(--muted); }
+.badge-pending { background: rgba(242,172,152,0.35); color: #8a3e30; border: 1px dashed #f2ac98; }
+.name-cell { font-weight: 600; color: var(--text); }
+.name-cell .sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--muted); margin-top: 2px; word-break: break-all; }
+.uid-cell { font-size: 10.5px; color: var(--muted); font-family: monospace; word-break: break-all; max-width: 180px; }
+.note-cell { font-size: 12px; color: var(--muted); max-width: 220px; }
+.time-cell { white-space: nowrap; font-family: 'Noto Sans TC', sans-serif; }
+.time-cell .date { color: var(--muted); font-size: 11px; display: block; }
+.time-cell .hhmm { color: var(--text); font-weight: 600; font-size: 13px; }
+
+/* Empty */
+.empty { padding: 50px 20px; text-align: center; color: var(--muted); font-size: 13px; border-radius: 16px; }
+.empty .emoji { font-size: 40px; margin-bottom: 10px; opacity: .5; }
+
+/* 分頁 */
+.pagination { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 14px; }
+.page-btn {
+    padding: 6px 14px; border-radius: 18px; border: 1px solid #ddd; background: white; font-size: 12px;
+    font-family: inherit; cursor: pointer; color: var(--text); transition: .15s;
+}
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+.page-btn:not(:disabled):hover { border-color: var(--green); color: var(--green-dark); }
+.page-info { font-size: 12px; color: var(--muted); }
+
+/* Auth gate */
+.auth-gate { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%); z-index: 9999; }
+.auth-gate-box { max-width: 420px; width: 100%; text-align: center; padding: 40px 30px; border-radius: 24px; }
+.auth-gate-icon { font-size: 48px; margin-bottom: 12px; }
+.auth-gate-box h2 { margin: 0 0 8px; color: var(--green-dark); font-size: 20px; }
+.auth-gate-box p { color: var(--muted); font-size: 13px; margin: 0 0 20px; line-height: 1.6; }
+.auth-gate-btn { display: inline-block; background: var(--green); color: #fff; padding: 10px 24px; border-radius: 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.auth-gate-btn:hover { background: var(--green-dark); }
+
+/* Loading / Toast */
+.loading-mask { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.5); backdrop-filter: blur(4px); z-index: 500; justify-content: center; align-items: center; }
+.loading-mask.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 3px solid rgba(122,193,154,0.2); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(45,52,54,0.92); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 600; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+.toast.warning { background: rgba(245, 158, 11, 0.95); }
+.toast.error { background: rgba(224, 82, 82, 0.95); }
+
+/* 手機版：表格改卡片 */
+@media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    table.punch-table thead { display: none; }
+    table.punch-table, table.punch-table tbody, table.punch-table tr, table.punch-table td { display: block; width: 100%; }
+    table.punch-table tr {
+        padding: 10px 12px; margin-bottom: 8px; border-radius: 14px; background: rgba(255,255,255,0.72);
+        border: 1px solid rgba(255,255,255,0.6);
+    }
+    table.punch-table tbody td { border-bottom: none; padding: 3px 0; }
+    table.punch-table tbody td::before {
+        content: attr(data-label) '：'; font-size: 11px; color: var(--muted); margin-right: 6px; font-weight: 500;
+    }
+    table.punch-table tbody td[data-label="姓名"] { font-size: 14px; font-weight: 600; padding-top: 4px; }
+    table.punch-table tbody td[data-label="姓名"]::before { display: none; }
+    table.punch-table tbody td[data-label="UID"] { font-size: 10px; }
+    .header h1 { font-size: 15px; }
+    .page-wrap { padding: 12px 10px 80px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 未登入 / 權限不足遮罩 -->
+<div id="authGate" class="auth-gate" style="display:none">
+    <div class="auth-gate-box glass">
+        <div class="auth-gate-icon" id="gateIcon">🔒</div>
+        <h2 id="gateTitle">未登入</h2>
+        <p id="gateMessage">請先從行政管理入口登入後再進入本頁。</p>
+        <a class="auth-gate-btn" href="./">回到入口</a>
+    </div>
+</div>
+
+<div class="page-wrap" id="mainWrap" style="display:none;">
+
+    <!-- Header -->
+    <div class="header glass">
+        <div class="header-top">
+            <div>
+                <h1>🕓 打卡紀錄管理</h1>
+                <div class="header-sub">檢視所有員工打卡歷史（僅限主管以上）</div>
+            </div>
+            <div class="header-actions">
+                <span class="user-chip" id="userChip">-</span>
+                <button class="refresh-btn" onclick="loadData()">↻ 重新整理</button>
+                <button class="csv-btn" onclick="exportCSV()">⇩ 匯出 CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計 -->
+    <div class="stats">
+        <div class="stat glass today">
+            <div class="num" id="statToday">-</div>
+            <div class="lbl">今日打卡數</div>
+        </div>
+        <div class="stat glass month">
+            <div class="num" id="statMonth">-</div>
+            <div class="lbl">本次查詢筆數</div>
+        </div>
+        <div class="stat glass pending">
+            <div class="num" id="statPending">-</div>
+            <div class="lbl">Pending（未綁定）</div>
+        </div>
+        <div class="stat glass total">
+            <div class="num" id="statTotal">-</div>
+            <div class="lbl">資料庫總筆數</div>
+        </div>
+    </div>
+
+    <!-- 篩選 -->
+    <div class="filters glass">
+        <div class="filter-row">
+            <span class="filter-label">日期：</span>
+            <input type="date" id="dateFrom" class="date-input">
+            <span style="color:var(--muted);font-size:12px;">～</span>
+            <input type="date" id="dateTo" class="date-input">
+            <div class="filter-chip" onclick="setDatePreset('today')">今日</div>
+            <div class="filter-chip" onclick="setDatePreset('7')">近 7 天</div>
+            <div class="filter-chip" onclick="setDatePreset('30')">近 30 天</div>
+            <div class="filter-chip" onclick="setDatePreset('month')">本月</div>
+        </div>
+        <div class="filter-row">
+            <span class="filter-label">類型：</span>
+            <div class="filter-chip active" data-type="all" onclick="setTypeFilter('all', this)">全部</div>
+            <div class="filter-chip" data-type="in" onclick="setTypeFilter('in', this)">上班</div>
+            <div class="filter-chip" data-type="out" onclick="setTypeFilter('out', this)">下班</div>
+            <div class="filter-chip" data-type="extra" onclick="setTypeFilter('extra', this)">加班/補登</div>
+            <label class="toggle-wrap" style="margin-left:8px;">
+                <input type="checkbox" id="pendingOnly" onchange="applyFilters()">
+                <span>只看 pending</span>
+            </label>
+        </div>
+        <div class="filter-row">
+            <input type="text" class="search-box" id="searchBox" placeholder="搜尋姓名 / LINE UID / 備註…" oninput="onSearchInput()">
+        </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="table-wrap glass" id="tableWrap">
+        <table class="punch-table">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>姓名</th>
+                    <th>類型</th>
+                    <th>判斷方式</th>
+                    <th>LINE UID</th>
+                    <th>備註</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Empty -->
+    <div class="empty glass" id="emptyState" style="display:none;">
+        <div class="emoji">📭</div>
+        <div>目前沒有符合條件的打卡紀錄</div>
+    </div>
+
+    <!-- 分頁 -->
+    <div class="pagination" id="pagination" style="display:none;">
+        <button class="page-btn" id="prevBtn" onclick="prevPage()">‹ 上一頁</button>
+        <span class="page-info" id="pageInfo">- / -</span>
+        <button class="page-btn" id="nextBtn" onclick="nextPage()">下一頁 ›</button>
+    </div>
+
+</div>
+
+<!-- Loading / Toast -->
+<div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const ATTEND_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/attendance-api';
+const PAGE_SIZE = 100;
+
+// ═══════════════════════════════════════════════
+//  當前登入者（從入口頁 sessionStorage 讀）
+// ═══════════════════════════════════════════════
+function getPortalUser() {
+    try {
+        const raw = sessionStorage.getItem('currentStaff')
+                 || localStorage.getItem('pwa_currentStaff');
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+const portalUser = getPortalUser();
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let allRecords = [];       // 當前頁資料
+let totalCount = 0;
+let currentOffset = 0;
+let filter = {
+    dateFrom: '',
+    dateTo: '',
+    type: 'all',
+    pendingOnly: false,
+    keyword: ''
+};
+let searchDebounce = null;
+
+// ═══════════════════════════════════════════════
+//  Edge Function 呼叫
+// ═══════════════════════════════════════════════
+async function callEdge(action, params = {}) {
+    const res = await fetch(ATTEND_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...params })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) {
+        const err = new Error(json.error || json.message || `API error: ${res.status}`);
+        err.code = json.code;
+        err.status = res.status;
+        throw err;
+    }
+    return json;
+}
+
+// ═══════════════════════════════════════════════
+//  工具
+// ═══════════════════════════════════════════════
+function showLoading(show) {
+    const m = document.getElementById('loadingMask');
+    m.classList.toggle('show', !!show);
+}
+let toastTimer = null;
+function toast(msg, kind = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (kind ? ' ' + kind : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2600);
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+function ymd(d) {
+    const x = d instanceof Date ? d : new Date(d);
+    return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`;
+}
+function fmtDate(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    if (isNaN(d)) return s;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function fmtTime(s) {
+    if (!s) return '';
+    const d = new Date(s);
+    if (isNaN(d)) return '';
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ═══════════════════════════════════════════════
+//  權限判斷
+// ═══════════════════════════════════════════════
+function canAccess(user) {
+    if (!user) return false;
+    const level = String(user.permission_level || '').toLowerCase();
+    const role  = String(user.role || '').toLowerCase();
+    return level === 'manager' || level === 'super_admin' || role === 'owner';
+}
+
+// ═══════════════════════════════════════════════
+//  載入資料
+// ═══════════════════════════════════════════════
+async function loadData() {
+    if (!portalUser) return;
+    showLoading(true);
+    try {
+        const params = {
+            staffId: portalUser.id,
+            limit: PAGE_SIZE,
+            offset: currentOffset
+        };
+        if (filter.dateFrom) params.dateFrom = filter.dateFrom;
+        if (filter.dateTo)   params.dateTo   = filter.dateTo;
+        if (filter.type && filter.type !== 'all') params.punchType = filter.type;
+        if (filter.pendingOnly) params.pendingOnly = true;
+        if (filter.keyword)  params.keyword = filter.keyword;
+
+        const res = await callEdge('listPunchRecords', params);
+        allRecords = res.records || [];
+        totalCount = res.total || 0;
+
+        renderStats();
+        renderTable();
+        renderPagination();
+    } catch (err) {
+        console.error(err);
+        if (err.status === 403) {
+            showGate('⛔', '權限不足', '此頁面僅限主管（manager / super_admin / owner）開啟。');
+        } else {
+            toast(err.message || '載入失敗', 'error');
+        }
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  統計
+// ═══════════════════════════════════════════════
+function renderStats() {
+    const today = ymd(new Date());
+    let todayCount = 0;
+    let pendingCount = 0;
+    for (const r of allRecords) {
+        if (r.punch_date === today) todayCount++;
+        if (!r.actor_id) pendingCount++;
+    }
+    document.getElementById('statToday').textContent = todayCount;
+    document.getElementById('statMonth').textContent = allRecords.length;
+    document.getElementById('statPending').textContent = pendingCount;
+    document.getElementById('statTotal').textContent = totalCount;
+}
+
+// ═══════════════════════════════════════════════
+//  表格
+// ═══════════════════════════════════════════════
+function typeBadge(type) {
+    if (type === 'in')    return '<span class="badge badge-in">上班</span>';
+    if (type === 'out')   return '<span class="badge badge-out">下班</span>';
+    if (type === 'extra') return '<span class="badge badge-extra">加班/補登</span>';
+    return '<span class="badge">' + escapeHtml(type || '-') + '</span>';
+}
+function detectBadge(auto) {
+    return auto
+        ? '<span class="badge badge-auto">自動判斷</span>'
+        : '<span class="badge badge-manual">手動選擇</span>';
+}
+
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    const wrap  = document.getElementById('tableWrap');
+
+    if (!allRecords.length) {
+        tbody.innerHTML = '';
+        wrap.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+    }
+    wrap.style.display = '';
+    empty.style.display = 'none';
+
+    const rows = allRecords.map(r => {
+        const isPending = !r.actor_id;
+        const displayName = r.actor_name || r.pending_name || '(未知)';
+        const nameSub = isPending
+            ? '<span class="sub">🟠 pending（尚未綁定 staff）</span>'
+            : (r.actor_role ? `<span class="sub">${escapeHtml(r.actor_role)}</span>` : '');
+        const pendingPill = isPending ? ' <span class="badge badge-pending">暫存</span>' : '';
+
+        return `
+            <tr>
+                <td data-label="時間" class="time-cell">
+                    <span class="date">${escapeHtml(fmtDate(r.punch_at || r.punch_date))}</span>
+                    <span class="hhmm">${escapeHtml(fmtTime(r.punch_at))}</span>
+                </td>
+                <td data-label="姓名" class="name-cell">
+                    ${escapeHtml(displayName)}${pendingPill}
+                    ${nameSub}
+                </td>
+                <td data-label="類型">${typeBadge(r.punch_type)}</td>
+                <td data-label="判斷方式">${detectBadge(r.auto_detected)}</td>
+                <td data-label="UID" class="uid-cell">${escapeHtml(r.line_uid || '-')}</td>
+                <td data-label="備註" class="note-cell">${escapeHtml(r.note || '')}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = rows;
+}
+
+// ═══════════════════════════════════════════════
+//  分頁
+// ═══════════════════════════════════════════════
+function renderPagination() {
+    const pag = document.getElementById('pagination');
+    if (totalCount <= PAGE_SIZE) {
+        pag.style.display = 'none';
+        return;
+    }
+    pag.style.display = 'flex';
+    const currentPage = Math.floor(currentOffset / PAGE_SIZE) + 1;
+    const totalPages  = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}（共 ${totalCount} 筆）`;
+    document.getElementById('prevBtn').disabled = currentOffset <= 0;
+    document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalCount;
+}
+function prevPage() {
+    if (currentOffset <= 0) return;
+    currentOffset = Math.max(0, currentOffset - PAGE_SIZE);
+    loadData();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function nextPage() {
+    if (currentOffset + PAGE_SIZE >= totalCount) return;
+    currentOffset += PAGE_SIZE;
+    loadData();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════
+//  篩選
+// ═══════════════════════════════════════════════
+function applyFilters() {
+    filter.dateFrom    = document.getElementById('dateFrom').value || '';
+    filter.dateTo      = document.getElementById('dateTo').value   || '';
+    filter.pendingOnly = document.getElementById('pendingOnly').checked;
+    currentOffset = 0;
+    loadData();
+}
+function setTypeFilter(type, el) {
+    filter.type = type;
+    document.querySelectorAll('.filter-chip[data-type]').forEach(c => c.classList.remove('active'));
+    if (el) el.classList.add('active');
+    currentOffset = 0;
+    loadData();
+}
+function setDatePreset(preset) {
+    const today = new Date();
+    let from = null, to = ymd(today);
+    if (preset === 'today') {
+        from = ymd(today);
+    } else if (preset === '7') {
+        const d = new Date(today); d.setDate(d.getDate() - 6);
+        from = ymd(d);
+    } else if (preset === '30') {
+        const d = new Date(today); d.setDate(d.getDate() - 29);
+        from = ymd(d);
+    } else if (preset === 'month') {
+        from = ymd(new Date(today.getFullYear(), today.getMonth(), 1));
+    }
+    document.getElementById('dateFrom').value = from || '';
+    document.getElementById('dateTo').value   = to;
+    applyFilters();
+}
+function onSearchInput() {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+        filter.keyword = document.getElementById('searchBox').value.trim();
+        currentOffset = 0;
+        loadData();
+    }, 400);
+}
+
+// ═══════════════════════════════════════════════
+//  CSV 匯出（只匯目前篩選條件下所有筆數，上限 500）
+// ═══════════════════════════════════════════════
+async function exportCSV() {
+    showLoading(true);
+    try {
+        const params = {
+            staffId: portalUser.id,
+            limit: 500,
+            offset: 0
+        };
+        if (filter.dateFrom) params.dateFrom = filter.dateFrom;
+        if (filter.dateTo)   params.dateTo   = filter.dateTo;
+        if (filter.type && filter.type !== 'all') params.punchType = filter.type;
+        if (filter.pendingOnly) params.pendingOnly = true;
+        if (filter.keyword)  params.keyword = filter.keyword;
+
+        const res = await callEdge('listPunchRecords', params);
+        const rows = res.records || [];
+        if (!rows.length) {
+            toast('目前條件下沒有資料可匯出', 'warning');
+            return;
+        }
+
+        const headers = [
+            '打卡時間', '打卡日期', '姓名', '角色', 'LINE UID',
+            '類型', '判斷方式', 'Pending', '備註', '裝置', '建立時間'
+        ];
+        const escapeCSV = v => {
+            if (v == null) return '';
+            const s = String(v);
+            if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+            return s;
+        };
+        const typeLabel = t => t === 'in' ? '上班' : t === 'out' ? '下班' : t === 'extra' ? '加班/補登' : (t || '');
+        const csvRows = [headers.map(escapeCSV).join(',')];
+        for (const r of rows) {
+            const isPending = !r.actor_id;
+            const displayName = r.actor_name || r.pending_name || '';
+            csvRows.push([
+                fmtDate(r.punch_at) + ' ' + fmtTime(r.punch_at),
+                r.punch_date || '',
+                displayName,
+                r.actor_role || '',
+                r.line_uid || '',
+                typeLabel(r.punch_type),
+                r.auto_detected ? '自動判斷' : '手動選擇',
+                isPending ? 'pending' : '',
+                r.note || '',
+                r.device_ua || '',
+                r.created_at || ''
+            ].map(escapeCSV).join(','));
+        }
+
+        // UTF-8 BOM for Excel
+        const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const stamp = ymd(new Date()) + '_' + pad(new Date().getHours()) + pad(new Date().getMinutes());
+        a.href = url;
+        a.download = `punch_records_${stamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast(`已匯出 ${rows.length} 筆`);
+    } catch (err) {
+        console.error(err);
+        toast(err.message || '匯出失敗', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  顯示 gate
+// ═══════════════════════════════════════════════
+function showGate(icon, title, message) {
+    document.getElementById('gateIcon').textContent = icon;
+    document.getElementById('gateTitle').textContent = title;
+    document.getElementById('gateMessage').textContent = message;
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('mainWrap').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════
+(function init() {
+    if (!portalUser) {
+        showGate('🔒', '未登入', '請先從行政管理入口登入後再進入本頁。');
+        return;
+    }
+    if (!canAccess(portalUser)) {
+        showGate('⛔', '權限不足', '此頁面僅限主管（manager / super_admin / owner）開啟。');
+        return;
+    }
+
+    // 顯示主畫面
+    document.getElementById('mainWrap').style.display = '';
+    const nm = portalUser.name || portalUser.realName || '主管';
+    document.getElementById('userChip').textContent = '👤 ' + nm;
+
+    // 預設近 30 天
+    setDatePreset('30');
+})();
+</script>
+
+</body>
+</html>
