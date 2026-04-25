@@ -400,9 +400,13 @@ function escapeHtml(s) {
 // ═══════════════════════════════════════════════
 function canAccess(user) {
     if (!user) return false;
-    const level = String(user.permission_level || '').toLowerCase();
+    // 入口頁 sessionStorage 只存 role 欄位（permission_level 已 normalize 進 role）
+    // 可能值：owner / super_admin / manager / employee / coach / analyst
+    // 同時容錯舊欄位 permission_level
     const role  = String(user.role || '').toLowerCase();
-    return level === 'manager' || level === 'super_admin' || role === 'owner';
+    const level = String(user.permission_level || '').toLowerCase();
+    return role === 'manager' || role === 'super_admin' || role === 'owner'
+        || level === 'manager' || level === 'super_admin';
 }
 
 // ═══════════════════════════════════════════════
