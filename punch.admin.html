@@ -117,6 +117,8 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
 .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .badge-in { background: rgba(122,193,154,0.22); color: var(--green-dark); }
 .badge-out { background: rgba(147,198,197,0.25); color: #3f6a69; }
+.badge-overtime-in  { background: rgba(196,169,128,0.28); color: #8b6f3e; }
+.badge-overtime-out { background: rgba(168,139,99,0.28);  color: #6e5530; }
 .badge-extra { background: rgba(255,224,139,0.45); color: #8a6a12; }
 .badge-auto { background: rgba(159,204,204,0.25); color: #4a7a7a; }
 .badge-manual { background: rgba(0,0,0,.06); color: var(--muted); }
@@ -249,7 +251,9 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
             <div class="filter-chip active" data-type="all" onclick="setTypeFilter('all', this)">全部</div>
             <div class="filter-chip" data-type="in" onclick="setTypeFilter('in', this)">上班</div>
             <div class="filter-chip" data-type="out" onclick="setTypeFilter('out', this)">下班</div>
-            <div class="filter-chip" data-type="extra" onclick="setTypeFilter('extra', this)">加班/補登</div>
+            <div class="filter-chip" data-type="overtime_in" onclick="setTypeFilter('overtime_in', this)">加班上班</div>
+            <div class="filter-chip" data-type="overtime_out" onclick="setTypeFilter('overtime_out', this)">加班下班</div>
+            <div class="filter-chip" data-type="extra" onclick="setTypeFilter('extra', this)" title="舊制加班/補登">舊加班</div>
             <label class="toggle-wrap" style="margin-left:8px;">
                 <input type="checkbox" id="pendingOnly" onchange="applyFilters()">
                 <span>只看 pending</span>
@@ -459,9 +463,11 @@ function renderStats() {
 //  表格
 // ═══════════════════════════════════════════════
 function typeBadge(type) {
-    if (type === 'in')    return '<span class="badge badge-in">上班</span>';
-    if (type === 'out')   return '<span class="badge badge-out">下班</span>';
-    if (type === 'extra') return '<span class="badge badge-extra">加班/補登</span>';
+    if (type === 'in')           return '<span class="badge badge-in">上班</span>';
+    if (type === 'out')          return '<span class="badge badge-out">下班</span>';
+    if (type === 'overtime_in')  return '<span class="badge badge-overtime-in">加班上班</span>';
+    if (type === 'overtime_out') return '<span class="badge badge-overtime-out">加班下班</span>';
+    if (type === 'extra')        return '<span class="badge badge-extra">舊加班</span>';
     return '<span class="badge">' + escapeHtml(type || '-') + '</span>';
 }
 function detectBadge(auto) {
@@ -620,7 +626,13 @@ async function exportCSV() {
             if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
             return s;
         };
-        const typeLabel = t => t === 'in' ? '上班' : t === 'out' ? '下班' : t === 'extra' ? '加班/補登' : (t || '');
+        const typeLabel = t =>
+            t === 'in' ? '上班'
+            : t === 'out' ? '下班'
+            : t === 'overtime_in' ? '加班上班'
+            : t === 'overtime_out' ? '加班下班'
+            : t === 'extra' ? '舊加班'
+            : (t || '');
         const csvRows = [headers.map(escapeCSV).join(',')];
         for (const r of rows) {
             const isPending = !r.actor_id;
