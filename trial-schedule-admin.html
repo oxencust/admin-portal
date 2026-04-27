@@ -1265,12 +1265,13 @@ async function doBook() {
 
     showLoading(true);
     try {
+        const bookNote = document.getElementById('mNote').value.trim();
         await callWithDupConfirm('updateSlotStatus', {
             slotId: currentSlot.id,
             status: 'booked',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim(),
+            note: bookNote,
             consultationId: consultationId,
             memberId: memberId
         }, '建立預約');
@@ -1282,9 +1283,10 @@ async function doBook() {
                 coach_name: snap.coach_name,
                 booking_time: buildBookingTimeLabel(snap),
                 consultation_id: consultationId,
+                booking_note: bookNote,
                 student: { name: name }
             });
-            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（新體驗預約）');
+            reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約成功）');
         }
 
         // 諮詢單同步：寫入 booking_status + coach（status_key 由 DB trigger 自動重算）
@@ -1339,12 +1341,13 @@ async function doReserve() {
 
     showLoading(true);
     try {
+        const reserveNote = document.getElementById('mNote').value.trim();
         await callWithDupConfirm('updateSlotStatus', {
             slotId: currentSlot.id,
             status: 'reserved',
             studentName: name,
             studentPhone: document.getElementById('mStudentPhone').value.trim(),
-            note: document.getElementById('mNote').value.trim(),
+            note: reserveNote,
             consultationId: consultationId,
             memberId: memberId
         }, '保留時段');
@@ -1356,6 +1359,7 @@ async function doReserve() {
                 coach_name: snap.coach_name,
                 booking_time: buildBookingTimeLabel(snap),
                 consultation_id: consultationId,
+                booking_note: reserveNote,
                 student: { name: name }
             });
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（體驗保留中）');
