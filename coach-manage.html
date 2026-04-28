@@ -96,6 +96,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="card-list" id="coachList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
 <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">教練資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
 <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯教練</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveCoach()">💾 儲存</button></div></div></div>
+<div class="modal-bg" id="inviteLinkModal"><div class="modal-panel"><div class="modal-head"><h2>入口連結</h2><button class="modal-close" onclick="closeModal('inviteLinkModal')">✕</button></div><div class="modal-body" id="inviteLinkBody"></div><div class="modal-footer"><button class="btn btn-primary" onclick="closeModal('inviteLinkModal')">完成</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
@@ -256,6 +257,7 @@ function viewDetail(id){
         fh+='<button class="btn btn-primary" onclick="restoreCoach(\''+escAttr(co.id)+'\')">♻️ 恢復</button>';
     }else{
         if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
+        if(!co.line_id_edu&&(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='super_admin'||currentUser.role==='owner'))fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(co.id)+'\')">🔗 產生入口連結</button>';
         if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.role==='owner'||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveCoach(\''+escAttr(co.id)+'\')">📦 封存</button>';
     }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
@@ -317,7 +319,15 @@ async function saveCoach(){
                 created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
             const{data:inserted,error}=await callEdge('addCoach',{coach:newCoach}).then(r=>({data:r.data,error:null})).catch(e=>({data:null,error:e}));
             if(error)throw error;
-            showToast('✅ 已新增（編號：'+personId+'）');closeModal('editModal');
+            // 自動產生邀請碼 + 入口連結
+            let inviteLink='';
+            try{
+                const inv=await callEdge('createInviteForExisting',{table:'coaches',id:personId});
+                if(inv&&inv.success&&inv.invite_code){inviteLink=LIFF_PORTAL_URL+'?invite='+inv.invite_code;}
+            }catch(e){console.warn('邀請碼產生失敗',e);}
+            closeModal('editModal');
+            if(inviteLink){showInviteLinkModal(name,personId,inviteLink);}
+            else{showToast('✅ 已新增（編號：'+personId+'）');}
             await loadCoaches();
         }catch(e){showToast('❌ 新增失敗：'+e.message);}
     }else{
@@ -384,7 +394,34 @@ function escHtml(t){if(t==null)return'';const d=document.createElement('div');d.
 function escAttr(t){if(t==null)return'';return String(t).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtDate(d){if(!d)return'-';try{const dt=new Date(d);return dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}catch(e){return d;}}
 let toastTimer=null;function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
-document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
+const LIFF_PORTAL_URL='https://liff.line.me/2007947083-YCFwz7Uk';
+function showInviteLinkModal(name,id,link){
+    document.getElementById('inviteLinkBody').innerHTML=
+        '<div style="background:linear-gradient(135deg,rgba(122,193,154,0.1),rgba(159,204,204,0.1));border-radius:12px;padding:16px;margin:4px 0;">'+
+        '<div style="font-size:13px;color:#666;margin-bottom:8px;">已建立教練：<b>'+escHtml(name)+'</b>（'+escHtml(id)+'）</div>'+
+        '<div style="font-size:11px;color:#999;margin-bottom:8px;">請將以下連結傳給對方，點開即可加入系統</div>'+
+        '<div style="background:white;border:1px solid #e0e0e0;border-radius:8px;padding:10px;word-break:break-all;font-size:12px;color:#2d3436;margin-bottom:10px;" id="inviteLinkText">'+escHtml(link)+'</div>'+
+        '<button onclick="copyInviteLink()" style="padding:8px 20px;border:1px solid var(--green);border-radius:8px;background:#fff;color:var(--green-dark);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">📋 複製連結</button>'+
+        '</div>';
+    openModal('inviteLinkModal');
+}
+function copyInviteLink(){
+    const t=document.getElementById('inviteLinkText')?.textContent;
+    if(t&&navigator.clipboard){navigator.clipboard.writeText(t).then(()=>showToast('✅ 已複製入口連結'));}
+}
+async function generateInviteLinkFor(id){
+    const co=allCoaches.find(x=>x.id===id);if(!co)return;
+    if(currentUser.permission_level!=='super_admin'&&currentUser.role!=='super_admin'&&currentUser.permission_level!=='owner'&&currentUser.role!=='owner'){showToast('僅限最高管理員操作');return;}
+    try{
+        showToast('⏳ 產生連結中...');
+        const inv=await callEdge('createInviteForExisting',{table:'coaches',id:co.id});
+        if(!inv.success){showToast('❌ '+(inv.error||'產生失敗'));return;}
+        const link=LIFF_PORTAL_URL+'?invite='+inv.invite_code;
+        closeModal('detailModal');
+        showInviteLinkModal(co.name,co.id,link);
+    }catch(e){showToast('❌ 連線失敗：'+e.message);}
+}
+document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal'&&el.id!=='inviteLinkModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadCoaches();});
 </script>
 </body>
