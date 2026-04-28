@@ -1063,6 +1063,11 @@ function updateStats() {
 function openSlot(slotId) {
     const slot = allSlots.find(s => String(s.id) === String(slotId));
     if (!slot) return;
+    // MOTI 預約只佔位顯示，不可在此編輯（請至 MOTI 預約名單系統修改）
+    if (slot.source === 'moti') {
+        toast('MOTI 預約請至 MOTI 預約名單系統修改');
+        return;
+    }
     currentSlot = slot;
     isEditMode = false;
 
