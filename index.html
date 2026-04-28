@@ -1069,6 +1069,8 @@
             if (urlParams.get('bind') === 'success') {
                 // 清除 URL 參數，避免重整時重複顯示
                 history.replaceState(null, '', window.location.pathname);
+                // 清掉自動補綁定的 session 標記，下次有需要可再嘗試
+                try { sessionStorage.removeItem('bind_auto_attempted'); } catch(e) {}
                 setTimeout(() => showToast('✅ LINE 帳號綁定成功'), 1500);
             }
 
@@ -1214,6 +1216,17 @@
 
             renderApp();
             hideLoading();
+
+            // 自動補綁定：profile 已完成但 line_uid 還是空 → 嘗試帶到綁定頁
+            // 用 sessionStorage 標記避免綁定失敗時無限循環
+            try {
+                const _raw = currentUser.source === 'staff' ? currentUser.staff_data : currentUser.coach_data;
+                if (_raw && !_raw.line_uid && !sessionStorage.getItem('bind_auto_attempted')) {
+                    sessionStorage.setItem('bind_auto_attempted', '1');
+                    // tryBindHengdianLineId 內部會再檢查 isLineEnv，非 LINE 環境會自動 skip
+                    tryBindHengdianLineId();
+                }
+            } catch(_e) { console.warn('auto-bind check failed:', _e); }
 
         } catch(e) {
             console.error('Auth error:', e);
@@ -1688,8 +1701,18 @@
         if (mod.id === 'settings') {
             return currentUser.role === 'manager' || currentUser.role === 'admin';
         }
-        // 檢查角色是否在模組的 roles 清單中（相容新舊角色名）
-        if (mod.roles && mod.roles.length > 0) {
+
+        // 取得使用者 v2 modules_add（明確授權清單）
+        // 來源優先序：staff → coach（雙身份時 staff 為主，與登入流程一致）
+        const _raw = currentUser.source === 'staff'
+            ? (currentUser.staff_data || null)
+            : (currentUser.coach_data || null);
+        const _modulesAdd = (_raw && Array.isArray(_raw.modules_add)) ? _raw.modules_add : [];
+        const explicitlyGranted = _modulesAdd.includes(mod.id);
+
+        // 第一關：檢查角色是否在模組的 roles 清單中（相容新舊角色名）
+        // 若已被 modules_add 明確授權 → 跳過此關（管理員在權限管理直接加給該人即視為白名單放行）
+        if (!explicitlyGranted && mod.roles && mod.roles.length > 0) {
             const userRoles = [currentUser.role];
             // 映射新→舊角色名做相容
             const roleCompat = { manager:'admin', employee:'staff', analyst:'viewer' };
@@ -1704,7 +1727,8 @@
                 }
             }
         }
-        // 檢查是否被管理員隱藏（v2 或 v1 格式）
+        // 第二關：檢查是否被管理員隱藏（v2 或 v1 格式）
+        // modules_remove 仍然生效；明確授權若同時被移除則以移除為準
         const hiddenModules = currentUser.hidden_modules || [];
         if (hiddenModules.includes(mod.id)) return false;
         return true;
