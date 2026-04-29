@@ -307,7 +307,7 @@ async function saveStaff(){
             let inviteLink='';
             try{
                 const inv=await callEdge('createInviteForExisting',{table:'staff',id:newId});
-                if(inv.success&&inv.invite_code){inviteLink='https://liff.line.me/2007947083-YCFwz7Uk?invite='+inv.invite_code;}
+                if(inv.success&&inv.invite_code){inviteLink = LIFF_PORTAL_URL + '?liff.state=' + encodeURIComponent('?invite=' + inv.invite_code);}
             }catch(e){console.warn('邀請碼產生失敗',e);}
             closeModal('editModal');
             if(inviteLink){showInviteLinkModal(name,newId,inviteLink);}
@@ -396,7 +396,7 @@ async function generateInviteLinkFor(id){
         showToast('⏳ 產生連結中...');
         const inv=await callEdge('createInviteForExisting',{table:'staff',id:s.id});
         if(!inv.success){showToast('❌ '+( inv.error||'產生失敗'));return;}
-        const link=LIFF_PORTAL_URL+'?invite='+inv.invite_code;
+        const link = LIFF_PORTAL_URL + '?liff.state=' + encodeURIComponent('?invite=' + inv.invite_code);
         closeModal('detailModal');
         showInviteLinkModal(s.nickname||s.name,s.id,link);
     }catch(e){showToast('❌ 連線失敗：'+e.message);}
