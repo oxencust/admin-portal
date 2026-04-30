@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MOTI 檢測資料查詢</title>
+<title>MOTI 受測者查詢</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;--moti:#A78BCA;--moti-dark:#7B5EA7;--moti-light:#F3E8FF;--inbody:#5DCAA5;--inbody-dark:#0F6E56;--inbody-light:#E1F5EE;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -116,7 +117,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 </div></div>
 <div class="action-bar">
     <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名或編號..." oninput="handleSearch()">
-    <button class="btn btn-secondary btn-sm" onclick="loadList()">🔄 重新整理</button>
+    <button class="btn btn-secondary btn-sm" onclick="loadList()" title="重新整理">🔄</button>
+    <button class="btn btn-primary btn-sm" id="exportBtn" onclick="exportToExcel()" title="匯出 Excel">📥 匯出</button>
 </div>
 <div class="card-list" id="testeeList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
 <div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""></div>
@@ -550,6 +552,143 @@ function handleSearch() {
         searchTerm = document.getElementById('searchInput').value.trim();
         loadList();
     }, 300);
+}
+
+// ── 匯出 Excel（單張工作表）──
+//   每筆 MOTI 檢測一列；最後一欄 InBody (有/無)
+//   有 = 該筆 MOTI 自身有上傳 InBody 圖片，或 inbody_records 表上同一天有獨立紀錄
+//   並行 batch fetch（每批 5 個 member），會跟 motiCache / inbodyCache 共用快取
+async function exportToExcel() {
+    const btn = document.getElementById('exportBtn');
+    if (btn.disabled) return;
+    if (typeof XLSX === 'undefined') {
+        showToast('⚠️ Excel 函式庫尚未載入完成，請稍候再試');
+        return;
+    }
+    if (!allTestees || allTestees.length === 0) {
+        showToast('⚠️ 沒有可匯出的資料');
+        return;
+    }
+
+    const total = allTestees.length;
+    btn.disabled = true;
+    const origLabel = btn.innerHTML;
+    btn.innerHTML = '⏳ 0/' + total;
+
+    try {
+        // 並行批次抓取每位受測者的 MOTI + InBody 資料
+        const BATCH_SIZE = 5;
+        const allRows = []; // 每筆是 { member, record, hasInbody }
+        let done = 0;
+
+        for (let i = 0; i < allTestees.length; i += BATCH_SIZE) {
+            const batch = allTestees.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(async (member) => {
+                const memberId = member.id;
+                try {
+                    // MOTI
+                    let motiData;
+                    if (motiCache[memberId]) {
+                        motiData = motiCache[memberId];
+                    } else {
+                        const r = await callEdge('getAssessmentHistory', { memberId });
+                        motiData = (r && r.data) || [];
+                        motiCache[memberId] = motiData;
+                    }
+
+                    // InBody（用來判斷有無）
+                    let inb;
+                    if (inbodyCache[memberId]) {
+                        inb = inbodyCache[memberId];
+                    } else {
+                        const r = await callEdge('getInbodyHistory', { memberId });
+                        inb = { data: (r && r.data) || [], motiData: (r && r.motiData) || [] };
+                        inbodyCache[memberId] = inb;
+                    }
+
+                    // 該會員所有「有 InBody 圖片」的日期
+                    const inbodyDates = new Set();
+                    (inb.data || []).forEach(rec => { if (rec.test_date) inbodyDates.add(rec.test_date); });
+                    (inb.motiData || []).forEach(m => {
+                        if (m.assessment_date && m.inbody_images) inbodyDates.add(m.assessment_date);
+                    });
+
+                    // 每筆 MOTI 一列
+                    motiData.forEach(rec => {
+                        const hasInbody = (rec.inbody_images && rec.inbody_images.trim() !== '')
+                            || inbodyDates.has(rec.assessment_date);
+                        allRows.push({ member, record: rec, hasInbody });
+                    });
+                } catch (e) {
+                    // 單筆失敗不擋整體匯出
+                    console.warn('export fetch failed for', memberId, e);
+                }
+            }));
+            done += batch.length;
+            btn.innerHTML = '⏳ ' + Math.min(done, total) + '/' + total;
+        }
+
+        // 排序：編號升冪 → 檢測日期降冪
+        allRows.sort((a, b) => {
+            const ida = String(a.member.id || ''), idb = String(b.member.id || '');
+            if (ida !== idb) return ida < idb ? -1 : 1;
+            const da = a.record.assessment_date || '', db = b.record.assessment_date || '';
+            return da < db ? 1 : (da > db ? -1 : 0);
+        });
+
+        // ── 單張工作表 ──
+        const rows = allRows.map(({ member, record: r, hasInbody }) => ({
+            '編號': member.id || '',
+            '姓名': member.name || '',
+            '性別': genderName(member.gender),
+            '生日': member.birth_date || '',
+            '年齡': calcAge(member.birth_date),
+            '疾病史': member.medical_history || '',
+            '諮詢備註': member.consultation_notes || '',
+            '檢測日期': r.assessment_date || '',
+            '風險 1': r.risk_1 || '',
+            '風險 2': r.risk_2 || '',
+            '風險 3': r.risk_3 || '',
+            '建議總堂數': numOrEmpty(r.total_courses),
+            '重訓堂數': numOrEmpty(r.weight_training_courses),
+            '器械堂數': numOrEmpty(r.machine_training_courses),
+            '伸展堂數': numOrEmpty(r.stretch_courses),
+            '短期目標': r.short_term_goal || '',
+            '建議功能訓練': r.functional_training || '',
+            '建議筋膜放鬆': r.fascia_release || '',
+            '注意事項': r.precautions || '',
+            '客服協助': r.service_notes || '',
+            '備註': r.notes || '',
+            'InBody': hasInbody ? '有' : '無',
+        }));
+
+        // ── 組裝 workbook ──
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = Array(Object.keys(rows[0] || {}).length).fill({ wch: 14 });
+        XLSX.utils.book_append_sheet(wb, ws, 'MOTI 完整資料');
+
+        // ── 檔名（含今日日期）──
+        const today = new Date();
+        const ymd = today.getFullYear() + String(today.getMonth() + 1).padStart(2, '0') + String(today.getDate()).padStart(2, '0');
+        const filename = 'MOTI_檢測資料_' + ymd + '.xlsx';
+
+        XLSX.writeFile(wb, filename);
+        showToast('✅ 已匯出：' + filename + '（' + rows.length + ' 筆）');
+    } catch (e) {
+        console.error('exportToExcel error:', e);
+        showToast('❌ 匯出失敗：' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origLabel;
+    }
+}
+
+// 把 null/undefined 轉空字串，數字保留為數值
+function numOrEmpty(v) {
+    if (v == null || v === '') return '';
+    const n = Number(v);
+    return isFinite(n) ? n : v;
 }
 
 // ── Lightbox ──
