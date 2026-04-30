@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MOTI 檢測資料查詢</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--green:#7ac19a;--green-dark:#5a9a7a;--green-light:#e8f5ee;--pink:#f2ac98;--pink-light:#fce8e2;--pink-dark:#c67566;--blue:#9fcccc;--blue-light:#e4f2f2;--blue-dark:#6ba3a3;--yellow:#ffe08b;--card:#fff;--text:#333;--text-secondary:#666;--text-muted:#999;--border:#e5e5e5;--moti:#A78BCA;--moti-dark:#7B5EA7;--moti-light:#F3E8FF;--inbody:#5DCAA5;--inbody-dark:#0F6E56;--inbody-light:#E1F5EE;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2ede6 0%,#daedec 30%,#faece8 60%,#fcf4e3 100%);background-attachment:fixed;color:var(--text);min-height:100vh;}
+.top-card{max-width:600px;margin:12px auto 0;padding:0 12px;}
+.top-inner{background:white;border-radius:16px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid var(--moti);}
+.top-main{display:flex;justify-content:space-between;align-items:flex-start;}
+.top-main h1{font-size:18px;font-weight:700;color:var(--moti-dark);}
+.top-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.user-badge{display:flex;align-items:center;gap:6px;background:var(--moti-light);padding:4px 10px 4px 6px;border-radius:20px;}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--moti);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.user-name{font-size:12px;font-weight:600;color:var(--moti-dark);}
+.quick-stats{display:flex;gap:8px;margin-top:12px;}
+.qs{flex:1;background:#f8faf8;border-radius:10px;padding:8px 6px;text-align:center;}
+.qs-num{font-size:18px;font-weight:900;color:var(--moti-dark);}
+.qs-label{font-size:9px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.action-bar{max-width:600px;margin:10px auto 0;padding:0 12px;display:flex;gap:8px;align-items:center;}
+.search-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:inherit;outline:none;background:white;transition:border-color 0.2s;}
+.search-input:focus{border-color:var(--moti);}
+.btn{padding:10px 16px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn:active{transform:scale(0.96);}
+.btn-primary{background:linear-gradient(135deg,var(--moti-dark),var(--moti));color:white;box-shadow:0 2px 8px rgba(167,139,202,0.3);}
+.btn-secondary{background:var(--blue-light);color:var(--blue-dark);}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px;}
+.card-list{max-width:600px;margin:10px auto 0;padding:0 12px 100px;}
+.a-card{background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04);border-left:4px solid var(--moti);transition:all 0.2s;cursor:pointer;}
+.a-card:active{transform:scale(0.995);}
+.a-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+.a-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+.a-avatar.m{background:linear-gradient(135deg,var(--blue-light),#bbdefb);color:var(--blue-dark);}
+.a-avatar.f{background:linear-gradient(135deg,var(--pink-light),#f8bbd0);color:var(--pink-dark);}
+.a-avatar.x{background:linear-gradient(135deg,#f3e5f5,#e1bee7);color:#7b1fa2;}
+.a-info{flex:1;min-width:0;}
+.a-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.a-meta{font-size:12px;color:var(--text-muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.a-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+.a-tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;}
+.a-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-field{display:flex;gap:4px;align-items:baseline;}
+.a-field-label{color:var(--text-muted);white-space:nowrap;font-size:12px;}
+.a-field-value{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.a-field.full{grid-column:1/-1;}
+.a-field.full .a-field-value{white-space:normal;}
+.a-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+.a-card.expanded .a-expand{display:block;}
+.a-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;}
+.a-toggle{text-align:center;margin-top:6px;font-size:10px;color:var(--moti);font-weight:600;}
+.a-card.expanded .a-toggle{display:none;}
+.a-card.expanded{border-left-color:var(--moti-dark);}
+.badge{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;}
+.badge-moti{background:var(--moti-light);color:var(--moti-dark);}
+.badge-count{background:#fff8e1;color:#b8860b;}
+.badge-recent{background:var(--green-light);color:var(--green-dark);}
+.gender-m{background:var(--blue-light);color:var(--blue-dark);}
+.gender-f{background:var(--pink-light);color:var(--pink-dark);}
+.gender-x{background:#f3e5f5;color:#7b1fa2;}
+/* MOTI / InBody 詳細區塊（卡片內嵌，非 modal）*/
+.exp-section{margin-top:14px;}
+.exp-section-title{font-size:13px;font-weight:700;color:var(--moti-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--moti-light);display:flex;align-items:center;gap:6px;}
+.exp-section.inbody .exp-section-title{color:var(--inbody-dark);border-bottom-color:var(--inbody-light);}
+.record-timeline{display:flex;flex-direction:column;gap:10px;}
+.record-item{background:#f8faf8;border-radius:12px;padding:12px;border-left:4px solid var(--moti);transition:all 0.2s;}
+.record-item.inbody-item{border-left-color:var(--inbody);}
+.record-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.record-item-date{font-size:14px;font-weight:600;}
+.record-item-badge{font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(167,139,202,0.15);color:var(--moti-dark);}
+.record-item.inbody-item .record-item-badge{background:rgba(93,202,165,0.15);color:var(--inbody-dark);}
+.record-item-summary{font-size:12px;color:var(--text-secondary);line-height:1.5;margin-top:2px;}
+.record-item-images{display:flex;gap:6px;margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.record-item-images img{width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;cursor:pointer;}
+/* 詳細數據區（內嵌於 record-item） */
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.rd-field{font-size:12px;}.rd-field.full{grid-column:1/-1;}
+.rd-field-label{color:var(--text-muted);font-size:10px;}.rd-field-value{font-weight:500;margin-top:1px;}
+.rd-risk{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.rd-risk-tag{padding:4px 10px;border-radius:8px;font-size:12px;font-weight:500;}
+.rd-risk-tag:nth-child(1){background:#fce8e2;color:#c67566;}
+.rd-risk-tag:nth-child(2){background:#fcf4e3;color:#ba9e60;}
+.rd-risk-tag:nth-child(3){background:#e4f2f2;color:#6ba3a3;}
+.rd-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+.rd-gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;}
+.rd-gallery img:active{opacity:0.7;}
+.rd-link{margin-top:10px;text-align:center;}
+.rd-link a{display:inline-block;padding:8px 16px;background:var(--moti);color:white;border-radius:10px;text-decoration:none;font-size:12px;font-weight:600;}
+.rd-link a:hover{background:var(--moti-dark);}
+.rd-subhead{font-size:11px;font-weight:600;color:var(--text-secondary);margin:10px 0 4px;}
+/* InBody 數據卡 */
+.inbody-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+.ib-card{background:white;border-radius:8px;padding:8px 6px;text-align:center;border:1px solid var(--border);}
+.ib-card-value{font-size:15px;font-weight:700;color:var(--inbody-dark);}
+.ib-card-label{font-size:9px;color:var(--text-muted);margin-top:2px;}
+.ib-card-unit{font-size:9px;color:var(--text-muted);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.exp-loading{text-align:center;padding:20px;color:var(--text-muted);font-size:12px;}
+.exp-empty{text-align:center;padding:14px;color:var(--text-muted);font-size:12px;background:#fafafa;border-radius:10px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:90%;text-align:center;}.toast.show{opacity:1;}
+/* 圖片燈箱 */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;display:none;align-items:center;justify-content:center;cursor:pointer;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:95%;max-height:90vh;object-fit:contain;border-radius:8px;}
+@media(min-width:769px){.a-grid,.a-expand-grid,.rd-grid{grid-template-columns:repeat(3,1fr);}.inbody-cards{grid-template-columns:repeat(6,1fr);}.rd-gallery{grid-template-columns:repeat(4,1fr);}}
+</style>
+</head>
+<body>
+<div class="top-card"><div class="top-inner">
+    <div class="top-main"><div><h1>📊 MOTI 受測者查詢</h1><div class="top-sub" id="topSub">載入中...</div></div><div class="user-badge"><div class="user-avatar">📊</div><span class="user-name">受測名單</span></div></div>
+    <div class="quick-stats" id="quickStats"></div>
+</div></div>
+<div class="action-bar">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名或編號..." oninput="handleSearch()">
+    <button class="btn btn-secondary btn-sm" onclick="loadList()">🔄 重新整理</button>
+</div>
+<div class="card-list" id="testeeList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" src="" alt=""></div>
+<div class="toast" id="toast"></div>
+<script>
+// ================================================================
+//  MOTI 受測者查詢系統 — 行政內部使用
+//  資料來源：admin-api Edge Function
+//   - listMotiTestees：受測者名單（含最新檢測日期、檢測次數）
+//   - getAssessmentHistory(memberId)：MOTI 完整紀錄
+//   - getInbodyHistory(memberId)：InBody 完整紀錄 + MOTI 帶入的 InBody 圖片
+// ================================================================
+const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
+
+async function callEdge(action, params = {}) {
+    const res = await fetch(EDGE_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...params })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || json.message || 'Edge Function error: ' + res.status);
+    return json;
+}
+
+// ── 共用工具 ──
+function escHtml(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function escAttr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function genderKey(g) {
+    if (!g) return 'x';
+    const v = String(g).toLowerCase();
+    if (v === 'male' || v === '男' || v === 'm') return 'm';
+    if (v === 'female' || v === '女' || v === 'f') return 'f';
+    return 'x';
+}
+const genderNames = { male: '男', female: '女', other: '其他', '男': '男', '女': '女', m: '男', f: '女' };
+function genderName(g) { return genderNames[g] || (g ? String(g) : '-'); }
+function calcAge(birth) {
+    if (!birth) return '';
+    const b = new Date(birth + (birth.length === 10 ? 'T00:00:00' : ''));
+    if (isNaN(b)) return '';
+    const now = new Date();
+    let age = now.getFullYear() - b.getFullYear();
+    const m = now.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+    return age >= 0 && age <= 120 ? age : '';
+}
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+function af(l, v) { return '<div class="a-field"><span class="a-field-label">' + l + '</span><span class="a-field-value">' + v + '</span></div>'; }
+function aff(l, v) { return '<div class="a-field full"><span class="a-field-label">' + l + '</span><span class="a-field-value">' + v + '</span></div>'; }
+function rdf(l, v) { return '<div class="rd-field"><div class="rd-field-label">' + l + '</div><div class="rd-field-value">' + v + '</div></div>'; }
+function rdfFull(l, v) { return '<div class="rd-field full"><div class="rd-field-label">' + l + '</div><div class="rd-field-value">' + v + '</div></div>'; }
+
+// ── 全域狀態 ──
+let allTestees = [];
+let searchTerm = '';
+let searchTimeout = null;
+const motiCache = {};   // memberId -> moti data array
+const inbodyCache = {}; // memberId -> { data, motiData }
+
+// ── 載入名單 ──
+async function loadList() {
+    const c = document.getElementById('testeeList');
+    c.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div>';
+    try {
+        const { data, count } = await callEdge('listMotiTestees', { search: searchTerm });
+        allTestees = data || [];
+        renderTopStats(allTestees);
+        renderList(allTestees);
+        document.getElementById('topSub').textContent = '共 ' + (count != null ? count : allTestees.length) + ' 位受測者';
+    } catch (e) {
+        c.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>載入失敗</p><div style="font-size:12px;margin-top:6px;color:#c67566;">' + escHtml(e.message) + '</div></div>';
+    }
+}
+
+function renderTopStats(list) {
+    const total = list.length;
+    let totalAssessments = 0;
+    let recent30 = 0;
+    const now = new Date();
+    list.forEach(s => {
+        totalAssessments += s.assessment_count || 0;
+        if (s.latest_assessment_date) {
+            const d = new Date(s.latest_assessment_date + 'T00:00:00');
+            if (!isNaN(d) && (now - d) <= 30 * 86400000) recent30++;
+        }
+    });
+    document.getElementById('quickStats').innerHTML =
+        '<div class="qs"><div class="qs-num">' + total + '</div><div class="qs-label">受測者</div></div>' +
+        '<div class="qs"><div class="qs-num">' + totalAssessments + '</div><div class="qs-label">檢測筆數</div></div>' +
+        '<div class="qs"><div class="qs-num">' + recent30 + '</div><div class="qs-label">近 30 日</div></div>';
+}
+
+function renderList(list) {
+    const c = document.getElementById('testeeList');
+    if (list.length === 0) {
+        c.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>找不到受測者</p></div>';
+        return;
+    }
+    c.innerHTML = list.map(s => {
+        const sid = escAttr(s.id);
+        const init = (s.name || '?')[0];
+        const gk = genderKey(s.gender);
+        const gd = genderName(s.gender);
+        const age = calcAge(s.birth_date);
+
+        // 卡片頂部 tags（性別 + 最新檢測日期 + 總次數）
+        let tags = '';
+        if (gd && gd !== '-') tags += '<span class="a-tag gender-' + gk + '">' + gd + '</span>';
+        if (s.latest_assessment_date) {
+            tags += '<span class="a-tag badge-recent">最新 ' + escHtml(s.latest_assessment_date) + '</span>';
+        }
+        if (s.assessment_count) {
+            tags += '<span class="a-tag badge-count">共 ' + s.assessment_count + ' 次</span>';
+        }
+
+        // 收合時可看的 grid（姓名旁基本三欄）
+        let grid = '';
+        if (s.gender) grid += af('性別', escHtml(gd));
+        if (s.birth_date) grid += af('生日', escHtml(s.birth_date) + (age !== '' ? ' (' + age + '歲)' : ''));
+
+        // 展開區
+        let exp = '';
+        if (s.medical_history) exp += aff('疾病史', '<span style="color:var(--pink-dark);">' + escHtml(s.medical_history) + '</span>');
+        if (s.consultation_notes) exp += aff('諮詢備註', escHtml(s.consultation_notes));
+
+        // 紀錄區（lazy load 後填入）
+        const motiBlock =
+            '<div class="exp-section moti" id="moti-section-' + sid + '">' +
+                '<div class="exp-section-title">📊 MOTI 檢測紀錄</div>' +
+                '<div class="exp-loading">展開卡片時載入...</div>' +
+            '</div>';
+        const inbodyBlock =
+            '<div class="exp-section inbody" id="inbody-section-' + sid + '">' +
+                '<div class="exp-section-title">🏋️ InBody 紀錄</div>' +
+                '<div class="exp-loading">展開卡片時載入...</div>' +
+            '</div>';
+
+        return '<div class="a-card" id="card-' + sid + '" onclick="toggleCard(\'' + sid + '\')">' +
+            '<div class="a-top">' +
+                '<div class="a-avatar ' + gk + '">' + escHtml(init) + '</div>' +
+                '<div class="a-info">' +
+                    '<div class="a-name">' + escHtml(s.name || '(未命名)') +
+                        ' <span class="badge badge-moti">' + escHtml(s.id || '') + '</span>' +
+                    '</div>' +
+                    '<div class="a-meta">' +
+                        (s.latest_assessment_date ? '<span>最近檢測：' + escHtml(s.latest_assessment_date) + '</span>' : '<span>無檢測日期</span>') +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            (tags ? '<div class="a-tags">' + tags + '</div>' : '') +
+            '<div class="a-grid">' + grid + '</div>' +
+            '<div class="a-expand">' +
+                '<div class="a-expand-grid">' + exp + '</div>' +
+                motiBlock + inbodyBlock +
+            '</div>' +
+            '<div class="a-toggle">▼ 點開查看完整檢測紀錄</div>' +
+        '</div>';
+    }).join('');
+}
+
+// ── 展開卡片 + lazy load ──
+async function toggleCard(memberId) {
+    const card = document.getElementById('card-' + memberId);
+    if (!card) return;
+    const willExpand = !card.classList.contains('expanded');
+    card.classList.toggle('expanded');
+    if (willExpand) {
+        // 同時載入 MOTI 與 InBody
+        loadMotiInto(memberId);
+        loadInbodyInto(memberId);
+    }
+}
+
+async function loadMotiInto(memberId) {
+    const target = document.getElementById('moti-section-' + memberId);
+    if (!target) return;
+    if (target.dataset.loaded === '1') return;
+    try {
+        let data;
+        if (motiCache[memberId]) {
+            data = motiCache[memberId];
+        } else {
+            const result = await callEdge('getAssessmentHistory', { memberId });
+            data = result?.data || [];
+            motiCache[memberId] = data;
+        }
+        target.dataset.loaded = '1';
+        if (!data || data.length === 0) {
+            target.innerHTML = '<div class="exp-section-title">📊 MOTI 檢測紀錄</div><div class="exp-empty">無 MOTI 紀錄</div>';
+            return;
+        }
+        target.innerHTML =
+            '<div class="exp-section-title">📊 MOTI 檢測紀錄（' + data.length + ' 筆）</div>' +
+            '<div class="record-timeline">' + data.map((r, i) => renderMotiItem(r, i, data.length)).join('') + '</div>';
+    } catch (e) {
+        target.innerHTML = '<div class="exp-section-title">📊 MOTI 檢測紀錄</div><div class="exp-empty" style="color:#c67566;">載入失敗：' + escHtml(e.message) + '</div>';
+    }
+}
+
+function renderMotiItem(r, i, total) {
+    const date = r.assessment_date || '-';
+    const idx = total - i;
+
+    // 風險排名
+    const risks = [r.risk_1, r.risk_2, r.risk_3].filter(Boolean);
+    let summary = '';
+    if (risks.length > 0) summary += '風險：' + risks.join('、');
+    if (r.total_courses) summary += (summary ? ' · ' : '') + '建議 ' + r.total_courses + ' 堂';
+
+    let h = '<div class="record-item">';
+    h += '<div class="record-item-head"><span class="record-item-date">' + escHtml(date) + '</span><span class="record-item-badge">第 ' + idx + ' 次</span></div>';
+    if (summary) h += '<div class="record-item-summary">' + escHtml(summary) + '</div>';
+
+    // 風險 tags
+    if (risks.length > 0) {
+        h += '<div class="rd-risk">';
+        risks.forEach((rk, k) => { h += '<span class="rd-risk-tag">' + (k + 1) + '. ' + escHtml(rk) + '</span>'; });
+        h += '</div>';
+    }
+
+    // 完整身體數據（grid）
+    const bodyFields = [];
+    // 身體基本數據（如有）
+    if (r.height != null) bodyFields.push({ l: '身高', v: r.height + ' cm' });
+    if (r.weight != null) bodyFields.push({ l: '體重', v: r.weight + ' kg' });
+    if (r.body_fat_percent != null) bodyFields.push({ l: '體脂率', v: r.body_fat_percent + ' %' });
+    if (r.skeletal_muscle != null) bodyFields.push({ l: '骨骼肌量', v: r.skeletal_muscle + ' kg' });
+    if (r.bmi != null) bodyFields.push({ l: 'BMI', v: r.bmi });
+    if (r.body_fat_mass != null) bodyFields.push({ l: '體脂肪重', v: r.body_fat_mass + ' kg' });
+    if (r.basal_metabolic_rate != null) bodyFields.push({ l: '基礎代謝', v: r.basal_metabolic_rate + ' kcal' });
+    if (r.total_body_water != null) bodyFields.push({ l: '身體水分', v: r.total_body_water + ' L' });
+    if (r.protein != null) bodyFields.push({ l: '蛋白質', v: r.protein + ' kg' });
+    if (r.minerals != null) bodyFields.push({ l: '礦物質', v: r.minerals + ' kg' });
+    if (r.visceral_fat != null) bodyFields.push({ l: '內臟脂肪', v: 'Lv ' + r.visceral_fat });
+    if (r.waist != null) bodyFields.push({ l: '腰圍', v: r.waist + ' cm' });
+    if (r.hip != null) bodyFields.push({ l: '臀圍', v: r.hip + ' cm' });
+    if (r.chest != null) bodyFields.push({ l: '胸圍', v: r.chest + ' cm' });
+    if (r.thigh != null) bodyFields.push({ l: '大腿圍', v: r.thigh + ' cm' });
+    if (r.arm != null) bodyFields.push({ l: '手臂圍', v: r.arm + ' cm' });
+    if (bodyFields.length > 0) {
+        h += '<div class="rd-subhead">📐 身體數據</div>';
+        h += '<div class="rd-grid">' + bodyFields.map(f => rdf(f.l, escHtml(f.v))).join('') + '</div>';
+    }
+
+    // 建議課程
+    const advice = [];
+    if (r.short_term_goal) advice.push({ l: '短期目標', v: r.short_term_goal, full: true });
+    if (r.total_courses) advice.push({ l: '建議總堂數', v: r.total_courses + ' 堂' });
+    if (r.weight_training_courses) advice.push({ l: '重訓', v: r.weight_training_courses + ' 堂' });
+    if (r.machine_training_courses) advice.push({ l: '器械', v: r.machine_training_courses + ' 堂' });
+    if (r.stretch_courses) advice.push({ l: '伸展', v: r.stretch_courses + ' 堂' });
+    if (advice.length > 0) {
+        h += '<div class="rd-subhead">💡 分析師建議</div>';
+        h += '<div class="rd-grid">' + advice.map(a => a.full ? rdfFull(a.l, escHtml(a.v)) : rdf(a.l, escHtml(a.v))).join('') + '</div>';
+    }
+
+    // 注意事項 / 備註
+    const extras = [];
+    if (r.functional_training) extras.push({ l: '建議功能訓練', v: r.functional_training });
+    if (r.fascia_release) extras.push({ l: '建議筋膜放鬆', v: r.fascia_release });
+    if (r.precautions) extras.push({ l: '注意事項', v: r.precautions });
+    if (r.service_notes) extras.push({ l: '客服協助', v: r.service_notes });
+    if (r.notes) extras.push({ l: '備註', v: r.notes });
+    if (extras.length > 0) {
+        h += '<div class="rd-subhead">📝 詳細說明</div>';
+        h += '<div class="rd-grid">' + extras.map(ex => rdfFull(ex.l, escHtml(ex.v))).join('') + '</div>';
+    }
+
+    // MOTI 體態照片
+    if (r.moti_images) {
+        const urls = r.moti_images.split(',').map(u => u.trim()).filter(Boolean);
+        if (urls.length > 0) {
+            h += '<div class="rd-subhead">📸 MOTI 體態照片（' + urls.length + ' 張）</div>';
+            h += '<div class="rd-gallery">' + urls.map(u => '<img src="' + escAttr(u) + '" loading="lazy" onclick="event.stopPropagation();openLightbox(\'' + escAttr(u) + '\')">').join('') + '</div>';
+        }
+    }
+
+    // 相簿連結
+    if (r.moti_folder) {
+        h += '<div class="rd-link"><a href="' + escAttr(r.moti_folder) + '" target="_blank" onclick="event.stopPropagation();">📁 開啟完整相簿</a></div>';
+    }
+
+    h += '</div>';
+    return h;
+}
+
+// ── InBody ──
+async function loadInbodyInto(memberId) {
+    const target = document.getElementById('inbody-section-' + memberId);
+    if (!target) return;
+    if (target.dataset.loaded === '1') return;
+    try {
+        let cached = inbodyCache[memberId];
+        if (!cached) {
+            const result = await callEdge('getInbodyHistory', { memberId });
+            cached = { data: result?.data || [], motiData: result?.motiData || [] };
+            inbodyCache[memberId] = cached;
+        }
+        target.dataset.loaded = '1';
+
+        const data = cached.data || [];
+        const motiData = cached.motiData || [];
+        // 建立日期→InBody 圖片對照表（從 MOTI 表帶入）
+        const imgByDate = {};
+        motiData.forEach(m => { if (m.inbody_images && m.assessment_date) imgByDate[m.assessment_date] = m.inbody_images; });
+
+        const motiWithImg = motiData.filter(m => m.inbody_images);
+        if (data.length === 0 && motiWithImg.length === 0) {
+            target.innerHTML = '<div class="exp-section-title">🏋️ InBody 紀錄</div><div class="exp-empty">無 InBody 紀錄</div>';
+            return;
+        }
+
+        let html = '<div class="exp-section-title">🏋️ InBody 紀錄（' + (data.length || motiWithImg.length) + ' 筆）</div><div class="record-timeline">';
+
+        if (data.length === 0) {
+            // 只有 MOTI 帶入的圖片
+            html += motiWithImg.map((m, i) => {
+                const date = m.assessment_date || '-';
+                const urls = m.inbody_images.split(',').map(u => u.trim()).filter(Boolean);
+                let imgs = '';
+                if (urls.length > 0) {
+                    imgs = '<div class="record-item-images">' + urls.map(u => '<img src="' + escAttr(u) + '" loading="lazy" onclick="event.stopPropagation();openLightbox(\'' + escAttr(u) + '\')">').join('') + '</div>';
+                }
+                return '<div class="record-item inbody-item">' +
+                    '<div class="record-item-head"><span class="record-item-date">' + escHtml(date) + '</span><span class="record-item-badge">第 ' + (motiWithImg.length - i) + ' 次</span></div>' +
+                    '<div class="record-item-summary">InBody 報告照片</div>' +
+                    imgs +
+                '</div>';
+            }).join('');
+        } else {
+            html += data.map((r, i) => renderInbodyItem(r, i, data.length, data, imgByDate)).join('');
+        }
+
+        html += '</div>';
+        target.innerHTML = html;
+    } catch (e) {
+        target.innerHTML = '<div class="exp-section-title">🏋️ InBody 紀錄</div><div class="exp-empty" style="color:#c67566;">載入失敗：' + escHtml(e.message) + '</div>';
+    }
+}
+
+function renderInbodyItem(r, i, total, allData, imgByDate) {
+    const date = r.test_date || '-';
+    const idx = total - i;
+
+    // 主要數據摘要
+    const parts = [];
+    if (r.body_weight != null) parts.push('體重 ' + r.body_weight + 'kg');
+    if (r.body_fat_percent != null) parts.push('體脂 ' + r.body_fat_percent + '%');
+    if (r.skeletal_muscle != null) parts.push('肌肉 ' + r.skeletal_muscle + 'kg');
+    if (r.bmi != null) parts.push('BMI ' + r.bmi);
+    const summary = parts.join(' · ');
+
+    // 跟上次比較
+    let diffStr = '';
+    if (i < allData.length - 1) {
+        const prev = allData[i + 1];
+        const ds = [];
+        if (r.body_weight != null && prev.body_weight != null) {
+            const d = (r.body_weight - prev.body_weight).toFixed(1);
+            if (d != 0) ds.push('體重 ' + (d > 0 ? '+' : '') + d);
+        }
+        if (r.body_fat_percent != null && prev.body_fat_percent != null) {
+            const d = (r.body_fat_percent - prev.body_fat_percent).toFixed(1);
+            if (d != 0) ds.push('體脂 ' + (d > 0 ? '+' : '') + d + '%');
+        }
+        if (r.skeletal_muscle != null && prev.skeletal_muscle != null) {
+            const d = (r.skeletal_muscle - prev.skeletal_muscle).toFixed(1);
+            if (d != 0) ds.push('肌肉 ' + (d > 0 ? '+' : '') + d);
+        }
+        if (ds.length > 0) diffStr = '<div style="font-size:11px;color:var(--inbody-dark);margin-top:4px;">📈 vs 上次：' + ds.join('、') + '</div>';
+    }
+
+    let h = '<div class="record-item inbody-item">';
+    h += '<div class="record-item-head"><span class="record-item-date">' + escHtml(date) + '</span><span class="record-item-badge">第 ' + idx + ' 次</span></div>';
+    if (summary) h += '<div class="record-item-summary">' + escHtml(summary) + '</div>';
+    h += diffStr;
+
+    // 主要數據卡
+    const cards = [];
+    if (r.body_weight != null) cards.push({ v: r.body_weight, l: '體重', u: 'kg' });
+    if (r.skeletal_muscle != null) cards.push({ v: r.skeletal_muscle, l: '骨骼肌', u: 'kg' });
+    if (r.body_fat_mass != null) cards.push({ v: r.body_fat_mass, l: '體脂肪重', u: 'kg' });
+    if (r.bmi != null) cards.push({ v: r.bmi, l: 'BMI', u: 'kg/m²' });
+    if (r.body_fat_percent != null) cards.push({ v: r.body_fat_percent, l: '體脂率', u: '%' });
+    if (r.basal_metabolic_rate != null) cards.push({ v: r.basal_metabolic_rate, l: '基礎代謝', u: 'kcal' });
+    if (cards.length > 0) {
+        h += '<div class="inbody-cards">' + cards.map(c =>
+            '<div class="ib-card"><div class="ib-card-value">' + escHtml(c.v) + '</div><div class="ib-card-label">' + c.l + '</div><div class="ib-card-unit">' + c.u + '</div></div>'
+        ).join('') + '</div>';
+    }
+
+    // 身體組成
+    const composition = [];
+    if (r.total_body_water != null) composition.push({ l: '身體水分', v: r.total_body_water + ' L' });
+    if (r.protein != null) composition.push({ l: '蛋白質', v: r.protein + ' kg' });
+    if (r.minerals != null) composition.push({ l: '礦物質', v: r.minerals + ' kg' });
+    if (r.visceral_fat != null) composition.push({ l: '內臟脂肪', v: 'Lv ' + r.visceral_fat });
+    if (composition.length > 0) {
+        h += '<div class="rd-subhead">🧬 身體組成</div>';
+        h += '<div class="rd-grid">' + composition.map(c => rdf(c.l, escHtml(c.v))).join('') + '</div>';
+    }
+
+    // InBody 報告圖片
+    const imgStr = r.image_url || imgByDate[r.test_date] || '';
+    if (imgStr) {
+        const urls = imgStr.split(',').map(u => u.trim()).filter(Boolean);
+        if (urls.length > 0) {
+            h += '<div class="rd-subhead">📋 InBody 報告圖片（' + urls.length + ' 張）</div>';
+            h += '<div class="rd-gallery">' + urls.map(u => '<img src="' + escAttr(u) + '" loading="lazy" onclick="event.stopPropagation();openLightbox(\'' + escAttr(u) + '\')">').join('') + '</div>';
+        }
+    }
+
+    if (r.notes) {
+        h += '<div class="rd-subhead">📝 備註</div>';
+        h += '<div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">' + escHtml(r.notes) + '</div>';
+    }
+
+    h += '</div>';
+    return h;
+}
+
+// ── 搜尋 ──
+function handleSearch() {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        searchTerm = document.getElementById('searchInput').value.trim();
+        loadList();
+    }, 300);
+}
+
+// ── Lightbox ──
+function openLightbox(url) {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('show');
+    document.getElementById('lightboxImg').src = '';
+}
+
+// ── 啟動 ──
+document.addEventListener('DOMContentLoaded', loadList);
+</script>
+</body>
+</html>
