@@ -269,6 +269,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
             <input type="hidden" id="mConsultationId">
             <input type="hidden" id="mMemberId">
             <textarea placeholder="備註（選填）" id="mNote"></textarea>
+            <input type="text" placeholder="談單人員" id="mSalesPerson" autocomplete="off">
         </div>
 
         <div id="editTimeSection" style="display:none">
@@ -553,6 +554,11 @@ function pickAutocomplete(item) {
         document.getElementById('mStudentPhone').value = rec.member_phone || '';
         document.getElementById('mConsultationId').value = rec.id || '';
         document.getElementById('mMemberId').value = rec.member_id || '';
+        // 若諮詢單已有談單人員，預填到 modal（行政人員可改）
+        const salesEl = document.getElementById('mSalesPerson');
+        if (salesEl && !salesEl.value) {
+            salesEl.value = rec.sales_person || '';
+        }
         updateConsultationBadge('linked', rec);
     } else {
         document.getElementById('mStudentName').value = rec.name || '';
@@ -1085,6 +1091,7 @@ function openSlot(slotId) {
     document.getElementById('mConsultationId').value = slot.consultation_id || '';
     document.getElementById('mMemberId').value = slot.member_id || '';
     document.getElementById('mNote').value = slot.notes || '';
+    document.getElementById('mSalesPerson').value = slot.sales_person || '';
 
     // 同步 lastSearchedValue 避免 focus 後誤清連結
     lastSearchedValue = slot.student_name || '';
@@ -1292,6 +1299,7 @@ async function doBook() {
     showLoading(true);
     try {
         const bookNote = document.getElementById('mNote').value.trim();
+        const salesPerson = (document.getElementById('mSalesPerson').value || '').trim();
         await callWithDupConfirm('updateSlotStatus', {
             slotId: currentSlot.id,
             status: 'booked',
@@ -1310,12 +1318,13 @@ async function doBook() {
                 booking_time: buildBookingTimeLabel(snap),
                 consultation_id: consultationId,
                 booking_note: bookNote,
+                sales_person: salesPerson,
                 student: { name: name }
             });
             reportNotifyResult(nf, snap.coach_name, '已通知 {coach} 教練（預約成功）');
         }
 
-        // 諮詢單同步：寫入 booking_status + coach（status_key 由 DB trigger 自動重算）
+        // 諮詢單同步：寫入 booking_status + coach（+ sales_person 若有填）
         // options.auto_reopen_if_closed_no_trial：若該筆是「結案未體驗」(closed=true + booking_status 為空)
         //   Edge Function 會自動把 closed 設為 false，讓回遊學員狀態回到「已預約」而不是停在「結案」
         const syncCid = consultationId || snap.consultation_id || null;
@@ -1326,12 +1335,15 @@ async function doBook() {
                 day_name:   snap.day_name,
                 coach_name: snap.coach_name
             };
+            const updateData = {
+                booking_status: formatBookingStatusText(syncSlot),
+                coach:          snap.coach_name || ''
+            };
+            // 只在有填談單人員時才覆蓋（避免清空既有值）
+            if (salesPerson) updateData.sales_person = salesPerson;
             const sync = await syncConsultationRecord({
                 consultationId: syncCid,
-                updateData: {
-                    booking_status: formatBookingStatusText(syncSlot),
-                    coach:          snap.coach_name || ''
-                },
+                updateData: updateData,
                 options: { auto_reopen_if_closed_no_trial: true },
                 actionLabel: 'doBook'
             });
