@@ -1128,6 +1128,7 @@ function renderModalButtons(status) {
     let html = '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>';
     if (status === 'available') {
         html += '<button class="btn btn-reserve" onclick="doReserve()">🟡 保留</button>';
+        html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯時段</button>';
         html += '<button class="btn btn-book" onclick="doBook()">✅ 確認預約</button>';
     } else if (status === 'reserved') {
         html += '<button class="btn btn-unbook" onclick="doCancel()">取消保留</button>';
@@ -1144,10 +1145,29 @@ function toggleEdit() {
     isEditMode = !isEditMode;
     document.getElementById('editTimeSection').style.display = isEditMode ? '' : 'none';
     if (isEditMode) {
+        // 進入編輯模式：available 狀態僅允許改開始/結束時間，鎖定日期
+        const dateInput = document.getElementById('mNewDate');
+        if (currentSlot && currentSlot.status === 'available') {
+            if (dateInput) {
+                dateInput.disabled = true;
+                dateInput.title = '本時段為教練已排定的可預約時段，僅能調整開始與結束時間';
+            }
+        } else {
+            if (dateInput) {
+                dateInput.disabled = false;
+                dateInput.title = '';
+            }
+        }
         const btns = document.getElementById('modalBtns');
         btns.innerHTML = '<button class="btn btn-cancel-modal" onclick="toggleEdit()">取消編輯</button>' +
             '<button class="btn btn-book" onclick="doSaveEdit()">💾 儲存變更</button>';
     } else {
+        // 離開編輯模式：解除日期鎖定
+        const dateInput = document.getElementById('mNewDate');
+        if (dateInput) {
+            dateInput.disabled = false;
+            dateInput.title = '';
+        }
         renderModalButtons(currentSlot.status);
     }
 }
@@ -1554,6 +1574,9 @@ async function doSaveEdit() {
     } catch (e) {
         if (e && e.code === 'user_cancelled_duplicate') {
             toast('已取消變更');
+        } else if (e && (e.code === 'time_conflict' || e.code === 'duplicate_time_slot')) {
+            // 時段衝突：訊息已是 ⚠️ 開頭的友善提示，直接顯示不加「儲存失敗：」前綴
+            toast(e.message || '⚠️ 時段衝突');
         } else {
             toast('儲存失敗：' + e.message);
         }
