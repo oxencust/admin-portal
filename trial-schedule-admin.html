@@ -1130,6 +1130,7 @@ function renderModalButtons(status) {
         html += '<button class="btn btn-reserve" onclick="doReserve()">🟡 保留</button>';
         html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯時段</button>';
         html += '<button class="btn btn-book" onclick="doBook()">✅ 確認預約</button>';
+        html += '<button class="btn btn-unbook" onclick="doDeleteSlot()" title="永久刪除此時段">🗑️ 刪除</button>';
     } else if (status === 'reserved') {
         html += '<button class="btn btn-unbook" onclick="doCancel()">取消保留</button>';
         html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
@@ -1492,6 +1493,36 @@ async function doCancel() {
         await loadSlots();
     } catch (e) {
         toast('取消失敗：' + e.message);
+    }
+    showLoading(false);
+}
+
+// ── 硬刪除可約時段（只在 available 狀態提供）──
+async function doDeleteSlot() {
+    if (!currentSlot) return;
+    if (currentSlot.status !== 'available') {
+        toast('⚠️ 只能刪除尚未被預約的時段');
+        return;
+    }
+
+    const timeLabel = buildBookingTimeLabel(currentSlot)
+        || ((currentSlot.slot_date || '') + ' ' + (currentSlot.start_time || ''));
+    const coachLabel = currentSlot.coach_name ? ('（教練：' + currentSlot.coach_name + '）') : '';
+    if (!confirm('⚠️ 確定永久刪除此時段？\n\n' + timeLabel + coachLabel + '\n\n此操作無法復原。')) return;
+
+    showLoading(true);
+    try {
+        const res = await callEdge('deleteSlot', { slotId: currentSlot.id });
+        if (res && res.success === false) {
+            toast('⚠️ ' + (res.message || '刪除失敗'));
+            showLoading(false);
+            return;
+        }
+        toast('🗑️ 時段已刪除');
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('刪除失敗：' + (e.message || e));
     }
     showLoading(false);
 }
