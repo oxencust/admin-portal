@@ -416,6 +416,7 @@ const MODULES = [
     { id:'class-record', name:'課表紀錄', icon:'📋' },
     { id:'class-record-query', name:'課表查詢', icon:'🔍' },
     { id:'moti-analyze', name:'Moti檢測', icon:'🔬' },
+    { id:'moti-testees', name:'MOTI檢測查詢', icon:'🔍' },
     { id:'consultation', name:'諮詢單', icon:'📋' },
     { id:'trial-schedule-admin', name:'體驗排程管理', icon:'📋' },
 ];
@@ -425,7 +426,7 @@ const ROLE_DEFAULTS = {
     manager: MODULES.filter(m => m.id !== 'settings').map(m => m.id),
     employee: ['member','substitute','punch','moti-booking','leave-manage','personal-schedule','class-record-query','consultation'],
     coach: ['substitute-coach','trial-schedule','trial-feedback','class-record'],
-    analyst: ['moti-analyze','moti-booking'],
+    analyst: ['moti-analyze','moti-testees','moti-booking'],
 };
 
 // ====================================================================
