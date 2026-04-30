@@ -375,6 +375,7 @@ async function loadAll() {
             promo: r.promo || '',
             applicant_type: r.applicant_type || '',
             inbody: r.inbody || '',
+            source: r.source || '',
             statusKey: r.closed
                 ? (r.booking_status ? 'closed' : 'closed_no_trial')
                 : (r.booking_status ? 'booked' : 'new')
@@ -420,7 +421,8 @@ function applyFilter() {
         (r.courses||'').toLowerCase().includes(q) ||
         (r.goals||'').toLowerCase().includes(q) ||
         (r.admin_track||'').toLowerCase().includes(q) ||
-        (r.displayName||'').toLowerCase().includes(q)
+        (r.displayName||'').toLowerCase().includes(q) ||
+        (r.source||'').toLowerCase().includes(q)
     );
     PAGE = 1;
     renderCards(list);
@@ -525,7 +527,8 @@ function goPage(p) {
         (r.courses||'').toLowerCase().includes(q) ||
         (r.goals||'').toLowerCase().includes(q) ||
         (r.admin_track||'').toLowerCase().includes(q) ||
-        (r.displayName||'').toLowerCase().includes(q)
+        (r.displayName||'').toLowerCase().includes(q) ||
+        (r.source||'').toLowerCase().includes(q)
     );
     const totalPages = Math.ceil(list.length / PAGE_SIZE);
     PAGE = Math.max(1, Math.min(p, totalPages));
@@ -574,6 +577,7 @@ function renderView(r) {
             ${fv('提交時間', r.submittedAt)}
             ${fv('LINE 暱稱', r.displayName)}
             ${fv('填寫諮詢單人', r.applicant_type)}
+            ${fv('在哪認識我們', r.source, true)}
         </div>
         <div class="fi mt8">
             <div class="fl">結案</div>
@@ -638,6 +642,16 @@ function renderEdit(r) {
     const tp    = parseTP(r.time_preferences||'');
     const will  = (r.purchase_will||'').toString();
 
+    // 談單人員：3 固定類別 + 近期 3 個動態人名（合計最多 6 個 datalist 選項，行政可自由輸入覆蓋）
+    const fixedSales = ['現場行政', '線上客服', '老師本人'];
+    const recentSales = [...new Set(
+        ALL
+            .filter(x => x.sales_person && !fixedSales.includes(x.sales_person))
+            .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
+            .map(x => x.sales_person)
+    )].slice(0, 3);
+    const salesOptions = [...fixedSales, ...recentSales];
+
     document.getElementById('DSC').innerHTML = `
 
         <!-- 結案開關 -->
@@ -659,12 +673,11 @@ function renderEdit(r) {
                 </select>
             </div>
             <div class="fi"><div class="fl">談單人員</div>
-                <select class="esel" id="e_sales" onchange="dirty()">
-                    <option value="">— 請選擇</option>
-                    <option ${r.sales_person==='現場行政'?'selected':''}>現場行政</option>
-                    <option ${r.sales_person==='線上客服'?'selected':''}>線上客服</option>
-                    <option ${r.sales_person==='老師本人'?'selected':''}>老師本人</option>
-                </select>
+                <input class="ei" id="e_sales" list="salesPersonList" value="${esc(r.sales_person)}"
+                       placeholder="— 可選擇或輸入" oninput="dirty()" autocomplete="off">
+                <datalist id="salesPersonList">
+                    ${salesOptions.map(s=>`<option value="${esc(s)}"></option>`).join('')}
+                </datalist>
             </div>
         </div>
         <div class="fi" style="margin-bottom:8px">
@@ -712,6 +725,7 @@ function renderEdit(r) {
         <div class="fg">
             <div class="fi"><div class="fl">提交時間（唯讀）</div><div class="fv mt">${r.submittedAt||'—'}</div></div>
             <div class="fi fw"><div class="fl">填寫諮詢單人</div><input class="ei" id="e_appl" value="${esc(r.applicant_type)}" oninput="dirty()"></div>
+            <div class="fi fw"><div class="fl">在哪認識我們（唯讀）</div><div class="fv ${!r.source?'mt':''}">${r.source||'—'}</div></div>
         </div>
 
         <!-- 基本資料 -->
