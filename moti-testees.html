@@ -31,7 +31,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 .btn-secondary{background:var(--blue-light);color:var(--blue-dark);}
 .btn-sm{padding:7px 14px;font-size:12px;border-radius:8px;}
 .card-list{max-width:600px;margin:10px auto 0;padding:0 12px 100px;}
-.a-card{background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04);border-left:4px solid var(--moti);transition:all 0.2s;cursor:pointer;}
+.a-card{background:white;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.04);border-left:4px solid var(--moti);transition:all 0.2s;cursor:pointer;position:relative;}
+.a-check{position:absolute;top:12px;right:12px;width:20px;height:20px;cursor:pointer;z-index:2;accent-color:var(--moti-dark);margin:0;}
+.a-card.selected{background:linear-gradient(135deg,#faf6ff,white 60%);box-shadow:0 0 0 2px var(--moti),0 1px 6px rgba(167,139,202,0.15);}
+.a-card.selected .a-name{color:var(--moti-dark);}
 .a-card:active{transform:scale(0.995);}
 .a-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
 .a-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
@@ -118,6 +121,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="action-bar">
     <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋姓名或編號..." oninput="handleSearch()">
     <button class="btn btn-secondary btn-sm" onclick="loadList()" title="重新整理">🔄</button>
+    <button class="btn btn-secondary btn-sm" id="selectToggleBtn" onclick="toggleSelectAll()" title="全選 / 清除選取">✓ 全選</button>
     <button class="btn btn-primary btn-sm" id="exportBtn" onclick="exportToExcel()" title="匯出 Excel">📥 匯出</button>
 </div>
 <div class="card-list" id="testeeList"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div>
@@ -134,10 +138,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
 
 async function callEdge(action, params = {}) {
+  // ── Sprint 0 Phase 1: 自動帶上 staffLineUid ──
+  let _uid = null;
+  try {
+    _uid = sessionStorage.getItem('staffLineUid');
+    if (!_uid) {
+      const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+      _uid = _st?.lineUid || _st?.line_id_edu || null;
+    }
+  } catch(e) {}
+  const _body = { action, ...(params || {}) };
+  if (_uid && !_body.lineUid) _body.lineUid = _uid;
+
     const res = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...params })
+        body: JSON.stringify(_body)
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || json.message || 'Edge Function error: ' + res.status);
@@ -179,6 +195,7 @@ function rdfFull(l, v) { return '<div class="rd-field full"><div class="rd-field
 // ── 全域狀態 ──
 let allTestees = [];
 let searchTerm = '';
+const selectedIds = new Set(); // 多選匯出：使用者勾選的 member id 集合
 let searchTimeout = null;
 const motiCache = {};   // memberId -> moti data array
 const inbodyCache = {}; // memberId -> { data, motiData }
@@ -261,7 +278,9 @@ function renderList(list) {
                 '<div class="exp-loading">展開卡片時載入...</div>' +
             '</div>';
 
-        return '<div class="a-card" id="card-' + sid + '" onclick="toggleCard(\'' + sid + '\')">' +
+        const isChecked = selectedIds.has(s.id);
+        return '<div class="a-card' + (isChecked ? ' selected' : '') + '" id="card-' + sid + '" onclick="toggleCard(\'' + sid + '\')">' +
+            '<input type="checkbox" class="a-check" ' + (isChecked ? 'checked ' : '') + 'onclick="event.stopPropagation();toggleSelect(\'' + sid + '\', this.checked)" title="加入匯出選取">' +
             '<div class="a-top">' +
                 '<div class="a-avatar ' + gk + '">' + escHtml(init) + '</div>' +
                 '<div class="a-info">' +
@@ -282,6 +301,38 @@ function renderList(list) {
             '<div class="a-toggle">▼ 點開查看完整檢測紀錄</div>' +
         '</div>';
     }).join('');
+    updateExportLabel();
+}
+
+// ── 多選匯出 ──
+function toggleSelect(id, checked) {
+    if (checked) selectedIds.add(id); else selectedIds.delete(id);
+    const card = document.getElementById('card-' + id);
+    if (card) card.classList.toggle('selected', checked);
+    updateExportLabel();
+}
+function toggleSelectAll() {
+    // 若有任一筆已選，視為「清除」；否則視為「全選（目前清單內所有人）」
+    if (selectedIds.size > 0) {
+        selectedIds.clear();
+        document.querySelectorAll('.a-check').forEach(c => c.checked = false);
+        document.querySelectorAll('.a-card.selected').forEach(c => c.classList.remove('selected'));
+    } else {
+        allTestees.forEach(s => selectedIds.add(s.id));
+        document.querySelectorAll('.a-check').forEach(c => c.checked = true);
+        document.querySelectorAll('.a-card').forEach(c => c.classList.add('selected'));
+    }
+    updateExportLabel();
+}
+function updateExportLabel() {
+    const btn = document.getElementById('exportBtn');
+    const tgl = document.getElementById('selectToggleBtn');
+    if (!btn || !tgl) return;
+    if (btn.disabled) return; // 匯出進行中不蓋掉進度
+    const total = allTestees.length;
+    const sel = selectedIds.size;
+    btn.innerHTML = (sel === 0) ? '📥 全部 (' + total + ')' : '📥 選取 (' + sel + '/' + total + ')';
+    tgl.innerHTML = (sel === 0) ? '✓ 全選' : '✗ 清除 (' + sel + ')';
 }
 
 // ── 展開卡片 + lazy load ──
@@ -570,7 +621,15 @@ async function exportToExcel() {
         return;
     }
 
-    const total = allTestees.length;
+    // 選取為 0 → 全部；> 0 → 只匯出勾選的
+    const targets = selectedIds.size > 0
+        ? allTestees.filter(s => selectedIds.has(s.id))
+        : allTestees;
+    if (targets.length === 0) {
+        showToast('⚠️ 沒有可匯出的資料');
+        return;
+    }
+    const total = targets.length;
     btn.disabled = true;
     const origLabel = btn.innerHTML;
     btn.innerHTML = '⏳ 0/' + total;
@@ -581,8 +640,8 @@ async function exportToExcel() {
         const allRows = []; // 每筆是 { member, record, hasInbody }
         let done = 0;
 
-        for (let i = 0; i < allTestees.length; i += BATCH_SIZE) {
-            const batch = allTestees.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+            const batch = targets.slice(i, i + BATCH_SIZE);
             await Promise.all(batch.map(async (member) => {
                 const memberId = member.id;
                 try {
@@ -681,6 +740,7 @@ async function exportToExcel() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = origLabel;
+        updateExportLabel(); // 依當下選取狀態更新 label
     }
 }
 
