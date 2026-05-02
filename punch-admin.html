@@ -338,10 +338,22 @@ let searchDebounce = null;
 //  Edge Function 呼叫
 // ═══════════════════════════════════════════════
 async function callEdge(action, params = {}) {
+  // ── Sprint 0 Phase 1: 自動帶上 staffLineUid ──
+  let _uid = null;
+  try {
+    _uid = sessionStorage.getItem('staffLineUid');
+    if (!_uid) {
+      const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+      _uid = _st?.lineUid || _st?.line_id_edu || null;
+    }
+  } catch(e) {}
+  const _body = { action, ...params };
+  if (_uid && !_body.lineUid) _body.lineUid = _uid;
+
     const res = await fetch(ATTEND_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...params })
+        body: JSON.stringify(_body)
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok || !json.success) {
