@@ -174,7 +174,7 @@ const expNames={'pilates':'皮拉提斯','weight':'重量訓練','stretch':'伸�
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'使用者',role:p.get('permission_level')||p.get('role')||'employee'};}
+    // ── Sprint 0 Task 3.2: 移除 URL ?uid=&role= 後門 ──
     if(!currentUser){document.getElementById('studentList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
