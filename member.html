@@ -151,8 +151,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <script>
 const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
 async function callEdge(action,params={}){
-  // ── Sprint 0 Phase 1: 自動帶上 staffLineUid ──
+  // ── Sprint 0 Phase 1 + Phase 3: staffLineUid + LINE ID Token ──
   let _uid = null;
+  let _idToken = null;
   try {
     _uid = sessionStorage.getItem('staffLineUid');
     if (!_uid) {
@@ -160,9 +161,18 @@ async function callEdge(action,params={}){
       _uid = _st?.lineUid || _st?.line_id_edu || null;
     }
   } catch(e) {}
-  const _body = { action, ...params };
+  try {
+    if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+      _idToken = liff.getIDToken();
+      if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+    }
+    if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+  } catch(e) {}
+  const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
-const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify(_body)});const json=await res.json().catch(()=>({}));if(!res.ok)throw new Error(json.error||json.message||'Edge Function error: '+res.status);return json;}
+  const _headers = { 'Content-Type': 'application/json' };
+  if (_idToken) _headers['X-Line-IdToken'] = _idToken;
+const res=await fetch(EDGE_FUNCTION_URL,{method:'POST',headers:_headers,body: JSON.stringify(_body)});const json=await res.json().catch(()=>({}));if(!res.ok)throw new Error(json.error||json.message||'Edge Function error: '+res.status);return json;}
 let currentUser=null,modulePerms={view:false,fill:false,edit:false,create:false,delete:false,export:false},fieldPerms={};
 let students=[],totalCount=0,currentPage=1,pageSize=50,searchTerm='',searchTimeout=null,editingStudent=null;
 const genderNames={'male':'男','female':'女','男':'男','女':'女','other':'其他'};
