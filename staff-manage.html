@@ -101,7 +101,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <script>
 const EDGE_FUNCTION_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
 async function callEdge(action, params = {}) {
-  // Sprint 0 Phase 1：自動帶上 staffLineUid，後端 auth_observations 觀察用
+  // ── Sprint 0 Phase 1: 自動帶上 staffLineUid ──
   let _uid = null;
   try {
     _uid = sessionStorage.getItem('staffLineUid');
@@ -109,8 +109,8 @@ async function callEdge(action, params = {}) {
       const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
       _uid = _st?.lineUid || _st?.line_id_edu || null;
     }
-  } catch (e) {}
-  const _body = { action, ...params };
+  } catch(e) {}
+  const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
   const res = await fetch(EDGE_FUNCTION_URL, {
     method: 'POST',
@@ -130,7 +130,7 @@ const genderNorm=g=>({male:'male',female:'female',other:'other','男':'male','�
 
 function initPermissions(){
     try{currentUser=JSON.parse(sessionStorage.getItem('currentStaff'));}catch(e){}
-    if(!currentUser){const p=new URLSearchParams(window.location.search);if(p.get('uid'))currentUser={name:p.get('name')||'',role:p.get('permission_level')||p.get('role')||'employee'};}
+    // ── Sprint 0 Task 3.2: 移除 URL ?uid=&role= 後門 ──
     if(!currentUser){document.getElementById('staffList').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>請先登入</p></div>';return false;}
     document.getElementById('staffName').textContent=currentUser.name;
     document.getElementById('userAvatar').textContent=(currentUser.name||'?')[0];
