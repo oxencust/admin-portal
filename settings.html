@@ -521,10 +521,7 @@ let isSaving = false;
 async function initPermissions() {
     // 1. 取得前端暫存的使用者資料
     try { currentUser = JSON.parse(sessionStorage.getItem('currentStaff')); } catch(e) {}
-    if (!currentUser) {
-        const p = new URLSearchParams(window.location.search);
-        if (p.get('uid')) currentUser = { name: p.get('name')||'', role: p.get('permission_level')||p.get('role')||'employee', lineUid: p.get('uid') };
-    }
+    // ── Sprint 0 Task 3.2: 移除 URL ?uid=&role= 後門 ──
     if (!currentUser) {
         showBlockedScreen('🔒', '無法識別身份，請從入口頁面登入');
         return false;
