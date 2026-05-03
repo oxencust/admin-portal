@@ -335,8 +335,9 @@ const STATUS_BADGE  = { available: 'badge-available', booked: 'badge-booked', re
 //  Edge Function 呼叫
 // ═══════════════════════════════════════════════
 async function callEdge(action, params = {}) {
-  // ── Sprint 0 Phase 1: 自動帶上 staffLineUid ──
+  // ── Sprint 0 Phase 1 + Phase 3: staffLineUid + LINE ID Token ──
   let _uid = null;
+  let _idToken = null;
   try {
     _uid = sessionStorage.getItem('staffLineUid');
     if (!_uid) {
@@ -344,14 +345,24 @@ async function callEdge(action, params = {}) {
       _uid = _st?.lineUid || _st?.line_id_edu || null;
     }
   } catch(e) {}
+  try {
+    // Phase 3: 帶上 LINE ID Token (有 LIFF 就拿新的，否則用 sessionStorage 快取)
+    if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+      _idToken = liff.getIDToken();
+      if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+    }
+    if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+  } catch(e) {}
   const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
 
-    const res = await fetch(BOOKING_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(_body)
-    });
+    const _headers = { 'Content-Type': 'application/json' };
+  if (_idToken) _headers['X-Line-IdToken'] = _idToken;
+  const res = await fetch(BOOKING_API, {
+    method: 'POST',
+    headers: _headers,
+    body: JSON.stringify(_body)
+  });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
         // 帶結構化 payload 的錯誤（例如 409 duplicate_booking）
