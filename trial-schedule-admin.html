@@ -352,6 +352,13 @@ async function callEdge(action, params = {}) {
       if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
     }
     if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+    // Phase 3 hotfix: 過期 token 不送（permissive fallback to lineUid）
+    if (_idToken) {
+      try {
+        const _p = JSON.parse(atob(_idToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        if (_p.exp && _p.exp * 1000 < Date.now()) _idToken = null;
+      } catch(e) { _idToken = null; }
+    }
   } catch(e) {}
   const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
