@@ -361,6 +361,11 @@ async function callEdge(action, params = {}) {
       const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
       _uid = _st?.lineUid || _st?.line_id_edu || null;
     }
+    // Phase 1 補強: 新分頁開時 sessionStorage 不共享 → 退到 URL params
+    if (!_uid) {
+      const _u = new URLSearchParams(location.search);
+      _uid = _u.get('line_id_edu') || _u.get('uid') || null;
+    }
   } catch(e) {}
   try {
     // Phase 3: 帶上 LINE ID Token (有 LIFF 就拿新的，否則用 sessionStorage 快取)
