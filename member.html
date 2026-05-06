@@ -538,7 +538,20 @@ function viewMotiDetail(mysqlId) {
     }
     // 資料夾連結
     if (r.moti_folder) {
-        h += '<div class="rd-section"><div style="text-align:center;"><a href="' + escAttr(r.moti_folder) + '" target="_blank" style="display:inline-block;padding:10px 20px;background:#A78BCA;color:white;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">📁 開啟完整相簿</a></div></div>';
+        // Sprint 1-C [4/4]: 加 line_id_edu 給相簿頁
+        let _albumUid = '';
+        try {
+          _albumUid = sessionStorage.getItem('staffLineUid')
+            || JSON.parse(sessionStorage.getItem('currentStaff') || 'null')?.line_id_edu
+            || new URLSearchParams(location.search).get('line_id_edu')
+            || new URLSearchParams(location.search).get('uid')
+            || '';
+        } catch(e) {}
+        let _albumUrl = r.moti_folder;
+        if (_albumUid && !_albumUrl.includes('line_id_edu=')) {
+          _albumUrl += (_albumUrl.includes('?') ? '&' : '?') + 'line_id_edu=' + encodeURIComponent(_albumUid);
+        }
+        h += '<div class="rd-section"><div style="text-align:center;"><a href="' + escAttr(_albumUrl) + '" target="_blank" style="display:inline-block;padding:10px 20px;background:#A78BCA;color:white;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;">📁 開啟完整相簿</a></div></div>';
     }
     h += '</div>';
     document.getElementById('recordDetailBody').innerHTML = h;
