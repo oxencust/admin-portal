@@ -477,7 +477,20 @@ function renderMotiItem(r, i, total) {
 
     // 相簿連結
     if (r.moti_folder) {
-        h += '<div class="rd-link"><a href="' + escAttr(r.moti_folder) + '" target="_blank" onclick="event.stopPropagation();">📁 開啟完整相簿</a></div>';
+        // Sprint 1-C [4/4]: 加 line_id_edu 給相簿頁
+        let _albumUid = '';
+        try {
+          _albumUid = sessionStorage.getItem('staffLineUid')
+            || JSON.parse(sessionStorage.getItem('currentStaff') || 'null')?.line_id_edu
+            || new URLSearchParams(location.search).get('line_id_edu')
+            || new URLSearchParams(location.search).get('uid')
+            || '';
+        } catch(e) {}
+        let _albumUrl = r.moti_folder;
+        if (_albumUid && !_albumUrl.includes('line_id_edu=')) {
+          _albumUrl += (_albumUrl.includes('?') ? '&' : '?') + 'line_id_edu=' + encodeURIComponent(_albumUid);
+        }
+        h += '<div class="rd-link"><a href="' + escAttr(_albumUrl) + '" target="_blank" onclick="event.stopPropagation();">📁 開啟完整相簿</a></div>';
     }
 
     h += '</div>';
