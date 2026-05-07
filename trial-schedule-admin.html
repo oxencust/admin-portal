@@ -1229,11 +1229,45 @@ let coachList = []; // {id, name, coach_type}
 
 async function loadCoachList() {
     if (coachList.length > 0) return;
+
+    // Sprint 1 hotfix: admin-api getCoaches 是 AUTH_ACTION，補上跟 callEdge 同套 auth
+    // (lineUid 從 sessionStorage / URL params + LINE ID Token 從 LIFF / sessionStorage)
+    let _uid = null, _idToken = null;
+    try {
+        _uid = sessionStorage.getItem('staffLineUid');
+        if (!_uid) {
+            const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+            _uid = _st?.lineUid || _st?.line_id_edu || null;
+        }
+        if (!_uid) {
+            const _u = new URLSearchParams(location.search);
+            _uid = _u.get('line_id_edu') || _u.get('uid') || null;
+        }
+    } catch(e) {}
+    try {
+        if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+            _idToken = liff.getIDToken();
+            if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+        }
+        if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+        if (_idToken) {
+            try {
+                const _p = JSON.parse(atob(_idToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+                if (_p.exp && _p.exp * 1000 < Date.now()) _idToken = null;
+            } catch(e) { _idToken = null; }
+        }
+    } catch(e) {}
+
+    const _headers = { 'Content-Type': 'application/json' };
+    if (_idToken) _headers['X-Line-IdToken'] = _idToken;
+    const _body = { action: 'getCoaches' };
+    if (_uid) _body.lineUid = _uid;
+
     try {
         const res = await fetch(ADMIN_API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'getCoaches' })
+            headers: _headers,
+            body: JSON.stringify(_body)
         });
         const json = await res.json();
         coachList = (json.data || []).filter(c => c.is_active !== false).map(c => ({
