@@ -159,6 +159,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
 .badge-available{background:#e8f5e9;color:#2e7d32}
 .badge-booked{background:#fff3e0;color:#e65100}
+.badge-substitution{background:#e8f5e9;color:#2e7d32;font-weight:600}
 .badge-reserved{background:#fef5e7;color:#f39c12}
 .badge-cancelled{background:#f5f5f5;color:#999}
 
@@ -270,6 +271,15 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
             <input type="hidden" id="mMemberId">
             <textarea placeholder="備註（選填）" id="mNote"></textarea>
             <input type="text" placeholder="談單人員" id="mSalesPerson" autocomplete="off">
+        </div>
+
+        <!-- ═══ 代課專屬資訊區（slot.source==='substitution' 才顯示）═══ -->
+        <div id="substInfoSection" style="display:none">
+            <div class="info-row"><span class="info-label">原教練</span><span class="info-val" id="mSubstOrigCoach">-</span></div>
+            <div class="info-row"><span class="info-label">學員</span><span class="info-val" id="mSubstStudent">-</span></div>
+            <div class="info-row"><span class="info-label">學員編號</span><span class="info-val" id="mSubstStudentId">-</span></div>
+            <div class="info-row" id="mSubstReasonRow"><span class="info-label">代課原因</span><span class="info-val" id="mSubstReason">-</span></div>
+            <textarea id="mSubstCancelReason" placeholder="取消原因（選填，會帶進雙方教練的 LINE 取消通知）" style="margin-top:8px"></textarea>
         </div>
 
         <div id="editTimeSection" style="display:none">
@@ -1187,36 +1197,46 @@ function openSlot(slotId) {
         toast('MOTI 預約請至 MOTI 預約名單系統修改');
         return;
     }
-    // 代課事件（coach_substitutions）：僅顯示資訊 + 詢問是否取消代課
-    //   - 此 slot 不存在 trial_slots（id 是 'subst_xxx'），不可走原本編輯 modal
-    //   - 真正管理入口在「原教練 available slot → 📋 代課管理」，這裡只做快速取消
+    // 代課事件（coach_substitutions）：開啟與體驗預約 modal 同樣樣式的代課資訊 modal
+    //   - 沿用 #slotModal 的 layout、CSS、按鈕風格（UI 一致）
+    //   - 隱藏體驗預約相關欄位（諮詢單/會員ID/備註/談單），顯示代課專屬區（原教練/學員/原因/取消原因）
+    //   - 操作只有「🚫 取消代課」+「關閉」（其他編輯需先取消重建）
     if (slot.source === 'substitution') {
-        const info = `🥷 代課事件\n\n原教練：${slot.original_coach_name || '-'}\n代課教練：${slot.coach_name || '-'}\n學員：${slot.student_name || '-'}\n時段：${slot.slot_date} ${slot.start_time}${slot.end_time ? '-' + slot.end_time : ''}${slot.substitution_reason ? '\n代課原因：' + slot.substitution_reason : ''}\n\n是否取消此代課？\n（取消後將通知雙方教練）`;
-        if (!confirm(info)) return;
-        const reason = prompt('取消原因（選填）：', '') || '';
-        callEdge('cancelSubstitution', { substitutionId: slot.substitution_id, cancelReason: reason })
-            .then(async (res) => {
-                if (res && res.success) {
-                    toast('✅ 代課已取消');
-                    // 同步發送雙方通知（best-effort，notify 失敗不阻擋取消）
-                    try {
-                        await notifyCoach('substitution_cancelled', {
-                            substitution_id: slot.substitution_id,
-                            original_coach_id: slot.original_coach_id,
-                            substitute_coach_id: slot.coach_id,
-                            class_date: slot.slot_date,
-                            class_start_time: slot.start_time,
-                            class_end_time: slot.end_time,
-                            student_name: slot.student_name,
-                            cancel_reason: reason
-                        });
-                    } catch (e) { console.warn('通知發送失敗（已取消但通知未發）:', e); }
-                    await loadSlots();
-                } else {
-                    toast('❌ 取消失敗：' + (res?.error || '未知錯誤'));
-                }
-            })
-            .catch(e => toast('❌ 取消失敗：' + (e.message || e)));
+        currentSlot = slot;
+        isEditMode = false;
+
+        // 標題 + 基本資訊
+        document.getElementById('modalTitle').textContent = '🥷 代課資訊';
+        document.getElementById('mCoach').textContent = slot.coach_name || '-';
+        document.getElementById('mType').textContent  = TYPE_LABELS[slot.coach_type] || slot.coach_type || '-';
+        document.getElementById('mDate').textContent  = slot.slot_date || '-';
+        document.getElementById('mTime').textContent  = slot.start_time + (slot.end_time ? ' - ' + slot.end_time : '');
+        document.getElementById('mBadge').innerHTML   = '<span class="badge badge-substitution">🥷 代課中</span>';
+
+        // 隱藏體驗預約相關欄位
+        document.getElementById('studentSection').style.display = 'none';
+        document.getElementById('editTimeSection').style.display = 'none';
+
+        // 顯示代課專屬區並填值
+        document.getElementById('substInfoSection').style.display = '';
+        document.getElementById('mSubstOrigCoach').textContent = slot.original_coach_name || '-';
+        document.getElementById('mSubstStudent').textContent   = slot.student_name || '-';
+        document.getElementById('mSubstStudentId').textContent = slot.student_id || '-';
+        const reasonRow = document.getElementById('mSubstReasonRow');
+        if (slot.substitution_reason) {
+            reasonRow.style.display = '';
+            document.getElementById('mSubstReason').textContent = slot.substitution_reason;
+        } else {
+            reasonRow.style.display = 'none';
+        }
+        document.getElementById('mSubstCancelReason').value = '';
+
+        // 按鈕：取消代課 + 關閉
+        document.getElementById('modalBtns').innerHTML =
+            '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>' +
+            '<button class="btn btn-unbook" onclick="doCancelSubstitutionFromModal()">🚫 取消代課</button>';
+
+        document.getElementById('slotModal').classList.add('show');
         return;
     }
     currentSlot = slot;
@@ -1329,8 +1349,54 @@ function toggleEdit() {
 
 function closeModal() {
     document.getElementById('slotModal').classList.remove('show');
+    // 復原代課專屬區（下次開非代課 slot 時不會殘留）
+    const substSec = document.getElementById('substInfoSection');
+    if (substSec) substSec.style.display = 'none';
+    const studentSec = document.getElementById('studentSection');
+    if (studentSec) studentSec.style.display = '';
     currentSlot = null;
     isEditMode = false;
+}
+
+// ── 從代課 modal 內取消代課 ──
+//   1) 讀 textarea 取消原因（選填）
+//   2) confirm 二次確認
+//   3) 呼叫 cancelSubstitution，成功後 best-effort 推雙方 LINE 通知
+//   4) 關閉 modal + reload slots
+async function doCancelSubstitutionFromModal() {
+    if (!currentSlot || currentSlot.source !== 'substitution') return;
+    const reason = (document.getElementById('mSubstCancelReason').value || '').trim();
+    if (!confirm('確定取消此代課？\n取消後雙方教練都會收到 LINE 通知。')) return;
+    try {
+        const res = await callEdge('cancelSubstitution', {
+            substitutionId: currentSlot.substitution_id,
+            cancelReason: reason
+        });
+        if (!res || !res.success) {
+            toast('❌ 取消失敗：' + ((res && res.error) || '未知錯誤'));
+            return;
+        }
+        toast('✅ 代課已取消');
+        // best-effort 雙方通知（失敗不阻擋取消）
+        try {
+            await notifyCoach('substitution_cancelled', {
+                substitution_id:     currentSlot.substitution_id,
+                original_coach_id:   currentSlot.original_coach_id,
+                substitute_coach_id: currentSlot.coach_id,
+                class_date:          currentSlot.slot_date,
+                class_start_time:    currentSlot.start_time,
+                class_end_time:      currentSlot.end_time,
+                student_name:        currentSlot.student_name,
+                cancel_reason:       reason
+            });
+        } catch (e) {
+            console.warn('代課取消通知發送失敗（取消已完成、通知未發）:', e);
+        }
+        closeModal();
+        await loadSlots();
+    } catch (e) {
+        toast('❌ 取消失敗：' + (e.message || e));
+    }
 }
 
 // ═══════════════════════════════════════════════
