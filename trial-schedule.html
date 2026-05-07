@@ -1527,7 +1527,13 @@
                         status: event.status || 'available',
                         eventId: event.eventId || event.id,
                         studentName: studentName,
-                        optimistic: false
+                        optimistic: false,
+                        // ── 代課（coach_substitutions）欄位透傳，僅 source==='substitution' 時有值 ──
+                        source: event.source || null,
+                        substitutionId: event.substitutionId || null,
+                        originalCoachId: event.originalCoachId || null,
+                        originalCoachName: event.originalCoachName || null,
+                        substitutionReason: event.substitutionReason || null
                     });
                 });
             }
@@ -1652,7 +1658,10 @@
                                     date: event.date,
                                     startTime: event.startTime,
                                     endTime: event.endTime,
-                                    studentName: event.studentName || event.memberName || ''
+                                    studentName: event.studentName || event.memberName || '',
+                                    // 代課透傳：顯示在詳細列表加 (代) 前綴 + 原教練副標
+                                    source: event.source || null,
+                                    originalCoachName: event.originalCoachName || null
                                 });
                             }
                         });
@@ -1696,13 +1705,21 @@
                                 ${date} (${dayOfWeek})
                             </div>
                             <div class="detail-slot-list">
-                                ${dateSlots.map(slot => `
+                                ${dateSlots.map(slot => {
+                                    const isSubst = slot.source === 'substitution';
+                                    const substPrefix = isSubst ? '<span style="color:#2e7d32;font-weight:600">(代)</span> ' : '';
+                                    const substSub = isSubst && slot.originalCoachName
+                                        ? `<div style="color:#888;font-size:11px;margin-top:2px">原教練：${slot.originalCoachName}</div>`
+                                        : '';
+                                    return `
                                     <div class="detail-slot-item ${config.class}${slot.optimistic ? ' optimistic' : ''}" onclick="jumpToSlot('${date}', '${slot.startTime}', event)" style="cursor: pointer;">
-                                        ${slot.startTime} - ${slot.endTime}
+                                        ${substPrefix}${slot.startTime} - ${slot.endTime}
                                         ${slot.studentName ? ` (${slot.studentName})` : ''}
                                         ${slot.action === 'delete' ? ' <span style="color: var(--pink);">❌</span>' : ''}
+                                        ${substSub}
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
@@ -1796,13 +1813,19 @@
                         
                         if (slotInfo.studentName) {
                             const icon = slotInfo.class === 'booked' ? '🔒' : '⏱';
+                            // 代課事件：學員名前加「(代) 」前綴 + tooltip 顯示原教練
+                            const isSubst = slotInfo.source === 'substitution';
+                            const namePrefix = isSubst ? '(代) ' : '';
                             content = `
                                 <span class="slot-time">${time}</span>
-                                <span class="student-name">${icon} ${slotInfo.studentName}</span>
+                                <span class="student-name">${icon} ${namePrefix}${slotInfo.studentName}</span>
                             `;
                         }
-                        
-                        return `<div class="slot-cell ${slotInfo.class}${slotInfo.optimistic ? ' optimistic' : ''}" onclick="toggleSlot(${dayIndex}, ${timeIndex}, event)">${content}</div>`;
+                        const isSubstCell = slotInfo.source === 'substitution';
+                        const titleAttr = isSubstCell && slotInfo.originalCoachName
+                            ? ` title="代課（原教練：${slotInfo.originalCoachName}）"`
+                            : '';
+                        return `<div class="slot-cell ${slotInfo.class}${slotInfo.optimistic ? ' optimistic' : ''}" onclick="toggleSlot(${dayIndex}, ${timeIndex}, event)"${titleAttr}>${content}</div>`;
                     }).join('')}
                 </div>
             `).join('');
@@ -1850,12 +1873,16 @@
                 );
                 
                 if (calEvent) {
-                    if (calEvent.status === 'booked') return { 
-                        class: 'booked', 
-                        studentName: calEvent.studentName || calEvent.memberName || ''
+                    if (calEvent.status === 'booked') return {
+                        class: 'booked',
+                        studentName: calEvent.studentName || calEvent.memberName || '',
+                        // 代課事件透傳 → generateCalendar 加 (代) 前綴
+                        source: calEvent.source || null,
+                        originalCoachName: calEvent.originalCoachName || null,
+                        substitutionId: calEvent.substitutionId || null
                     };
-                    if (calEvent.status === 'reserved') return { 
-                        class: 'reserved', 
+                    if (calEvent.status === 'reserved') return {
+                        class: 'reserved',
                         studentName: calEvent.studentName || calEvent.memberName || ''
                     };
                     if (calEvent.status === 'available' && !calEvent.optimistic) return { 
