@@ -1050,8 +1050,16 @@ function renderWeek() {
             const todayCls = fmt(d) === today ? ' today-col' : '';
             html += `<div class="day-cell${todayCls}">`;
             slots.forEach(s => {
-                const studentHtml = s.student_name ? `<div class="student">${esc(s.student_name)}</div>` : '';
-                html += `<div class="slot ${s.status||'available'}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">
+                // 代課事件：學員姓名前加「🥷 (代) 」標記，tooltip 顯示原教練
+                const isSubst = s.source === 'substitution';
+                const substPrefix = isSubst ? '🥷 (代) ' : '';
+                const studentHtml = s.student_name
+                    ? `<div class="student"${isSubst ? ' style="color:#2e7d32;font-weight:600"' : ''}>${substPrefix}${esc(s.student_name)}</div>`
+                    : '';
+                const titleAttr = isSubst && s.original_coach_name
+                    ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
+                    : '';
+                html += `<div class="slot ${s.status||'available'}${isSubst ? ' is-subst' : ''}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')"${titleAttr}>
                     <div class="coach-name">${esc(s.coach_name)}</div>
                     <div class="slot-time">${s.start_time}${s.end_time?'-'+s.end_time:''}</div>
                     ${studentHtml}
@@ -1118,10 +1126,17 @@ function renderMonth() {
         html += `<div class="cell-date">${cursor.getDate()}</div>`;
         html += '<div class="slot-dots">';
         slots.forEach((s, idx) => {
-            const statusIcon = s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '';
+            // 代課用 🥷 替代 ✦，並在學員姓名前加 (代) 前綴方便辨識
+            const isSubst = s.source === 'substitution';
+            const statusIcon = isSubst ? '🥷' : (s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '');
             const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
-            const stuName = s.student_name ? ' · ' + esc(s.student_name) : '';
-            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')">${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
+            const stuPrefix = isSubst ? '(代) ' : '';
+            const stuName = s.student_name ? ' · ' + stuPrefix + esc(s.student_name) : '';
+            const titleAttr = isSubst && s.original_coach_name
+                ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
+                : '';
+            const substStyle = isSubst ? ' style="color:#2e7d32;font-weight:600"' : '';
+            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}"${substStyle} onclick="openSlot('${s.id}')"${titleAttr}>${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
         });
         if (slots.length > MAX_SHOW) {
             html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
@@ -1170,6 +1185,38 @@ function openSlot(slotId) {
     // MOTI 預約只佔位顯示，不可在此編輯（請至 MOTI 預約名單系統修改）
     if (slot.source === 'moti') {
         toast('MOTI 預約請至 MOTI 預約名單系統修改');
+        return;
+    }
+    // 代課事件（coach_substitutions）：僅顯示資訊 + 詢問是否取消代課
+    //   - 此 slot 不存在 trial_slots（id 是 'subst_xxx'），不可走原本編輯 modal
+    //   - 真正管理入口在「原教練 available slot → 📋 代課管理」，這裡只做快速取消
+    if (slot.source === 'substitution') {
+        const info = `🥷 代課事件\n\n原教練：${slot.original_coach_name || '-'}\n代課教練：${slot.coach_name || '-'}\n學員：${slot.student_name || '-'}\n時段：${slot.slot_date} ${slot.start_time}${slot.end_time ? '-' + slot.end_time : ''}${slot.substitution_reason ? '\n代課原因：' + slot.substitution_reason : ''}\n\n是否取消此代課？\n（取消後將通知雙方教練）`;
+        if (!confirm(info)) return;
+        const reason = prompt('取消原因（選填）：', '') || '';
+        callEdge('cancelSubstitution', { substitutionId: slot.substitution_id, cancelReason: reason })
+            .then(async (res) => {
+                if (res && res.success) {
+                    toast('✅ 代課已取消');
+                    // 同步發送雙方通知（best-effort，notify 失敗不阻擋取消）
+                    try {
+                        await notifyCoach('substitution_cancelled', {
+                            substitution_id: slot.substitution_id,
+                            original_coach_id: slot.original_coach_id,
+                            substitute_coach_id: slot.coach_id,
+                            class_date: slot.slot_date,
+                            class_start_time: slot.start_time,
+                            class_end_time: slot.end_time,
+                            student_name: slot.student_name,
+                            cancel_reason: reason
+                        });
+                    } catch (e) { console.warn('通知發送失敗（已取消但通知未發）:', e); }
+                    await loadSlots();
+                } else {
+                    toast('❌ 取消失敗：' + (res?.error || '未知錯誤'));
+                }
+            })
+            .catch(e => toast('❌ 取消失敗：' + (e.message || e)));
         return;
     }
     currentSlot = slot;
@@ -1588,8 +1635,8 @@ function renderSubstStudentDropdown(items) {
     dd.innerHTML = items.slice(0, 10).map(s => {
         const idVal    = (s.id || '').replace(/'/g, "&#39;");
         const nameVal  = (s.name || '').replace(/'/g, "&#39;");
-        const phoneVal = (s.phone || '').replace(/'/g, "&#39;");
-        return `<div class="ac-item" onclick="selectSubstStudent('${escHtml(idVal)}','${escHtml(nameVal)}','${escHtml(phoneVal)}')">${escHtml(s.name || '-')} <span style="color:#888;font-size:11px">${escHtml(s.id)}${s.phone ? ' / ' + escHtml(s.phone) : ''}</span></div>`;
+        // 不顯示手機號碼，只顯示學員姓名 + 學員編號
+        return `<div class="ac-item" onclick="selectSubstStudent('${escHtml(idVal)}','${escHtml(nameVal)}')">${escHtml(s.name || '-')} <span style="color:#888;font-size:11px">${escHtml(s.id)}</span></div>`;
     }).join('');
     dd.style.display = '';
 }
@@ -1599,11 +1646,12 @@ function hideSubstStudentDropdown() {
     if (dd) dd.style.display = 'none';
 }
 
-function selectSubstStudent(id, name, phone) {
+function selectSubstStudent(id, name) {
     document.getElementById('substStudentName').value = name;
     document.getElementById('substStudentId').value   = id;
     const badge = document.getElementById('substStudentBadge');
-    badge.textContent = `已連結學員：${name} (${id}${phone ? ' / ' + phone : ''})`;
+    // 已連結學員：只顯示姓名 + 學員編號（不顯示手機號碼）
+    badge.textContent = `已連結學員：${name} (${id})`;
     badge.style.display = '';
     hideSubstStudentDropdown();
 }
