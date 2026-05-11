@@ -386,6 +386,9 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 <div class="toast" id="toast"></div>
 </div><!-- /page-wrap -->
 
+<!-- Hendia API helper (Sprint 3 Phase 5 — Zeabur cutover) -->
+<script src="../../../_shared/callApi.js"></script>
+
 <script>
 // ═══════════════════════════════════════════════
 //  CONFIG
@@ -393,7 +396,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
 const CONSULTATION_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
 const CHAT_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api';
-const NOTIFY_COACHES_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/notify-coaches';
+// const NOTIFY_COACHES_URL = '...';   // 已棄用：notifyCoach() 改走 HendiaApi.callApi('notify-coaches', ...)
 const TYPE_LABELS = {
     ai_analysis: 'AI 3D體態分析',
     pilates: '皮拉提斯',
@@ -786,13 +789,9 @@ function escHtml(s) {
 // ═══════════════════════════════════════════════
 async function notifyCoach(action, payload) {
     try {
-        const res = await fetch(NOTIFY_COACHES_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, ...payload })
-        });
-        const j = await res.json().catch(() => ({}));
-        return j;
+        // Sprint 3 Phase 5: 走 HendiaApi.callApi → Zeabur (with edge fallback via killswitch)
+        const j = await HendiaApi.callApi('notify-coaches', { action, ...payload });
+        return j || {};
     } catch (e) {
         console.warn('notifyCoach failed:', e);
         return { success: false, reason: 'fetch_error' };
