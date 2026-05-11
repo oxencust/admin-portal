@@ -1074,6 +1074,11 @@
 
     async function initApp() {
         try {
+            // 🚨 Sprint 3 Phase 5 緊急止血：強制全員走 Edge Function
+            // 原因：Zeabur notify-coaches-service 對 reserved/reserved_cancelled 等 type 回傳 notified:0，未實際發 LINE
+            // 待 Zeabur 服務修復後，移除這 1 行即可恢復走新通道
+            try { localStorage.setItem('hendia_force_edge', '1'); } catch (e) {}
+
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
 
