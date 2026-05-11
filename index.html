@@ -1653,6 +1653,10 @@
             }
         }
 
+        // Sprint 3 Phase 5: cachebuster 解決 LIFF WebView Service Worker 持續快取舊 HTML 的問題
+        // 每次點模組都帶不同 _v → SW 把它當新 URL，bypass cache 重新抓
+        baseParams._v = Date.now();
+
         const params = new URLSearchParams(baseParams);
 
         // 外部 URL vs 相對路徑
