@@ -1076,8 +1076,10 @@
         try {
             // 🚨 Sprint 3 Phase 5 緊急止血：強制全員走 Edge Function
             // 原因：Zeabur notify-coaches-service 對 reserved/reserved_cancelled 等 type 回傳 notified:0，未實際發 LINE
-            // 待 Zeabur 服務修復後，移除這 1 行即可恢復走新通道
-            try { localStorage.setItem('hendia_force_edge', '1'); } catch (e) {}
+            // 待 Zeabur 服務修復後，移除這 2 行即可恢復走新通道
+            // ⚠️ key 名必須是 HENDIA_API_FORCE_EDGE（全大寫），對應 _shared/callApi.js 的判斷
+            try { localStorage.setItem('HENDIA_API_FORCE_EDGE', '1'); } catch (e) {}
+            try { localStorage.removeItem('hendia_force_edge'); } catch (e) {}  // 清掉之前錯誤 key 的殘留
 
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
