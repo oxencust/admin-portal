@@ -1074,12 +1074,13 @@
 
     async function initApp() {
         try {
-            // 🚨 Sprint 3 Phase 5 緊急止血：強制全員走 Edge Function
-            // 原因：Zeabur notify-coaches-service 對 reserved/reserved_cancelled 等 type 回傳 notified:0，未實際發 LINE
-            // 待 Zeabur 服務修復後，移除這 2 行即可恢復走新通道
-            // ⚠️ key 名必須是 HENDIA_API_FORCE_EDGE（全大寫），對應 _shared/callApi.js 的判斷
-            try { localStorage.setItem('HENDIA_API_FORCE_EDGE', '1'); } catch (e) {}
-            try { localStorage.removeItem('hendia_force_edge'); } catch (e) {}  // 清掉之前錯誤 key 的殘留
+            // Sprint 3 Phase 5 Wave 1：killswitch 已移除（Zeabur notify-coaches-service 已修復）
+            // 如未來需緊急回退到 Edge Function，可在瀏覽器 Console 執行：
+            //   localStorage.setItem('HENDIA_API_FORCE_EDGE', '1')
+            // 或單一服務回退：localStorage.setItem('HENDIA_API_FORCE_EDGE_notify-coaches', '1')
+            // 同時清掉舊版殘留 killswitch（若同事的 localStorage 還有打開的 flag，這行會自動還原他們）
+            try { localStorage.removeItem('HENDIA_API_FORCE_EDGE'); } catch (e) {}
+            try { localStorage.removeItem('hendia_force_edge'); } catch (e) {}
 
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
