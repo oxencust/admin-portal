@@ -395,7 +395,10 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 // ═══════════════════════════════════════════════
 const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
 const CONSULTATION_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
-const CHAT_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api';
+// 2026-05-13 Sprint 3 Phase 5 Wave 4 cutover：chat-api 從 Supabase Edge 切到 Zeabur
+// Rollback：URL 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api' 即可
+// 體驗排程僅用 chat-api/searchStudents（學員 typeahead），是 4 支前端中風險最低的，故第一支切
+const CHAT_API = 'https://chat-hendia.zeabur.app/';
 // const NOTIFY_COACHES_URL = '...';   // 已棄用：notifyCoach() 改走 HendiaApi.callApi('notify-coaches', ...)
 const TYPE_LABELS = {
     ai_analysis: 'AI 3D體態分析',
