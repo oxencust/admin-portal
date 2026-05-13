@@ -121,7 +121,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 /* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
-.modal{background:white;border-radius:20px;padding:20px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal{background:white;border-radius:20px;padding:20px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;position:relative}
 .modal h3{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--green-dark)}
 .modal .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
 .modal .info-label{color:var(--muted)}
@@ -184,6 +184,12 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
             <div class="header-sub">行政端 · 時段管理與預約</div>
         </div>
         <div>
+            <!-- 2026-05-13 A5：進行中代課全局徽章（取代舊「📋 代課管理」入口） -->
+            <button id="activeSubstBadge" onclick="openActiveSubstModal()"
+                    style="display:none;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;padding:6px 12px;border-radius:18px;font-size:13px;font-weight:600;cursor:pointer;margin-right:6px"
+                    title="查看 / 取消進行中的代課">
+                📋 進行中代課 <span id="activeSubstCount">0</span>
+            </button>
             <button class="add-btn" onclick="openAddSlot()">＋ 新增時段</button>
             <button class="refresh-btn" onclick="loadSlots()">↻ 重新整理</button>
         </div>
@@ -253,6 +259,12 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 <!-- ═══ 預約 / 編輯 Modal ═══ -->
 <div class="modal-overlay" id="slotModal">
     <div class="modal">
+        <!-- 2026-05-13 C1：sticky × 按鈕（右上角，跟著捲動） -->
+        <button onclick="closeModal()" aria-label="關閉"
+                style="position:sticky;top:0;float:right;background:white;border:none;
+                       font-size:22px;color:#999;cursor:pointer;line-height:1;
+                       padding:4px 10px;margin:-10px -10px 0 0;z-index:10;
+                       border-radius:0 0 0 12px">×</button>
         <h3 id="modalTitle">📝 預約體驗課</h3>
         <div class="info-row"><span class="info-label">教練</span><span class="info-val" id="mCoach">-</span></div>
         <div class="info-row"><span class="info-label">課種</span><span class="info-val" id="mType">-</span></div>
@@ -291,6 +303,21 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
             </div>
         </div>
 
+        <!-- 2026-05-13 A1：代課就地展開（reserved/booked 點「🔄 轉為代課」時顯示） -->
+        <div id="inlineSubstSection" style="display:none;margin-top:10px;padding:12px;background:#f1f8e9;border:1px solid #c5e1a5;border-radius:10px">
+            <div style="font-size:13px;color:#33691e;font-weight:600;margin-bottom:8px">🔄 轉為代課</div>
+            <label style="font-size:12px;color:var(--muted)">代課教練</label>
+            <select id="inlineSubstCoach" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:4px 0 10px;outline:none;background:white">
+                <option value="">請選擇代課教練</option>
+            </select>
+            <label style="font-size:12px;color:var(--muted)">代課原因（選填）</label>
+            <textarea id="inlineSubstReason" placeholder="例如：原教練臨時請假" style="margin:4px 0 10px"></textarea>
+            <div class="btn-row">
+                <button class="btn btn-unbook" onclick="closeInlineSubst()">取消</button>
+                <button class="btn btn-book" onclick="doInlineSubstitution()">✅ 確認轉為代課</button>
+            </div>
+        </div>
+
         <div class="btn-row" id="modalBtns"></div>
     </div>
 </div>
@@ -318,65 +345,22 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
     </div>
 </div>
 
-<!-- ═══ 代課管理 Modal（Sprint 3 / M4）═══ -->
-<!--   入口：slot modal 內的「📋 代課管理」按鈕。
-       設計：以代課教練（= 點擊 slot 的教練）視角操作
-              上半「列表」：列出此教練 active 的所有代課，每筆可取消
-              下半「新增」：選原教練 + 學員 + 時段（預填 = 點擊的 slot），可填代課原因
-       建立 / 取消後皆自動呼叫 notify-coaches，雙方都會收到 LINE 通知 -->
-<div class="modal-overlay" id="substModal">
-    <div class="modal" style="max-width:500px">
-        <h3 id="substModalTitle">📋 代課管理</h3>
-        <div class="info-row">
-            <span class="info-label">代課教練</span>
-            <span class="info-val" id="substCoachLabel">-</span>
-        </div>
+<!-- 2026-05-13 代課重構：substModal 整段拆除（HTML ~62 行 + JS 11 函式 ~280 行） -->
+<!-- 改為：reserved/booked slot modal 內 inline 展開「🔄 轉為代課」(A 組) -->
+<!-- 全局視角改用：頁面頂部「📋 進行中代課 (N)」徽章按鈕 (A5) -->
+<!-- 後端 createSubstitution / cancelSubstitution / listSubstitutions 仍由 booking-api 提供，沿用 -->
 
-        <!-- 列表區 -->
-        <div id="substListSection">
-            <div style="font-size:12px;color:var(--muted);margin:10px 0 6px">📌 此教練既有代課（進行中）</div>
-            <div id="substListBody" style="max-height:260px;overflow-y:auto">載入中…</div>
-            <button class="btn btn-book" style="width:100%;margin-top:10px" onclick="openSubstForm()">＋ 新增代課</button>
-        </div>
-
-        <!-- 表單區（預設隱藏，按「新增代課」展開）-->
-        <div id="substFormSection" style="display:none">
-            <div style="font-size:12px;color:var(--muted);margin:10px 0 4px">📝 新增代課事件</div>
-
-            <label style="font-size:12px;color:var(--muted)">原教練 *</label>
-            <select id="substOrigCoach" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:10px;font-size:13px;font-family:inherit;margin:4px 0 8px;outline:none">
-                <option value="">請選擇原教練</option>
-            </select>
-
-            <label style="font-size:12px;color:var(--muted)">學員 *（從下拉選單選擇）</label>
-            <div class="ac-wrap">
-                <input type="text" id="substStudentName" placeholder="輸入學員姓名 / 編號 / 電話搜尋" autocomplete="off">
-                <div class="ac-dropdown" id="substStudentList" style="display:none"></div>
-            </div>
-            <input type="hidden" id="substStudentId">
-            <div id="substStudentBadge" class="consult-badge" style="display:none"></div>
-
-            <label style="font-size:12px;color:var(--muted)">上課日期 *</label>
-            <input type="date" id="substDate">
-
-            <label style="font-size:12px;color:var(--muted)">時間 *</label>
-            <div style="display:flex;gap:8px">
-                <input type="time" id="substStart" style="flex:1" placeholder="開始">
-                <input type="time" id="substEnd" style="flex:1" placeholder="結束">
-            </div>
-
-            <label style="font-size:12px;color:var(--muted)">代課原因（選填，會顯示在通知卡片）</label>
-            <textarea id="substReason" placeholder="例：原教練家中急事"></textarea>
-
-            <div class="btn-row">
-                <button class="btn btn-cancel-modal" onclick="closeSubstForm()">⬅︎ 返回列表</button>
-                <button class="btn btn-book" onclick="doCreateSubstitution()">✅ 建立代課</button>
-            </div>
-        </div>
-
-        <div class="btn-row" id="substMainBtns">
-            <button class="btn btn-cancel-modal" onclick="closeSubstModal()">關閉</button>
-        </div>
+<!-- ═══ A5 進行中代課列表 Modal（輕量版，取代舊 substModal）═══ -->
+<div class="modal-overlay" id="activeSubstModal">
+    <div class="modal" style="max-width:560px">
+        <button onclick="closeActiveSubstModal()" aria-label="關閉"
+                style="position:sticky;top:0;float:right;background:white;border:none;
+                       font-size:22px;color:#999;cursor:pointer;line-height:1;
+                       padding:4px 10px;margin:-10px -10px 0 0;z-index:10;
+                       border-radius:0 0 0 12px">×</button>
+        <h3>📋 進行中代課</h3>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">列出所有 active 的代課；可直接取消</div>
+        <div id="activeSubstList" style="max-height:60vh;overflow-y:auto"></div>
     </div>
 </div>
 
@@ -844,6 +828,10 @@ let isEditMode = false;
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     goToday();
+    // 2026-05-13 A5：頁面載入時拉一次「進行中代課」徽章
+    if (typeof refreshActiveSubstBadge === 'function') {
+        refreshActiveSubstBadge().catch(e => console.warn('initial refreshActiveSubstBadge failed:', e));
+    }
 });
 
 function goToday() {
@@ -1199,6 +1187,17 @@ function openSlot(slotId) {
         toast('MOTI 預約請至 MOTI 預約名單系統修改');
         return;
     }
+    // 2026-05-13 A4 修正：在分支前重置 inline 代課展開區（兩條 path 都要乾淨）
+    {
+        const _inline = document.getElementById('inlineSubstSection');
+        if (_inline) {
+            _inline.style.display = 'none';
+            const _c = document.getElementById('inlineSubstCoach');
+            if (_c) _c.value = '';
+            const _r = document.getElementById('inlineSubstReason');
+            if (_r) _r.value = '';
+        }
+    }
     // 代課事件（coach_substitutions）：開啟與體驗預約 modal 同樣樣式的代課資訊 modal
     //   - 沿用 #slotModal 的 layout、CSS、按鈕風格（UI 一致）
     //   - 隱藏體驗預約相關欄位（諮詢單/會員ID/備註/談單），顯示代課專屬區（原教練/學員/原因/取消原因）
@@ -1233,9 +1232,8 @@ function openSlot(slotId) {
         }
         document.getElementById('mSubstCancelReason').value = '';
 
-        // 按鈕：取消代課 + 關閉
+        // 按鈕：取消代課（× 按鈕已在右上角，不需底下「關閉」）
         document.getElementById('modalBtns').innerHTML =
-            '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>' +
             '<button class="btn btn-unbook" onclick="doCancelSubstitutionFromModal()">🚫 取消代課</button>';
 
         document.getElementById('slotModal').classList.add('show');
@@ -1299,7 +1297,8 @@ function openSlot(slotId) {
 
 function renderModalButtons(status) {
     const btns = document.getElementById('modalBtns');
-    let html = '<button class="btn btn-cancel-modal" onclick="closeModal()">關閉</button>';
+    // 2026-05-13 C3：× 按鈕已在右上角，移除底下「關閉」
+    let html = '';
     if (status === 'available') {
         html += '<button class="btn btn-reserve" onclick="doReserve()">🟡 保留</button>';
         html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯時段</button>';
@@ -1309,12 +1308,15 @@ function renderModalButtons(status) {
         html += '<button class="btn btn-unbook" onclick="doCancel()">取消保留</button>';
         html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
         html += '<button class="btn btn-book" onclick="doBook()">✅ 轉為預約</button>';
+        // 2026-05-13 A2：reserved 加「🔄 轉為代課」(inline 展開,不開新 modal)
+        html += '<button class="btn" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" onclick="openInlineSubst()" title="把此預約交給其他教練代上">🔄 轉為代課</button>';
     } else if (status === 'booked') {
         html += '<button class="btn btn-unbook" onclick="doCancel()">取消預約</button>';
         html += '<button class="btn btn-edit" onclick="toggleEdit()">✏️ 編輯</button>';
+        // 2026-05-13 A2：booked 加「🔄 轉為代課」(inline 展開,不開新 modal)
+        html += '<button class="btn" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" onclick="openInlineSubst()" title="把此預約交給其他教練代上">🔄 轉為代課</button>';
     }
-    // 代課管理：所有狀態皆可進入（以此 slot 的教練為「代課教練」視角）
-    html += '<button class="btn" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" onclick="openSubstitutionPanel()" title="安排此教練於此時段代上正課">📋 代課管理</button>';
+    // 2026-05-13 A2：拆掉「📋 代課管理」按鈕(原來各狀態都顯示),改 reserved/booked 才有「🔄 轉為代課」
     btns.innerHTML = html;
 }
 
@@ -1396,6 +1398,10 @@ async function doCancelSubstitutionFromModal() {
         }
         closeModal();
         await loadSlots();
+        // 2026-05-13 A5：取消後同步更新頂部徽章
+        if (typeof refreshActiveSubstBadge === 'function') {
+            await refreshActiveSubstBadge();
+        }
     } catch (e) {
         toast('❌ 取消失敗：' + (e.message || e));
     }
@@ -1532,238 +1538,82 @@ async function doAddSlot() {
 }
 
 // ═══════════════════════════════════════════════
-//  代課管理(Sprint 3 / M4)
-//   入口：slot modal 的「📋 代課管理」按鈕
-//   設計：以「代課教練視角」操作 — 點開的 slot 的教練 = 代課教練
-//     - 列表(active)：列此教練被指派的代課,每筆可取消
-//     - 新增：選原教練(select) + 學員(typeahead,連 chat-api/searchStudents)
-//             時段預填 = 點擊的 slot 時段(admin 可改)
-//     - 建立 / 取消後皆呼叫 notify-coaches(best-effort)
+//  代課管理(2026-05-13 重構：inline 展開 + 全局徽章)
+//   入口 1: reserved/booked slot modal 內的「🔄 轉為代課」按鈕
+//           → inline 展開(不開新 modal),只問「代課教練 + 原因」
+//           → 從 currentSlot 帶出 originalCoachId/Date/Time
+//           → studentId 用 currentSlot.member_id (FK 對 students.id)
+//   入口 2: 頁面頂部「📋 進行中代課 (N)」徽章按鈕(A5,下方另定義)
+//           → 點開列出所有 active 代課,每筆可取消
+//   後端 createSubstitution / cancelSubstitution / listSubstitutions 沿用 booking-api,未動
 // ═══════════════════════════════════════════════
-let substContext     = null;    // { coachId, coachName, slotDate, startTime, endTime }
-let substList        = [];      // listSubstitutions 結果(active)
-let substSearchTimer = null;
-let substLastQuery   = '';
 
-async function openSubstitutionPanel() {
+// ── 入口 1: 開啟 inline 代課展開區(不開新 modal)──
+async function openInlineSubst() {
     if (!currentSlot) { toast('請先選擇一個時段'); return; }
-    if (!currentSlot.coach_id) { toast('此時段缺少 coach_id,無法進入代課管理'); return; }
-
-    substContext = {
-        coachId:    currentSlot.coach_id,
-        coachName:  currentSlot.coach_name || '-',
-        slotDate:   currentSlot.slot_date,
-        startTime:  currentSlot.start_time,
-        endTime:    currentSlot.end_time,
-    };
-
-    // 標題列：教練 + 點到的時段(給 admin 看脈絡)
-    const dateDisp  = (substContext.slotDate || '').replace(/-/g, '/');
-    const startHM   = (substContext.startTime || '').substring(0, 5);
-    const endHM     = (substContext.endTime   || '').substring(0, 5);
-    document.getElementById('substCoachLabel').textContent =
-        `${substContext.coachName} ${dateDisp}${startHM ? ' ' + startHM : ''}${endHM ? '~' + endHM : ''}`;
-
-    // 預設先看列表
-    document.getElementById('substListSection').style.display = '';
-    document.getElementById('substFormSection').style.display = 'none';
-    document.getElementById('substListBody').innerHTML =
-        '<div style="text-align:center;color:#888;padding:14px">載入中…</div>';
-
-    document.getElementById('substModal').classList.add('show');
-
-    await reloadSubstList();
-}
-
-async function reloadSubstList() {
-    if (!substContext) return;
-    try {
-        const res = await callEdge('listSubstitutions', {
-            substituteCoachId: substContext.coachId,
-            status: 'active',
-        });
-        substList = (res && res.items) || [];
-        renderSubstitutionList();
-    } catch (e) {
-        document.getElementById('substListBody').innerHTML =
-            `<div style="text-align:center;color:#c00;padding:14px">載入失敗：${escHtml(e.message || '未知')}</div>`;
-    }
-}
-
-function renderSubstitutionList() {
-    const body = document.getElementById('substListBody');
-    if (!substList || substList.length === 0) {
-        body.innerHTML = '<div style="text-align:center;color:#888;padding:14px;border:1px dashed #e0e0e0;border-radius:10px">目前沒有進行中的代課</div>';
+    if (!currentSlot.coach_id) { toast('此時段缺少 coach_id,無法轉代課'); return; }
+    // Edge case 守護: member_id 為 null(學員未從 dropdown 選擇)
+    if (!currentSlot.member_id) {
+        toast('此時段未連結會員,請先在編輯模式選取學員後再轉代課');
         return;
     }
-    body.innerHTML = substList.map(s => {
-        const dateDisp = String(s.class_date || '').replace(/-/g, '/');
-        const startHM  = String(s.class_start_time || '').substring(0, 5);
-        const endHM    = String(s.class_end_time   || '').substring(0, 5);
-        const timeDisp = endHM ? `${startHM}~${endHM}` : startHM;
-        const reasonHtml = s.substitution_reason
-            ? `<div style="font-size:11px;color:#888;margin-top:3px">📝 ${escHtml(s.substitution_reason)}</div>`
-            : '';
-        return `
-            <div style="border:1px solid #e0e0e0;border-radius:10px;padding:10px;margin-bottom:8px">
-                <div style="font-size:13px;font-weight:600;color:#2e7d32">${dateDisp} ${timeDisp}</div>
-                <div style="font-size:12px;color:#555;margin-top:3px">原教練：${escHtml(s.original_coach_name || '-')} ／ 學員：${escHtml(s.student_name || '-')}</div>
-                ${reasonHtml}
-                <div style="text-align:right;margin-top:6px">
-                    <button class="btn" style="padding:5px 10px;font-size:11px;background:#fff5f5;color:#c62828;border:1px solid #ffcdd2;border-radius:6px;cursor:pointer;flex:0 0 auto;min-width:0;font-weight:500"
-                        onclick="doCancelSubstitution(${s.id})">取消代課</button>
-                </div>
-            </div>`;
-    }).join('');
-}
 
-async function openSubstForm() {
-    if (!substContext) return;
-    document.getElementById('substListSection').style.display = 'none';
-    document.getElementById('substFormSection').style.display = '';
-
-    // 載入教練清單填原教練 select(排除自己 = 代課教練)
+    // 載入教練清單(排除原教練)填入 select
     await loadCoachList();
-    const sel = document.getElementById('substOrigCoach');
-    sel.innerHTML = '<option value="">請選擇原教練</option>' +
+    const sel = document.getElementById('inlineSubstCoach');
+    sel.innerHTML = '<option value="">請選擇代課教練</option>' +
         coachList
-            .filter(c => c.id !== substContext.coachId)
+            .filter(c => c.id !== currentSlot.coach_id)
             .map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`)
             .join('');
 
-    // 預填時段 = 點擊的 slot
-    document.getElementById('substDate').value  = substContext.slotDate || '';
-    document.getElementById('substStart').value = (substContext.startTime || '').substring(0, 5);
-    document.getElementById('substEnd').value   = (substContext.endTime   || '').substring(0, 5);
+    // 清空原因
+    document.getElementById('inlineSubstReason').value = '';
 
-    // 清學員 / 原因
-    document.getElementById('substStudentName').value = '';
-    document.getElementById('substStudentId').value   = '';
-    document.getElementById('substStudentBadge').style.display = 'none';
-    document.getElementById('substReason').value = '';
-    hideSubstStudentDropdown();
-    bindSubstStudentTypeahead();
+    // 展開區塊
+    document.getElementById('inlineSubstSection').style.display = '';
 }
 
-function closeSubstForm() {
-    document.getElementById('substListSection').style.display = '';
-    document.getElementById('substFormSection').style.display = 'none';
+// ── 收起 inline 區塊(不送 API)──
+function closeInlineSubst() {
+    document.getElementById('inlineSubstSection').style.display = 'none';
+    document.getElementById('inlineSubstCoach').value = '';
+    document.getElementById('inlineSubstReason').value = '';
 }
 
-function closeSubstModal() {
-    document.getElementById('substModal').classList.remove('show');
-    substContext = null;
-    substList = [];
-    hideSubstStudentDropdown();
-}
-
-// ── 學員 typeahead(chat-api/searchStudents) ──
-function bindSubstStudentTypeahead() {
-    const inp = document.getElementById('substStudentName');
-    if (!inp) return;
-    inp.oninput = (ev) => {
-        const v = (ev.target.value || '').trim();
-        // 值變了 → 清掉之前選的 student_id(避免不一致)
-        document.getElementById('substStudentId').value = '';
-        document.getElementById('substStudentBadge').style.display = 'none';
-        if (substSearchTimer) clearTimeout(substSearchTimer);
-        if (!v) { hideSubstStudentDropdown(); return; }
-        substSearchTimer = setTimeout(() => searchSubstStudents(v), 250);
-    };
-    // 留時間給 dropdown click 觸發
-    inp.onblur = () => setTimeout(hideSubstStudentDropdown, 200);
-}
-
-async function searchSubstStudents(kw) {
-    if (kw === substLastQuery) return;
-    substLastQuery = kw;
-    try {
-        const res = await fetch(CHAT_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'searchStudents', keyword: kw }),
-        });
-        const j = await res.json().catch(() => ({}));
-        const items = (j && j.data) || [];
-        renderSubstStudentDropdown(items);
-    } catch (e) {
-        console.warn('searchSubstStudents failed:', e);
-        hideSubstStudentDropdown();
+// ── 執行轉代課(呼叫既有 booking-api/createSubstitution)──
+async function doInlineSubstitution() {
+    if (!currentSlot) return;
+    if (!currentSlot.member_id) {
+        toast('此時段未連結會員,無法轉代課'); return;
     }
-}
 
-function renderSubstStudentDropdown(items) {
-    const dd = document.getElementById('substStudentList');
-    if (!dd) return;
-    if (!items || items.length === 0) {
-        dd.innerHTML = '<div class="ac-item" style="color:#888">查無學員</div>';
-        dd.style.display = '';
-        return;
+    const substituteCoachId  = document.getElementById('inlineSubstCoach').value;
+    const substitutionReason = document.getElementById('inlineSubstReason').value.trim();
+
+    if (!substituteCoachId) { toast('請選擇代課教練'); return; }
+    if (substituteCoachId === currentSlot.coach_id) {
+        toast('代課教練不能與原教練相同'); return;
     }
-    dd.innerHTML = items.slice(0, 10).map(s => {
-        const idVal    = (s.id || '').replace(/'/g, "&#39;");
-        const nameVal  = (s.name || '').replace(/'/g, "&#39;");
-        // 不顯示手機號碼，只顯示學員姓名 + 學員編號
-        return `<div class="ac-item" onclick="selectSubstStudent('${escHtml(idVal)}','${escHtml(nameVal)}')">${escHtml(s.name || '-')} <span style="color:#888;font-size:11px">${escHtml(s.id)}</span></div>`;
-    }).join('');
-    dd.style.display = '';
-}
-
-function hideSubstStudentDropdown() {
-    const dd = document.getElementById('substStudentList');
-    if (dd) dd.style.display = 'none';
-}
-
-function selectSubstStudent(id, name) {
-    document.getElementById('substStudentName').value = name;
-    document.getElementById('substStudentId').value   = id;
-    const badge = document.getElementById('substStudentBadge');
-    // 已連結學員：只顯示姓名 + 學員編號（不顯示手機號碼）
-    badge.textContent = `已連結學員：${name} (${id})`;
-    badge.style.display = '';
-    hideSubstStudentDropdown();
-}
-
-// ── 建立代課 ──
-async function doCreateSubstitution() {
-    if (!substContext) return;
-    const origCoachId = document.getElementById('substOrigCoach').value;
-    const studentId   = document.getElementById('substStudentId').value;
-    const studentName = document.getElementById('substStudentName').value.trim();
-    const date        = document.getElementById('substDate').value;
-    const start       = document.getElementById('substStart').value;
-    const end         = document.getElementById('substEnd').value;
-    const reason      = document.getElementById('substReason').value.trim();
-
-    // ── 驗證 ──
-    if (!origCoachId)              { toast('請選擇原教練'); return; }
-    if (origCoachId === substContext.coachId) {
-        toast('原教練不能與代課教練相同'); return;
-    }
-    if (!studentId)                { toast('請從下拉選單選擇學員(不接受手動輸入)'); return; }
-    if (!date)                     { toast('請選擇上課日期'); return; }
-    if (!start)                    { toast('請選擇開始時間'); return; }
-    if (!end)                      { toast('請選擇結束時間'); return; }
-    if (start >= end)              { toast('結束時間必須晚於開始時間'); return; }
 
     showLoading(true);
     try {
         const res = await callEdge('createSubstitution', {
-            originalCoachId:    origCoachId,
-            originalDate:       date,
-            originalStartTime:  start,
-            originalEndTime:    end,
-            studentId:          studentId,
-            substituteCoachId:  substContext.coachId,
-            substitutionReason: reason || undefined,
+            originalCoachId:    currentSlot.coach_id,
+            originalDate:       currentSlot.slot_date,
+            originalStartTime:  currentSlot.start_time,
+            originalEndTime:    currentSlot.end_time,
+            studentId:          currentSlot.member_id,  // member_id ≡ students.id (FK)
+            substituteCoachId:  substituteCoachId,
+            substitutionReason: substitutionReason || undefined,
         });
 
         if (!res || res.success === false) {
-            toast('❌ 建立失敗：' + ((res && (res.message || res.error)) || '未知'));
+            toast('❌ 轉代課失敗：' + ((res && (res.message || res.error)) || '未知'));
             return;
         }
 
-        toast('✅ 代課已建立');
+        toast('✅ 已轉為代課');
 
         // notify-coaches(best-effort)
         try {
@@ -1786,64 +1636,13 @@ async function doCreateSubstitution() {
             toast('⚠️ 通知教練失敗(不影響資料建立)');
         }
 
-        // 刷新列表 + 回列表視圖
-        await reloadSubstList();
-        closeSubstForm();
+        // 收起 + 關 modal + reload + 更新頂部徽章
+        closeInlineSubst();
+        closeModal();
+        await loadSlots();
+        if (typeof refreshActiveSubstBadge === 'function') await refreshActiveSubstBadge();
     } catch (e) {
-        toast('❌ 建立失敗：' + (e.message || '未知'));
-    } finally {
-        showLoading(false);
-    }
-}
-
-// ── 取消代課 ──
-async function doCancelSubstitution(id) {
-    const item = (substList || []).find(s => s.id === id);
-    if (!item) { toast('找不到該筆代課資料'); return; }
-
-    const reason = prompt('取消代課原因(選填,留空亦可)\n例：會員請假、原教練改回上課', '');
-    if (reason === null) return;  // 使用者按取消
-
-    if (!confirm(`確定取消這筆代課嗎？\n${String(item.class_date).replace(/-/g,'/')} ${String(item.class_start_time||'').substring(0,5)} / ${item.original_coach_name} ➜ ${item.substitute_coach_name} / ${item.student_name}`)) {
-        return;
-    }
-
-    showLoading(true);
-    try {
-        const res = await callEdge('cancelSubstitution', {
-            substitutionId: id,
-            cancelReason:   reason ? reason.trim() : undefined,
-        });
-        if (!res || res.success === false) {
-            toast('❌ 取消失敗：' + ((res && (res.message || res.error)) || '未知'));
-            return;
-        }
-        toast('✅ 代課已取消');
-
-        // notify-coaches
-        try {
-            const sub = res.substitution || {};
-            const nf = await notifyCoach('substitution_cancelled', {
-                substitution_id:        sub.id,
-                original_coach_id:      sub.original_coach_id,
-                original_coach_name:    sub.original_coach_name,
-                substitute_coach_id:    sub.substitute_coach_id,
-                substitute_coach_name:  sub.substitute_coach_name,
-                student_name:           sub.student_name,
-                class_date:             sub.class_date,
-                class_start_time:       sub.class_start_time,
-                class_end_time:         sub.class_end_time,
-                cancel_reason:          sub.cancel_reason,
-            });
-            reportSubstNotifyResult(nf);
-        } catch (e) {
-            console.warn('notify substitution_cancelled failed:', e);
-            toast('⚠️ 通知教練失敗(不影響取消動作)');
-        }
-
-        await reloadSubstList();
-    } catch (e) {
-        toast('❌ 取消失敗：' + (e.message || '未知'));
+        toast('❌ 轉代課失敗：' + (e.message || '未知'));
     } finally {
         showLoading(false);
     }
@@ -1860,6 +1659,131 @@ function reportSubstNotifyResult(nf) {
         parts.push('原教練 '   + (nf.original.sent   ? '✅' : ('⚠️' + (nf.original.reason   || ''))));
     }
     if (parts.length) toast('📨 ' + parts.join(' ／ '));
+}
+
+// ═══════════════════════════════════════════════
+//  A5：頁面頂部「📋 進行中代課 (N)」徽章
+//   - refreshActiveSubstBadge() — 拉 listSubstitutions(active) 算 N，更新徽章顯示/隱藏
+//   - openActiveSubstModal()    — 開列表 popup，列出每筆，含「🚫 取消」按鈕
+//   - closeActiveSubstModal()   — 關 popup
+//   - doCancelActiveSubst(id)   — 列表內取消（confirm + cancelSubstitution + best-effort 通知 + 重新整理）
+// ═══════════════════════════════════════════════
+
+let _activeSubstCache = []; // 最近一次 fetch 的 active 代課陣列（給列表用）
+
+async function refreshActiveSubstBadge() {
+    const badge = document.getElementById('activeSubstBadge');
+    const numEl = document.getElementById('activeSubstCount');
+    if (!badge || !numEl) return;
+    try {
+        const res = await callEdge('listSubstitutions', { status: 'active' });
+        if (!res || res.success === false) {
+            console.warn('listSubstitutions failed:', res);
+            badge.style.display = 'none';
+            return;
+        }
+        const items = res.items || [];
+        _activeSubstCache = items;
+        const n = items.length;
+        numEl.textContent = String(n);
+        badge.style.display = n > 0 ? 'inline-block' : 'none';
+    } catch (e) {
+        console.warn('refreshActiveSubstBadge error:', e);
+        badge.style.display = 'none';
+    }
+}
+
+function openActiveSubstModal() {
+    renderActiveSubstList(_activeSubstCache);
+    document.getElementById('activeSubstModal').classList.add('show');
+    // 開的同時靜默重新拉一次（避免列表過時）
+    refreshActiveSubstBadge().then(() => renderActiveSubstList(_activeSubstCache));
+}
+
+function closeActiveSubstModal() {
+    document.getElementById('activeSubstModal').classList.remove('show');
+}
+
+function renderActiveSubstList(items) {
+    const box = document.getElementById('activeSubstList');
+    if (!box) return;
+    if (!items || items.length === 0) {
+        box.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px 0">目前沒有進行中的代課 🎉</div>';
+        return;
+    }
+    box.innerHTML = items.map(it => {
+        const reasonRow = it.substitution_reason
+            ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">原因：${escHtml(it.substitution_reason)}</div>`
+            : '';
+        return `
+            <div style="border:1px solid #e0e0e0;border-radius:10px;padding:12px;margin-bottom:8px;background:white">
+                <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:600;font-size:13px">
+                            ${escHtml(it.class_date || '')} ${escHtml((it.class_start_time || '').slice(0,5))}–${escHtml((it.class_end_time || '').slice(0,5))}
+                        </div>
+                        <div style="font-size:13px;margin-top:4px">
+                            學員：${escHtml(it.student_name || '-')}
+                        </div>
+                        <div style="font-size:12px;color:var(--muted);margin-top:4px">
+                            原教練：${escHtml(it.original_coach_name || '-')} ➜ 代課：<b>${escHtml(it.substitute_coach_name || '-')}</b>
+                        </div>
+                        ${reasonRow}
+                    </div>
+                    <button class="btn btn-unbook" style="flex-shrink:0" onclick="doCancelActiveSubst(${Number(it.id)})">🚫 取消</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function doCancelActiveSubst(substitutionId) {
+    if (!substitutionId) return;
+    const _raw = prompt('取消原因（選填，會帶進雙方教練的 LINE 通知）：', '');
+    if (_raw === null) return; // user pressed Cancel on prompt
+    const reason = _raw.trim();
+    if (!confirm('確定取消此代課？\n取消後雙方教練都會收到 LINE 通知。')) return;
+
+    // 從快取找這筆,給通知用
+    const found = (_activeSubstCache || []).find(x => Number(x.id) === Number(substitutionId)) || {};
+
+    showLoading(true);
+    try {
+        const res = await callEdge('cancelSubstitution', {
+            substitutionId: substitutionId,
+            cancelReason:   reason,
+        });
+        if (!res || res.success === false) {
+            toast('❌ 取消失敗：' + ((res && (res.message || res.error)) || '未知'));
+            return;
+        }
+        toast('✅ 代課已取消');
+        // best-effort 雙方通知(失敗不阻擋)
+        try {
+            await notifyCoach('substitution_cancelled', {
+                substitution_id:     substitutionId,
+                original_coach_id:   found.original_coach_id,
+                substitute_coach_id: found.substitute_coach_id,
+                class_date:          found.class_date,
+                class_start_time:    found.class_start_time,
+                class_end_time:      found.class_end_time,
+                student_name:        found.student_name,
+                cancel_reason:       reason,
+            });
+        } catch (e) {
+            console.warn('代課取消通知發送失敗(取消已完成、通知未發):', e);
+        }
+        await refreshActiveSubstBadge();
+        renderActiveSubstList(_activeSubstCache);
+        // 若列表清空,順便關掉 popup
+        if ((_activeSubstCache || []).length === 0) closeActiveSubstModal();
+        // 同步 reload 行事曆(代課時段可能消失/變色)
+        await loadSlots();
+    } catch (e) {
+        toast('❌ 取消失敗：' + (e.message || e));
+    } finally {
+        showLoading(false);
+    }
 }
 
 // ═══════════════════════════════════════════════
