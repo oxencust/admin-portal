@@ -112,6 +112,11 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .slot.reserved{opacity:.85;border-style:dashed}
 .slot.reserved .coach-name::after{content:' ◐';font-size:8px}
 .slot.cancelled{opacity:.5;text-decoration:line-through}
+/* 2026-05-13 已轉代課（原教練的 trial_slot.substitution_id 有值）— 灰底 + 虛線 + 弱化 */
+.slot.substituted-away{opacity:.55;background:#f5f5f5 !important;color:#9e9e9e !important;border-left-color:#bdbdbd !important;border-style:dashed}
+.slot.substituted-away .coach-name::after{content:' ↪'; font-size:10px}
+.slot.substituted-away .student{color:#9e9e9e !important;font-weight:500;font-style:italic}
+.dot-slot.substituted-away{opacity:.55;color:#9e9e9e !important;font-style:italic}
 
 .slot:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .slot .coach-name{font-weight:600;font-size:12px}
@@ -1052,14 +1057,25 @@ function renderWeek() {
             slots.forEach(s => {
                 // 代課事件：學員姓名前加「🥷 (代) 」標記，tooltip 顯示原教練
                 const isSubst = s.source === 'substitution';
+                // 2026-05-13 原教練「已轉代課」裝飾：source==='substituted_away'
+                const isAway  = s.source === 'substituted_away';
                 const substPrefix = isSubst ? '🥷 (代) ' : '';
-                const studentHtml = s.student_name
-                    ? `<div class="student"${isSubst ? ' style="color:#2e7d32;font-weight:600"' : ''}>${substPrefix}${esc(s.student_name)}</div>`
-                    : '';
-                const titleAttr = isSubst && s.original_coach_name
-                    ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
-                    : '';
-                html += `<div class="slot ${s.status||'available'}${isSubst ? ' is-subst' : ''}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')"${titleAttr}>
+                let studentHtml = '';
+                if (isAway) {
+                    const toName = s.substituted_to_coach_name || '?';
+                    studentHtml = `<div class="student">↪ 已轉代課 → ${esc(toName)}</div>`;
+                } else if (s.student_name) {
+                    studentHtml = `<div class="student"${isSubst ? ' style="color:#2e7d32;font-weight:600"' : ''}>${substPrefix}${esc(s.student_name)}</div>`;
+                }
+                let titleAttr = '';
+                if (isSubst && s.original_coach_name) {
+                    titleAttr = ` title="代課（原教練：${esc(s.original_coach_name)}）"`;
+                } else if (isAway) {
+                    const reasonStr = s.substitution_reason ? `\n原因：${s.substitution_reason}` : '';
+                    titleAttr = ` title="此預約已轉代課給 ${esc(s.substituted_to_coach_name || '?')}（學員：${esc(s.student_name || '-')}）${reasonStr}"`;
+                }
+                const extraCls = isSubst ? ' is-subst' : (isAway ? ' substituted-away' : '');
+                html += `<div class="slot ${s.status||'available'}${extraCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')"${titleAttr}>
                     <div class="coach-name">${esc(s.coach_name)}</div>
                     <div class="slot-time">${s.start_time}${s.end_time?'-'+s.end_time:''}</div>
                     ${studentHtml}
@@ -1128,15 +1144,25 @@ function renderMonth() {
         slots.forEach((s, idx) => {
             // 代課用 🥷 替代 ✦，並在學員姓名前加 (代) 前綴方便辨識
             const isSubst = s.source === 'substitution';
-            const statusIcon = isSubst ? '🥷' : (s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '');
+            // 2026-05-13 原教練「已轉代課」：用 ↪ 圖示
+            const isAway  = s.source === 'substituted_away';
+            const statusIcon = isSubst ? '🥷' : isAway ? '↪' : (s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '');
             const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
-            const stuPrefix = isSubst ? '(代) ' : '';
-            const stuName = s.student_name ? ' · ' + stuPrefix + esc(s.student_name) : '';
-            const titleAttr = isSubst && s.original_coach_name
-                ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
-                : '';
+            const awayCls   = isAway ? ' substituted-away' : '';
+            let stuName = '';
+            if (isAway) {
+                stuName = ' · 已轉 → ' + esc(s.substituted_to_coach_name || '?');
+            } else if (s.student_name) {
+                stuName = ' · ' + (isSubst ? '(代) ' : '') + esc(s.student_name);
+            }
+            let titleAttr = '';
+            if (isSubst && s.original_coach_name) {
+                titleAttr = ` title="代課（原教練：${esc(s.original_coach_name)}）"`;
+            } else if (isAway) {
+                titleAttr = ` title="此預約已轉代課給 ${esc(s.substituted_to_coach_name || '?')}"`;
+            }
             const substStyle = isSubst ? ' style="color:#2e7d32;font-weight:600"' : '';
-            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}"${substStyle} onclick="openSlot('${s.id}')"${titleAttr}>${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
+            html += `<div class="dot-slot${hiddenCls}${awayCls}" data-type="${s.coach_type||''}"${substStyle} onclick="openSlot('${s.id}')"${titleAttr}>${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
         });
         if (slots.length > MAX_SHOW) {
             html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
@@ -1185,6 +1211,14 @@ function openSlot(slotId) {
     // MOTI 預約只佔位顯示，不可在此編輯（請至 MOTI 預約名單系統修改）
     if (slot.source === 'moti') {
         toast('MOTI 預約請至 MOTI 預約名單系統修改');
+        return;
+    }
+    // 2026-05-13 已轉代課的原預約：不開原 modal,直接跳出提示 + 開「進行中代課」popup
+    //   (避免使用者再去做沒意義的編輯／取消預約;真正的取消管道是取消代課)
+    if (slot.source === 'substituted_away') {
+        const toName = slot.substituted_to_coach_name || '?';
+        toast(`此預約已轉代課給「${toName}」,請於下方列表取消代課即可還原`);
+        if (typeof openActiveSubstModal === 'function') openActiveSubstModal();
         return;
     }
     // 2026-05-13 A4 修正：在分支前重置 inline 代課展開區（兩條 path 都要乾淨）
@@ -1606,6 +1640,9 @@ async function doInlineSubstitution() {
             studentId:          currentSlot.member_id,  // member_id ≡ students.id (FK)
             substituteCoachId:  substituteCoachId,
             substitutionReason: substitutionReason || undefined,
+            // 2026-05-13 帶上原 trial_slot id：後端會 UPDATE 其 substitution_id + 記 status snapshot
+            //   取消代課時依此鏈接還原原狀
+            originalSlotId:     currentSlot.id,
         });
 
         if (!res || res.success === false) {
