@@ -112,11 +112,6 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .slot.reserved{opacity:.85;border-style:dashed}
 .slot.reserved .coach-name::after{content:' ◐';font-size:8px}
 .slot.cancelled{opacity:.5;text-decoration:line-through}
-/* 2026-05-13 已轉代課（原教練的 trial_slot.substitution_id 有值）— 灰底 + 虛線 + 弱化 */
-.slot.substituted-away{opacity:.55;background:#f5f5f5 !important;color:#9e9e9e !important;border-left-color:#bdbdbd !important;border-style:dashed}
-.slot.substituted-away .coach-name::after{content:' ↪'; font-size:10px}
-.slot.substituted-away .student{color:#9e9e9e !important;font-weight:500;font-style:italic}
-.dot-slot.substituted-away{opacity:.55;color:#9e9e9e !important;font-style:italic}
 
 .slot:hover{transform:scale(1.03);box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .slot .coach-name{font-weight:600;font-size:12px}
@@ -395,6 +390,17 @@ const TYPE_LABELS = {
     strength_training: '肌力訓練',
     weight: '肌力訓練',  // alias: 舊資料 coach_type 可能還是 'weight' 未 normalize
     stretch: '伸展放鬆'
+};
+// 2026-05-13 coaches.specialties 是 JSONB 陣列,canonical slug 為 ['pilates','weight','stretch','ai']
+//   與 coach_type 的 slug 系不完全一致(coach_type 用 'ai_analysis'),故獨立一份對照表
+//   用途:轉代課下拉選單顯示「教練名（皮拉提斯、肌力訓練）」,讓選人時直接看到能 cover 哪些課種
+const SPECIALTY_LABELS = {
+    pilates: '皮拉提斯',
+    weight: '肌力訓練',
+    strength_training: '肌力訓練',  // 防禦:避免 coach_type 系 slug 混入也能正確 render
+    stretch: '伸展放鬆',
+    ai: 'AI 3D體態分析',
+    ai_analysis: 'AI 3D體態分析'    // 同上防禦
 };
 const STATUS_LABELS = { available: '可預約', booked: '已預約', reserved: '保留中', cancelled: '已取消' };
 const STATUS_BADGE  = { available: 'badge-available', booked: 'badge-booked', reserved: 'badge-reserved', cancelled: 'badge-cancelled' };
@@ -1057,25 +1063,14 @@ function renderWeek() {
             slots.forEach(s => {
                 // 代課事件：學員姓名前加「🥷 (代) 」標記，tooltip 顯示原教練
                 const isSubst = s.source === 'substitution';
-                // 2026-05-13 原教練「已轉代課」裝飾：source==='substituted_away'
-                const isAway  = s.source === 'substituted_away';
                 const substPrefix = isSubst ? '🥷 (代) ' : '';
-                let studentHtml = '';
-                if (isAway) {
-                    const toName = s.substituted_to_coach_name || '?';
-                    studentHtml = `<div class="student">↪ 已轉代課 → ${esc(toName)}</div>`;
-                } else if (s.student_name) {
-                    studentHtml = `<div class="student"${isSubst ? ' style="color:#2e7d32;font-weight:600"' : ''}>${substPrefix}${esc(s.student_name)}</div>`;
-                }
-                let titleAttr = '';
-                if (isSubst && s.original_coach_name) {
-                    titleAttr = ` title="代課（原教練：${esc(s.original_coach_name)}）"`;
-                } else if (isAway) {
-                    const reasonStr = s.substitution_reason ? `\n原因：${s.substitution_reason}` : '';
-                    titleAttr = ` title="此預約已轉代課給 ${esc(s.substituted_to_coach_name || '?')}（學員：${esc(s.student_name || '-')}）${reasonStr}"`;
-                }
-                const extraCls = isSubst ? ' is-subst' : (isAway ? ' substituted-away' : '');
-                html += `<div class="slot ${s.status||'available'}${extraCls}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')"${titleAttr}>
+                const studentHtml = s.student_name
+                    ? `<div class="student"${isSubst ? ' style="color:#2e7d32;font-weight:600"' : ''}>${substPrefix}${esc(s.student_name)}</div>`
+                    : '';
+                const titleAttr = isSubst && s.original_coach_name
+                    ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
+                    : '';
+                html += `<div class="slot ${s.status||'available'}${isSubst ? ' is-subst' : ''}" data-type="${s.coach_type||''}" onclick="openSlot('${s.id}')"${titleAttr}>
                     <div class="coach-name">${esc(s.coach_name)}</div>
                     <div class="slot-time">${s.start_time}${s.end_time?'-'+s.end_time:''}</div>
                     ${studentHtml}
@@ -1144,25 +1139,15 @@ function renderMonth() {
         slots.forEach((s, idx) => {
             // 代課用 🥷 替代 ✦，並在學員姓名前加 (代) 前綴方便辨識
             const isSubst = s.source === 'substitution';
-            // 2026-05-13 原教練「已轉代課」：用 ↪ 圖示
-            const isAway  = s.source === 'substituted_away';
-            const statusIcon = isSubst ? '🥷' : isAway ? '↪' : (s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '');
+            const statusIcon = isSubst ? '🥷' : (s.status === 'booked' ? '✦' : s.status === 'reserved' ? '◐' : '');
             const hiddenCls = idx >= MAX_SHOW ? ' hidden-slot' : '';
-            const awayCls   = isAway ? ' substituted-away' : '';
-            let stuName = '';
-            if (isAway) {
-                stuName = ' · 已轉 → ' + esc(s.substituted_to_coach_name || '?');
-            } else if (s.student_name) {
-                stuName = ' · ' + (isSubst ? '(代) ' : '') + esc(s.student_name);
-            }
-            let titleAttr = '';
-            if (isSubst && s.original_coach_name) {
-                titleAttr = ` title="代課（原教練：${esc(s.original_coach_name)}）"`;
-            } else if (isAway) {
-                titleAttr = ` title="此預約已轉代課給 ${esc(s.substituted_to_coach_name || '?')}"`;
-            }
+            const stuPrefix = isSubst ? '(代) ' : '';
+            const stuName = s.student_name ? ' · ' + stuPrefix + esc(s.student_name) : '';
+            const titleAttr = isSubst && s.original_coach_name
+                ? ` title="代課（原教練：${esc(s.original_coach_name)}）"`
+                : '';
             const substStyle = isSubst ? ' style="color:#2e7d32;font-weight:600"' : '';
-            html += `<div class="dot-slot${hiddenCls}${awayCls}" data-type="${s.coach_type||''}"${substStyle} onclick="openSlot('${s.id}')"${titleAttr}>${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
+            html += `<div class="dot-slot${hiddenCls}" data-type="${s.coach_type||''}"${substStyle} onclick="openSlot('${s.id}')"${titleAttr}>${esc(s.coach_name)} ${s.start_time}${stuName} ${statusIcon}</div>`;
         });
         if (slots.length > MAX_SHOW) {
             html += `<div class="more-link" id="ml_${cellId}" onclick="toggleExpand('${cellId}',this,${slots.length - MAX_SHOW})">+${slots.length - MAX_SHOW} 更多</div>`;
@@ -1211,14 +1196,6 @@ function openSlot(slotId) {
     // MOTI 預約只佔位顯示，不可在此編輯（請至 MOTI 預約名單系統修改）
     if (slot.source === 'moti') {
         toast('MOTI 預約請至 MOTI 預約名單系統修改');
-        return;
-    }
-    // 2026-05-13 已轉代課的原預約：不開原 modal,直接跳出提示 + 開「進行中代課」popup
-    //   (避免使用者再去做沒意義的編輯／取消預約;真正的取消管道是取消代課)
-    if (slot.source === 'substituted_away') {
-        const toName = slot.substituted_to_coach_name || '?';
-        toast(`此預約已轉代課給「${toName}」,請於下方列表取消代課即可還原`);
-        if (typeof openActiveSubstModal === 'function') openActiveSubstModal();
         return;
     }
     // 2026-05-13 A4 修正：在分支前重置 inline 代課展開區（兩條 path 都要乾淨）
@@ -1445,7 +1422,7 @@ async function doCancelSubstitutionFromModal() {
 //  新增時段
 // ═══════════════════════════════════════════════
 const ADMIN_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api';
-let coachList = []; // {id, name, coach_type}
+let coachList = []; // {id, name, coachType, specialties:[]}
 
 async function loadCoachList() {
     if (coachList.length > 0) return;
@@ -1491,12 +1468,16 @@ async function loadCoachList() {
         });
         const json = await res.json();
         coachList = (json.data || []).filter(c => c.is_active !== false).map(c => ({
-            id: c.id, name: (c.name || '').trim(), coachType: (c.coach_type || '').trim()
+            id: c.id,
+            name: (c.name || '').trim(),
+            coachType: (c.coach_type || '').trim(),
+            // 2026-05-13 帶上 specialties 陣列,供轉代課下拉顯示「教練名（皮拉提斯、肌力訓練）」
+            specialties: Array.isArray(c.specialties) ? c.specialties : []
         }));
     } catch (e) {
-        // fallback: 從現有 allSlots 取教練
+        // fallback: 從現有 allSlots 取教練(specialties 缺,只能用 coach_type 單一標籤,在 dropdown 退化顯示)
         const map = {};
-        allSlots.forEach(s => { if (s.coach_id && !map[s.coach_id]) map[s.coach_id] = { id: s.coach_id, name: s.coach_name, coachType: s.coach_type }; });
+        allSlots.forEach(s => { if (s.coach_id && !map[s.coach_id]) map[s.coach_id] = { id: s.coach_id, name: s.coach_name, coachType: s.coach_type, specialties: [] }; });
         coachList = Object.values(map);
     }
 }
@@ -1598,7 +1579,24 @@ async function openInlineSubst() {
     sel.innerHTML = '<option value="">請選擇代課教練</option>' +
         coachList
             .filter(c => c.id !== currentSlot.coach_id)
-            .map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`)
+            .map(c => {
+                // 2026-05-13 在教練名字後綴上專長標籤,讓選代課人時直接看到能 cover 哪些課種
+                //   - 來源:coaches.specialties JSONB 陣列(['pilates','weight','stretch','ai'])
+                //   - 用 SPECIALTY_LABELS 對照中文,Set 去重(weight/strength_training 同義 → 肌力訓練)
+                //   - 若 specialties 空(舊資料 / fallback 路徑),退而用 coach_type 單一標籤
+                //   - 全失敗則只顯示名字,不擋功能
+                const labels = [...new Set(
+                    (c.specialties || [])
+                        .map(k => SPECIALTY_LABELS[k])
+                        .filter(Boolean)
+                )];
+                if (labels.length === 0 && c.coachType) {
+                    const fb = TYPE_LABELS[c.coachType];
+                    if (fb) labels.push(fb);
+                }
+                const suffix = labels.length > 0 ? `（${labels.join('、')}）` : '';
+                return `<option value="${escHtml(c.id)}">${escHtml(c.name)}${suffix}</option>`;
+            })
             .join('');
 
     // 清空原因
