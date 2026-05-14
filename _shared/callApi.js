@@ -83,7 +83,63 @@
       zeaburRequiresAuth: false,
     },
 
-    // ── Wave 2-4 之後加 ──
+    // ── Wave 2 Step 1（2026-05-12）──
+    // member-api：會員綁定 + 疾病史更新讀取（諮詢單目前不接，仍走 Make webhook）
+    // ⚠️ 上線時序：先把 zeabur 設為 null → 部署 hendia-member-service → smoke test 通過 →
+    //   把下面 zeabur 改成正式 URL → 重新整理 LIFF 即生效
+    // 路徑與 Edge Function 對齊：POST /，body = {action, ...params}
+    'member-api': {
+      zeabur: 'https://member-hendia.zeabur.app/',  // ← 2026-05-12 cutover；改名對齊 notify-coaches-hendia 命名規則
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/member-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 3 Step 1（2026-05-12）──
+    // moti-api：MOTI 體態分析 / 學員請假 / 體態相簿 (19 actions)
+    // 服務 5 支 LIFF：student-leave、admin/moti-bookings、coach/moti/album、coach/moti/report、coach/class-record
+    // ⚠️ 注意：這 5 支 LIFF 目前用直接 fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL，本登錄表先放著供未來 LIFF 採用 HendiaApi 時用
+    'moti-api': {
+      zeabur: 'https://moti-hendia.zeabur.app/',  // ← 2026-05-12 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 4 Step 1（2026-05-13）──
+    // chat-api：協調聊天室 (32 actions)
+    // 服務 4 支前端：教練/學員/管理三端 chat + 體驗排程 (僅 searchStudents)
+    // chat-hendia.zeabur.app 已上線 + smoke test 5 條全綠（getCoaches/getStudents/
+    //   searchStudents/getRequests/verifyStaff），現進入 24h 觀察期。
+    // ⚠️ 注意：這 4 支前端目前用直接 fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改 .txt 內 EDGE_FUNCTION_URL 常數，本登錄表先放著供未來前端
+    //     採用 HendiaApi pattern 時用（同 moti-api / member-api 的處理方式）。
+    'chat-api': {
+      zeabur: 'https://chat-hendia.zeabur.app/',  // ← 2026-05-13 部署完
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 5 Step 1（2026-05-14）──
+    // consultation-api：諮詢單管理 (3 actions: getAll/search/update)
+    // 服務 2 支前端：
+    //   1) consultation/index.html (主) — raw fetch，line 294 EDGE_FUNCTION_URL
+    //   2) admin/portal/trial-schedule/index.html (副) — syncConsultationRecord
+    //      ⚠️ 歷史 bug：syncConsultationRecord 沒帶 lineUid/idToken → 切到 Zeabur 後會 silent 401
+    //      → cutover 時必須一併補 auth（這是修 Risk 1 的時機）
+    // consultation-hendia.zeabur.app 已上線 + smoke 4 條全綠（health/getAll/search/update 401）
+    // ⚠️ 注意：兩支前端目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'consultation-api': {
+      zeabur: 'https://consultation-hendia.zeabur.app/',  // ← 2026-05-14 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 5+ 之後加 ──
   };
 
   // 決定該 service 走 zeabur 還是 edge
