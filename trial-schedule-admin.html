@@ -525,7 +525,7 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 //  CONFIG
 // ═══════════════════════════════════════════════
 const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
-const CONSULTATION_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
+const CONSULTATION_API = 'https://consultation-hendia.zeabur.app/';  // Wave 5 cutover 2026-05-14（原 Edge: ...supabase.co/functions/v1/consultation-api）
 // 2026-05-13 Sprint 3 Phase 5 Wave 4 cutover：chat-api 從 Supabase Edge 切到 Zeabur
 // Rollback：URL 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api' 即可
 // 體驗排程僅用 chat-api/searchStudents（學員 typeahead），是 4 支前端中風險最低的，故第一支切
@@ -679,12 +679,43 @@ async function syncConsultationRecord(opts) {
     if (!updateData || Object.keys(updateData).length === 0) {
         return { skipped: true, reason: 'empty_update' };
     }
+    // ── Wave 5 Risk 1 修復：補 lineUid + LINE ID Token（原本裸 fetch，Zeabur 後會 silent 401） ──
+    // 同 callEdge() 的 auth 流程：3 段 fallback 取 staffLineUid + LIFF/sessionStorage 取 ID Token + 過期檢查
+    let _uid = null;
+    let _idToken = null;
+    try {
+        _uid = sessionStorage.getItem('staffLineUid');
+        if (!_uid) {
+            const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+            _uid = _st?.lineUid || _st?.line_id_edu || null;
+        }
+        if (!_uid) {
+            const _u = new URLSearchParams(location.search);
+            _uid = _u.get('line_id_edu') || _u.get('uid') || null;
+        }
+    } catch(e) {}
+    try {
+        if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+            _idToken = liff.getIDToken();
+            if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+        }
+        if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+        if (_idToken) {
+            try {
+                const _p = JSON.parse(atob(_idToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+                if (_p.exp && _p.exp * 1000 < Date.now()) _idToken = null;
+            } catch(e) { _idToken = null; }
+        }
+    } catch(e) {}
     try {
         const body = { action: 'update', id: consultationId, updateData };
         if (options) body.options = options;
+        if (_uid && !body.lineUid) body.lineUid = _uid;
+        const headers = { 'Content-Type': 'application/json' };
+        if (_idToken) headers['X-Line-IdToken'] = _idToken;
         const res = await fetch(CONSULTATION_API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(body)
         });
         const json = await res.json().catch(() => ({}));
