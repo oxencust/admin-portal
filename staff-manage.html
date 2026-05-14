@@ -234,7 +234,8 @@ function renderStaff(){
         if(s.hire_date)grid+=af('到職',escHtml(s.hire_date));
         if(s.permission_level)grid+=af('權限',escHtml(s.permission_level));
         let exp='';
-        if(isVis('email')&&s.email)exp+=af('信箱',getFD('email',s.email));
+        if(isVis('email')&&s.email)exp+=af('個人信箱',getFD('email',s.email));
+        if(isVis('company_email')&&s.company_email)exp+=af('公司信箱',getFD('company_email',s.company_email));
         if(isVis('birthday')&&s.birthday)exp+=af('生日',getFD('birthday',s.birthday));
         if(genderNames[s.gender])exp+=af('性別',genderNames[s.gender]);
         if(isVis('address')&&s.address)exp+=aff('地址',getFD('address',s.address));
@@ -267,7 +268,8 @@ function viewDetail(id){
     if(s.hire_date)h+=ddf('到職日',escHtml(s.hire_date));if(s.leave_date)h+=ddf('離職日',escHtml(s.leave_date));
     if(isVis('birthday'))h+=ddf('生日',getFD('birthday',s.birthday));
     h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
-    if(isVis('phone'))h+=ddf('電話',getFD('phone',s.phone,'phone'));if(isVis('email'))h+=ddf('信箱',getFD('email',s.email));
+    if(isVis('phone'))h+=ddf('電話',getFD('phone',s.phone,'phone'));if(isVis('email'))h+=ddf('個人信箱',getFD('email',s.email));
+    if(isVis('company_email'))h+=ddf('公司信箱',getFD('company_email',s.company_email));
     if(isVis('address'))h+=ddf('地址',getFD('address',s.address),true);
     if(isVis('line_uid'))h+=ddf('衡點LINE',getFD('line_uid',s.line_uid),true);if(isVis('line_id_edu'))h+=ddf('教務LINE',getFD('line_id_edu',s.line_id_edu),true);
     h+='</div></div>';
@@ -304,7 +306,8 @@ function editStaff(id){
     h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],s.permission_level||'staff');
     h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用'],['封存','封存']],s.status||'active');
     if(isFull('phone'))h+=fg('電話','tel','e_phone',s.phone,ro(s.phone));
-    if(isFull('email'))h+=fg('信箱','email','e_email',s.email,ro(s.email));
+    if(isFull('email'))h+=fg('個人信箱','email','e_email',s.email,ro(s.email));
+    if(isFull('company_email'))h+=fg('公司信箱','email','e_corp_email',s.company_email,ro(s.company_email));
     if(isFull('birthday'))h+=fg('生日','date','e_bday',s.birthday,ro(s.birthday));
     if(isFull('address'))h+=fg('地址','text','e_addr',s.address,ro(s.address));
     if(isFull('emergency_contact'))h+=fg('緊急聯絡人','text','e_ec',s.emergency_contact,ro(s.emergency_contact));
@@ -337,7 +340,7 @@ async function saveStaff(){
             const newStaff={id:newId,name:name,nickname:val('e_nick')||null,staff_type:val('e_type')||null,
                 gender:val('e_gender')||null,department:val('e_dept')||null,job_title:val('e_title')||null,
                 permission_level:val('e_perm')||'staff',status:val('e_status')||'active',
-                phone:val('e_phone')||null,email:val('e_email')||null,birthday:val('e_bday')||null,
+                phone:val('e_phone')||null,email:val('e_email')||null,company_email:val('e_corp_email')||null,birthday:val('e_bday')||null,
                 address:val('e_addr')||null,emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
                 emergency_relation:val('e_er')||null,hire_date:val('e_hire')||null,leave_date:val('e_leave')||null,
                 line_uid:val('e_luid')||null,line_id_edu:val('e_ledu')||null,
@@ -363,7 +366,7 @@ async function saveStaff(){
         chk('nickname','e_nick',s.nickname);chk('staff_type','e_type',s.staff_type);chk('department','e_dept',s.department);chk('job_title','e_title',s.job_title);
         const pv=val('e_perm');if(pv!==(s.permission_level||'staff'))u.permission_level=pv;
         const sv=val('e_status');if(sv!==(s.status||'active'))u.status=sv;
-        chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);
+        chk('gender','e_gender',genderNorm(s.gender));chk('phone','e_phone',s.phone);chk('email','e_email',s.email);chk('company_email','e_corp_email',s.company_email);
         const bd=val('e_bday');if(bd!==(s.birthday||''))u.birthday=bd||null;
         chk('address','e_addr',s.address);chk('emergency_contact','e_ec',s.emergency_contact);chk('emergency_phone','e_ep',s.emergency_phone);
         chk('emergency_relation','e_er',s.emergency_relation);
@@ -404,7 +407,7 @@ async function restoreStaff(id){
         await loadStaff();
     }catch(e){showToast('❌ 恢復失敗：'+e.message);}
 }
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('職稱','text','e_title','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('信箱','email','e_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('職稱','text','e_title','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('個人信箱','email','e_email','');h+=fg('公司信箱','email','e_corp_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
