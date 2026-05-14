@@ -139,6 +139,24 @@
       zeaburRequiresAuth: false,
     },
 
+    // ── Wave 5 Step 2（2026-05-14）──
+    // attendance-api：打卡系統 (4 actions: getTodayPunchToken/getPunchContext/submitPunch/listPunchRecords)
+    // 服務 5 支前端（皆 raw fetch、硬編 URL）：
+    //   1) hendia-liff/punch/index.html — const ATTEND_API @ line 307
+    //   2) 打卡系統/打卡系統_LIFF_deploy.html — const API_URL @ line 684
+    //   3) 打卡系統/打卡系統_iPadQR_deploy.html — const API_URL @ line 620
+    //   4) 行政系統/行政管理入口整合系統/(新)打卡系統管理.txt — const ATTEND_API @ line 307
+    //   5) _sprint0_phase1/(新)打卡系統管理.txt — mirror of #4
+    // attendance-hendia.zeabur.app 已上線 + smoke 4 條全綠（health/getToken/getContext/listRecords 401）
+    // ⚠️ 注意：5 支 callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'attendance-api': {
+      zeabur: 'https://attendance-hendia.zeabur.app/',  // ← 2026-05-14 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/attendance-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
     // ── Wave 5+ 之後加 ──
   };
 
