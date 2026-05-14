@@ -291,7 +291,8 @@
 // ═══════════════════════════════════════════════
 //  ⚙️ Supabase 設定
 // ═══════════════════════════════════════════════
-const EDGE_FUNCTION_URL = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/consultation-api';
+const EDGE_FUNCTION_URL = 'https://consultation-hendia.zeabur.app/';  // Wave 5 cutover 2026-05-14（原 Edge: ...supabase.co/functions/v1/consultation-api）
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 async function callEdge(action, params = {}) {
   // ── Sprint 0 Phase 1 + Phase 3: staffLineUid + LINE ID Token ──
   let _uid = null;
@@ -326,7 +327,7 @@ async function callEdge(action, params = {}) {
   const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
 
-    const _headers = { 'Content-Type': 'application/json' };
+    const _headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY };
   if (_idToken) _headers['X-Line-IdToken'] = _idToken;
   const res = await fetch(EDGE_FUNCTION_URL, {
     method: 'POST',
