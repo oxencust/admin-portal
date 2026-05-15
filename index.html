@@ -567,7 +567,9 @@
     // ====================================================================
     const CONFIG = {
         LIFF_ID: '2007947083-YCFwz7Uk',
-        EDGE_FUNCTION_URL: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api',
+        // 2026-05-15 Wave 5 #9 cutover：admin-api → Zeabur (admin-hendia)
+        // rollback: 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api'
+        EDGE_FUNCTION_URL: 'https://admin-hendia.zeabur.app/',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
         VERSION: '3.0.0'
     };
