@@ -226,6 +226,42 @@
       zeaburRequiresAuth: false,
     },
 
+    // ── Wave 5 #7（2026-05-15 部署完成 + smoke 通過）──
+    // booking-hendia.zeabur.app 已上線、10 actions 全綠
+    //   (getAvailableSlots/getCoachSchedule/searchCoach/searchConsultation/getTrialFeedback/
+    //    saveSlots/submitFeedback/updateSlotStatus/updateSlotDetails/deleteSlot)
+    // ⚠️ 注意：2 支 callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   1) hendia-liff/admin/portal/trial-schedule/index.html — BOOKING_API @ line 527
+    //   2) hendia-liff/coach/trial-slots/index.html — EDGE_FUNCTION_URL @ line 1222
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'booking-api': {
+      zeabur: 'https://booking-hendia.zeabur.app/',  // ← 2026-05-15 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 5 #8（2026-05-15 部署完成 + smoke 通過）──
+    // schedule-api：排班 / 加班 / 請假 / 考勤統計 (32 actions)
+    //   PUBLIC (18): checkApiStatus, identifyStaff, getScheduleMonth, getStaffList,
+    //     getShifts, getStaffTypes, getPendingOvertimes, getPendingLeaves,
+    //     getMySchedules, getMyLeaves, checkScheduleConflict, getAvailability,
+    //     saveAvailability, exportSchedule, getAttendanceReport, getUnboundPunches,
+    //     exportAttendanceYear, getSystemSettings
+    //   AUTH (4): submitOvertime / submitOvertimeRequest, submitLeave / submitLeaveRequest
+    //   MANAGER (12): updateStaffType, archiveStaff, saveShifts, importSchedules,
+    //     approveOvertime, rejectOvertime, approveLeave, rejectLeave,
+    //     bindPunchToStaff, setAttendanceReview, submitUnscheduledOvertime, setSystemSettings
+    // schedule-hendia.zeabur.app 已上線 + smoke 通過
+    // ⚠️ 注意：callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'schedule-api': {
+      zeabur: 'https://schedule-hendia.zeabur.app/',  // ← 2026-05-15 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/schedule-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
     // ── Wave 5+ 之後加 ──
   };
 
