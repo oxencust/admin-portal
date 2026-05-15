@@ -524,7 +524,9 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 // ═══════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════
-const BOOKING_API = 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api';
+// 2026-05-15 Sprint 3 Phase 5 Wave 5 #7 cutover：booking-api 從 Supabase Edge 切到 Zeabur
+//   Rollback：URL 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/booking-api' 即可
+const BOOKING_API = 'https://booking-hendia.zeabur.app/';
 const CONSULTATION_API = 'https://consultation-hendia.zeabur.app/';  // Wave 5 cutover 2026-05-14（原 Edge: ...supabase.co/functions/v1/consultation-api）
 // 2026-05-13 Sprint 3 Phase 5 Wave 4 cutover：chat-api 從 Supabase Edge 切到 Zeabur
 // Rollback：URL 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/chat-api' 即可
