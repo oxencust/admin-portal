@@ -185,7 +185,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="toast" id="toast"></div>
 
 <script>
+// 2026-05-15 Sprint 3 Phase 5 Wave 5 #6 cutover：audit-api 從 Supabase Edge 切到 Zeabur
+//   - 前端改打 Zeabur audit-service GET /audit/<action>?qs
+//   - auth 走 X-Line-Uid header (+ 可選 X-Line-IdToken)，Zeabur requireLineUidOrJWT 會接
+//   - 若需 rollback：把 USE_ZEABUR_AUDIT 改成 false 即會走回 EDGE_AUDIT_URL
 const EDGE_AUDIT_URL='https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/audit-api';
+const ZEABUR_AUDIT_BASE='https://audit-hendia.zeabur.app/audit/';
+const USE_ZEABUR_AUDIT = !!ZEABUR_AUDIT_BASE;
 
 let currentUser=null;
 let allLogs=[],totalCount=0,page=0;
@@ -233,9 +239,43 @@ function initPermissions(){
 }
 
 // ─── call audit-api ──────────────────────────────
+// 取得 staffIdToken (LINE id_token) — 若有則加進 header 走 Zeabur 第 2 條 auth path
+function getStaffIdToken(){
+    try{
+        const t=sessionStorage.getItem('staffIdToken');
+        if(!t)return null;
+        // 簡單檢查 exp，避免帶過期 token
+        try{
+            const p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+            if(p.exp && p.exp*1000 < Date.now()) return null;
+        }catch(e){return null;}
+        return t;
+    }catch(e){return null;}
+}
+
 async function callAudit(action,params={}){
     const lineUid=getLineUid();
     if(!lineUid){throw new Error('缺少 lineUid，無法驗證身份');}
+
+    if(USE_ZEABUR_AUDIT){
+        // Zeabur path: GET /audit/<action>?<querystring>，auth 用 X-Line-Uid header
+        const qs=new URLSearchParams();
+        Object.keys(params||{}).forEach(k=>{
+            const v=params[k];
+            if(v===undefined||v===null||v==='')return;
+            qs.append(k,String(v));
+        });
+        const url=ZEABUR_AUDIT_BASE+action+(qs.toString()?'?'+qs.toString():'');
+        const headers={'X-Line-Uid':lineUid};
+        const idTok=getStaffIdToken();
+        if(idTok)headers['X-Line-IdToken']=idTok;
+        const res=await fetch(url,{method:'GET',headers});
+        const j=await res.json().catch(()=>({success:false,error:'無法解析回應'}));
+        if(!res.ok||j.success===false){throw new Error(j.error||j.message||('HTTP '+res.status));}
+        return j;
+    }
+
+    // Edge fallback (rollback path)
     const res=await fetch(EDGE_AUDIT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,lineUid,...params})});
     const j=await res.json().catch(()=>({success:false,error:'無法解析回應'}));
     if(!res.ok||j.success===false){throw new Error(j.error||('HTTP '+res.status));}
