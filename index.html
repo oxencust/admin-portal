@@ -570,6 +570,7 @@
         // 2026-05-15 Wave 5 #9 cutover：admin-api → Zeabur (admin-hendia)
         // rollback: 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api'
         EDGE_FUNCTION_URL: 'https://admin-hendia.zeabur.app/',
+        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg',
         BASE_URL: 'https://oxencust.github.io/admin-portal/',
         VERSION: '3.0.0'
     };
@@ -609,7 +610,7 @@
   const _body = { action, ...(params || {}) };
   if (_uid && !_body.lineUid) _body.lineUid = _uid;
 
-        const _headers = { 'Content-Type': 'application/json' };
+        const _headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY, 'apikey': CONFIG.SUPABASE_ANON_KEY };
   if (_idToken) _headers['X-Line-IdToken'] = _idToken;
   const res = await fetch(CONFIG.EDGE_FUNCTION_URL, {
     method: 'POST',
@@ -1076,14 +1077,6 @@
 
     async function initApp() {
         try {
-            // Sprint 3 Phase 5 Wave 1：killswitch 已移除（Zeabur notify-coaches-service 已修復）
-            // 如未來需緊急回退到 Edge Function，可在瀏覽器 Console 執行：
-            //   localStorage.setItem('HENDIA_API_FORCE_EDGE', '1')
-            // 或單一服務回退：localStorage.setItem('HENDIA_API_FORCE_EDGE_notify-coaches', '1')
-            // 同時清掉舊版殘留 killswitch（若同事的 localStorage 還有打開的 flag，這行會自動還原他們）
-            try { localStorage.removeItem('HENDIA_API_FORCE_EDGE'); } catch (e) {}
-            try { localStorage.removeItem('hendia_force_edge'); } catch (e) {}
-
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
 
@@ -1662,10 +1655,6 @@
                 baseParams[key] = replaced;
             }
         }
-
-        // Sprint 3 Phase 5: cachebuster 解決 LIFF WebView Service Worker 持續快取舊 HTML 的問題
-        // 每次點模組都帶不同 _v → SW 把它當新 URL，bypass cache 重新抓
-        baseParams._v = Date.now();
 
         const params = new URLSearchParams(baseParams);
 
