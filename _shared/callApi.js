@@ -157,6 +157,75 @@
       zeaburRequiresAuth: false,
     },
 
+    // ── Wave 5 Step 3（2026-05-14）──
+    // class-record-api：課表紀錄 (11 actions: getImageKitAuth/getUserRole/getCoachByLineId/
+    //   getCoachList/searchMembers/getClassRecords/getClassPhotos/getClassSession/
+    //   submitClassRecord/getRecentExerciseNames)
+    // 服務 3 組前端（每組 hendia-liff/ + GAS .txt + _sprint0_phase1 mirror，共 9 個 caller）：
+    //   1) 教練端 課表紀錄
+    //      - hendia-liff/coach/class-record/index.html @ EDGE_FUNCTION_URL line 2186
+    //      - 教練系統/(新)課表紀錄系統.txt
+    //      - _sprint0_phase1/教練系統__(新)課表紀錄系統.txt（mirror）
+    //   2) 教練端 相簿
+    //      - hendia-liff/coach/class-record-album/index.html @ line 609
+    //      - 教練系統/(新)課表紀錄相簿系統.txt
+    //      - _sprint0_phase1/教練系統__(新)課表紀錄相簿系統.txt（mirror）
+    //   3) 管理端 查詢
+    //      - hendia-liff/admin/portal/class-record/index.html @ line 941
+    //      - 行政系統/.../(新)課表紀錄查詢管理系統.txt
+    //      - _sprint0_phase1/行政系統__...txt（mirror）
+    // class-record-hendia.zeabur.app 已上線 + smoke 5 條全綠
+    //   (health/getCoachList/getUserRole/searchMembers 401/getImageKitAuth/getRecentExerciseNames)
+    // ⚠️ 廢棄不切：classrecord-admin.html / class-record-query-index.html / .backup_*.txt
+    // ⚠️ 注意：9 支 callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'class-record-api': {
+      zeabur: 'https://class-record-hendia.zeabur.app/',  // ← 2026-05-14 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/class-record-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 5 Step 4（2026-05-15）──
+    // notify-service：3 顆代課流程 LINE 推播 webhook 合併為 1 service (3 routes)
+    //   notify-new-message → POST /notify-new-message
+    //   notify-student     → POST /notify-student
+    //   invite-student     → POST /invite-student
+    // 服務 3 個 caller（皆 callFunction(fnName) helper，非 HendiaApi.callApi）：
+    //   1) hendia-liff/coach/chat/index.html — callFunction @ line 2257（有 Authorization）
+    //   2) 教練系統/(新)協調聊天室教練系統.txt — callFunction @ line 2220（無 Authorization）
+    //   3) _sprint0_phase1/教練系統__(新)協調聊天室教練系統.txt — mirror @ line 2260
+    // ⚠️ 廢棄不切：教練系統/協調聊天室教練系統.txt（無 (新) prefix；用 raw fetch）
+    // notify-hendia.zeabur.app 已上線 + cloud smoke OK
+    // ⚠️ 注意：3 支 callers 目前用 callFunction generic helper（非 HendiaApi.callApi），
+    //   cutover 是在 helper 內加 NOTIFY_ZEABUR_OVERRIDE mapping（per-fnName URL override）
+    //   本登錄表只是 master URL（path-style 用），實際 cutover 還是改檔案
+    'notify-service': {
+      zeabur: 'https://notify-hendia.zeabur.app/',  // ← 2026-05-15 cutover；3 routes 在這顆 service
+      edge: null,  // 無單一 Edge function，是 3 顆獨立 Edge 合併
+      edgeRequiresAuth: false,
+      zeaburRequiresAuth: false,
+    },
+
+    // ── Wave 5 Step 5（2026-05-15）──
+    // check-in-api：學員課後簽到 (7 actions: getRpeLabels/getCoachOptions/getCourseTypes/
+    //   getMyInfo/submitCheckIn/listMyCheckIns/listAllCheckIns)
+    // 服務 3 個 caller（皆 raw fetch、硬編 URL）：
+    //   1) hendia-liff/check-in/index.html — const EDGE_FUNCTION_URL @ line 603 (學員端 live)
+    //   2) hendia-liff/check-in-admin/index.html — const EDGE_FUNCTION_URL @ line 235 (管理端 live)
+    //   3) _sprint0_phase1/(新)課後簽到表.txt — mirror of #1 @ line 481
+    // ⚠️ check-in-mockups 是 mockup，不切
+    // checkin-hendia.zeabur.app 已上線 + smoke 7 條全綠（health/getRpeLabels/getCourseTypes/
+    //   getCoachOptions/getMyInfo/listMyCheckIns/listAllCheckIns；submitCheckIn 留待 LIFF 自然測一筆）
+    // ⚠️ 注意：3 支 callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'check-in-api': {
+      zeabur: 'https://checkin-hendia.zeabur.app/',  // ← 2026-05-15 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/check-in-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
     // ── Wave 5+ 之後加 ──
   };
 
