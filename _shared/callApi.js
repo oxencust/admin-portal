@@ -262,6 +262,28 @@
       zeaburRequiresAuth: false,
     },
 
+    // ── Wave 5 #9（2026-05-15 部署完成 + smoke 通過）──
+    // admin-api：入口整合 / 教練 / 員工 / 學員 / 權限 / 模組 (38 actions)
+    //   PUBLIC (9): verifyUser, verifyUserByPhone, completeProfile, createInvite,
+    //     createInviteForExisting, lookupInvite, redeemInvite, bindLineId, getModules
+    //   AUTH (28): getCoaches/generatePersonId/addCoach/updateCoach/archiveCoach/restoreCoach,
+    //     getStaff/generateStaffId/addStaff/updateStaff/archiveStaff,
+    //     getStudents/getStudentStats/generateMemberId/addStudent/updateStudent/previewStudentImpact,
+    //     getAssessmentHistory/getInbodyHistory/listMotiTestees/getAllPeople,
+    //     savePermissions/updateStaffPermissions,
+    //     addModule/updateModule/deleteModule/reorderModules, manualSync
+    //   ADMIN (1): restoreStaff（僅 super_admin）
+    // admin-hendia.zeabur.app 已上線 + smoke 通過
+    // ⚠️ GAS dual-write：addCoach/Staff/Student → GAS_MAIN_URL；savePermissions → GAS_PERMISSION_URL
+    // ⚠️ 注意：callers 目前用 raw fetch（非 HendiaApi.callApi），URL 是檔案內硬編
+    //   → cutover 是直接改檔案內 URL 常數，本登錄表先放著供未來前端採用 HendiaApi pattern 時用
+    'admin-api': {
+      zeabur: 'https://admin-hendia.zeabur.app/',  // ← 2026-05-15 cutover
+      edge: 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api',
+      edgeRequiresAuth: true,
+      zeaburRequiresAuth: false,
+    },
+
     // ── Wave 5+ 之後加 ──
   };
 
