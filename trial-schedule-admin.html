@@ -172,6 +172,115 @@ select.coach-select{padding:5px 10px;border-radius:20px;border:1px solid #ddd;fo
 .loading-mask.show{display:flex}
 .spinner{width:36px;height:36px;border:3px solid #ddd;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════════════════
+ * 平板響應式優化 (Sprint 3 Phase 5 補強, 2026-05-15 v2 — merged)
+ *   ─ 768px+ ：iPad portrait + 大手機 — 加大 tap target / modal / 字體 (Apple HIG ≥44px)
+ *   ─ 1024px+：iPad landscape          — page-wrap 1280px、時間欄 64px、modal 600px
+ *   ─ 1280px+：iPad Pro 13" / desktop  — page-wrap 1400px、modal 640px、月曆 150px
+ *   ─ hover:none：觸控裝置 sticky :hover 修復（iOS Safari 點完樣式黏住的 bug）
+ *   設計原則：iOS input font-size ≥16px 防 zoom；cal-nav/view-toggle ≥44px tap target
+ *           Modal 採 max-height:75vh （51vh 對含預約表單偏短，會強制 scroll）
+ * ─────────────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+    /* ── Header / 按鈕 ── */
+    .header{padding:18px 24px}
+    .header h1{font-size:20px}
+    .header-sub{font-size:13px}
+    .add-btn,.refresh-btn{padding:9px 18px;font-size:14px;min-height:40px}
+    #activeSubstBadge{padding:9px 16px!important;font-size:14px!important;min-height:40px}
+
+    /* ── Tap target (篩選列、課種、教練) ── */
+    .filter-chip{padding:9px 18px;font-size:14px;min-height:40px;display:inline-flex;align-items:center}
+    select.coach-select{padding:9px 14px;font-size:14px;min-height:40px}
+    .type-tag{padding:8px 18px;font-size:14px;min-height:40px}
+    .type-tag .tag-count{font-size:11px;padding:2px 8px}
+    .coach-chip{padding:6px 14px;font-size:13px;min-height:32px;display:inline-flex;align-items:center}
+
+    /* ── 統計卡 ── */
+    .stats-bar{padding:12px 24px;gap:12px}
+    .stat-card{min-width:100px;padding:14px 20px}
+    .stat-num{font-size:26px}
+    .stat-label{font-size:12px}
+
+    /* ── 日曆導覽（44px tap target — 翻月/今天/週月切換誤觸成本最高） ── */
+    .cal-nav{padding:14px 24px;gap:14px}
+    .cal-nav button{font-size:22px;padding:8px 14px;min-width:44px;min-height:44px}
+    .cal-nav .month-label{font-size:18px;min-width:200px}
+    .today-btn{font-size:14px!important;padding:8px 18px!important;min-height:44px}
+    .view-toggle button{padding:8px 18px;font-size:14px;min-height:44px}
+
+    /* ── 週/月曆字級 ── */
+    .week-header{padding:12px 4px;font-size:14px}
+    .week-header .date-num{font-size:19px}
+    .day-cell{min-height:70px;padding:4px}
+    .time-label{font-size:13px;min-height:70px;padding:4px 8px}
+    .month-header{padding:12px 6px;font-size:14px}
+    .month-cell{min-height:110px;padding:6px}
+    .month-cell .cell-date{font-size:15px;margin-bottom:4px}
+    .month-cell .dot-slot{padding:5px 8px;font-size:12px;line-height:1.4}
+
+    /* ── 時段方塊 (slot) ── */
+    .slot{padding:6px 8px;font-size:13px;margin:2px 0}
+    .slot .coach-name{font-size:13px}
+    .slot .slot-time, .slot .student{font-size:12px}
+
+    /* ── Modal 560px / 75vh、字級調整、iOS 防 zoom ── */
+    .modal{max-width:560px;max-height:75vh;padding:24px;border-radius:24px}
+    .modal h3{font-size:19px;margin-bottom:18px}
+    .modal .info-row{font-size:15px;padding:9px 0}
+    .modal input,.modal select,.modal textarea{padding:12px 14px;font-size:16px;margin:8px 0;min-height:44px;border-radius:12px}
+    .modal textarea{min-height:80px}
+    .modal .btn{padding:14px;font-size:15px;min-height:48px;min-width:100px;border-radius:14px}
+    .modal .btn-row{gap:10px;margin-top:18px}
+
+    /* ── 自動完成下拉 ── */
+    .ac-dropdown{max-height:280px}
+    .ac-item{padding:12px 14px;font-size:15px;min-height:44px}
+    .ac-item .ac-meta{font-size:12px}
+
+    /* ── Toast / 詳情列表 ── */
+    .toast{font-size:14px;padding:12px 28px;bottom:60px}
+    #activeSubstList{max-height:65vh}
+}
+
+/* ═══ iPad landscape 1024+ ═══ */
+@media (min-width: 1024px) {
+    .page-wrap{max-width:1280px}
+    /* 時間欄加寬 48→64px，時段 label 不被擠 */
+    .week-grid{grid-template-columns:64px repeat(7,minmax(0,1fr));margin:12px 24px}
+    .month-grid{margin:12px 24px}
+    .day-cell{min-height:80px}
+    .time-label{min-height:80px}
+    .month-cell{min-height:130px}
+    .month-cell .cell-date{font-size:16px}
+    .month-cell .dot-slot{font-size:13px;padding:5px 7px}
+    .header{padding:20px 28px}
+    .stats-bar{padding:14px 28px;gap:14px}
+    .cal-nav{padding:16px 28px}
+    .modal{max-width:600px;padding:28px}
+    .stat-card{min-width:110px;padding:16px 22px}
+    .stat-num{font-size:28px}
+}
+
+/* ═══ iPad Pro 13" / desktop 1280+ ═══ */
+@media (min-width: 1280px) {
+    .page-wrap{max-width:1400px}
+    .modal{max-width:640px}
+    .day-cell{min-height:90px}
+    .month-cell{min-height:150px}
+    .week-grid,.month-grid{margin:16px 32px}
+}
+
+/* ═══ 觸控裝置 sticky :hover 修復（iOS / Android）═══
+   :not(.active) 是為了讓 .type-tag.active 的 opacity:1 / border:currentColor 不被洗掉 */
+@media (hover: none) {
+    .slot:hover{transform:none;box-shadow:none}
+    .filter-chip:hover{border-color:#ddd}
+    .coach-chip:hover{border-color:#ddd}
+    .type-tag:not(.active):hover{opacity:.6}
+    .ac-item:hover, .ac-item.ac-student:hover{background:transparent}
+}
 </style>
 </head>
 <body>
