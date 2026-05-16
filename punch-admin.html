@@ -204,13 +204,18 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
         <div class="header-top">
             <div>
                 <h1>🕓 打卡紀錄管理</h1>
-                <div class="header-sub">檢視所有員工打卡歷史（僅限主管以上）</div>
+                <div class="header-sub" id="headerSub">檢視所有員工打卡歷史（僅限主管以上）</div>
             </div>
             <div class="header-actions">
+                <button class="refresh-btn" id="backToOrgBtn" style="display:none;" onclick="window.location.href='../punch-org/index.html'">← 返回組織圖</button>
                 <span class="user-chip" id="userChip">-</span>
                 <button class="refresh-btn" onclick="loadData()">↻ 重新整理</button>
                 <button class="csv-btn" onclick="exportCSV()">⇩ 匯出 CSV</button>
             </div>
+        </div>
+        <div id="lockedStaffBanner" style="display:none; margin-top:8px; padding:6px 12px; background:var(--green-light); border:1px solid var(--green); border-radius:14px; font-size:12px; color:var(--green-dark); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span>🔒 已鎖定員工：<b id="lockedStaffLabel">—</b></span>
+            <button class="filter-chip" onclick="clearStaffLock()">✕ 解除鎖定</button>
         </div>
     </div>
 
@@ -331,9 +336,19 @@ let filter = {
     dateTo: '',
     type: 'all',
     pendingOnly: false,
-    keyword: ''
+    keyword: '',
+    actorId: ''   // P1 組織打卡：從 ?staff_id=HD2600003 帶入時自動篩選該員工
 };
 let searchDebounce = null;
+// 從組織圖跳進來的話，記下來源以決定是否顯示返回按鈕
+let _fromOrgView = false;
+let _lockedStaffId = null;
+try {
+    const _qp = new URLSearchParams(location.search);
+    const _staffIdQ = _qp.get('staff_id');
+    if (_staffIdQ) { filter.actorId = _staffIdQ; _lockedStaffId = _staffIdQ; }
+    if (_qp.get('from') === 'org-view') _fromOrgView = true;
+} catch(e) {}
 
 // ═══════════════════════════════════════════════
 //  Edge Function 呼叫
@@ -462,6 +477,7 @@ async function loadData() {
         if (filter.type && filter.type !== 'all') params.punchType = filter.type;
         if (filter.pendingOnly) params.pendingOnly = true;
         if (filter.keyword)  params.keyword = filter.keyword;
+        if (filter.actorId)  params.actorId = filter.actorId; // P1 組織打卡跳轉
 
         const res = await callEdge('listPunchRecords', params);
         allRecords = res.records || [];
@@ -648,6 +664,7 @@ async function exportCSV() {
         if (filter.type && filter.type !== 'all') params.punchType = filter.type;
         if (filter.pendingOnly) params.pendingOnly = true;
         if (filter.keyword)  params.keyword = filter.keyword;
+        if (filter.actorId)  params.actorId = filter.actorId; // P1 組織打卡跳轉
 
         const res = await callEdge('listPunchRecords', params);
         const rows = res.records || [];
@@ -742,9 +759,33 @@ function showGate(icon, title, message) {
     const nm = portalUser.name || portalUser.realName || '主管';
     document.getElementById('userChip').textContent = '👤 ' + nm;
 
+    // 從組織圖跳進來：顯示返回按鈕 + 鎖定員工 banner
+    if (_fromOrgView) {
+        const backBtn = document.getElementById('backToOrgBtn');
+        if (backBtn) backBtn.style.display = '';
+    }
+    if (_lockedStaffId) {
+        const banner = document.getElementById('lockedStaffBanner');
+        const label = document.getElementById('lockedStaffLabel');
+        if (banner) banner.style.display = 'flex';
+        if (label) label.textContent = _lockedStaffId; // 更友善的姓名等資料載入後可加
+        const sub = document.getElementById('headerSub');
+        if (sub) sub.textContent = `已篩選員工 ${_lockedStaffId} 的打卡紀錄`;
+    }
+
     // 預設近 30 天
     setDatePreset('30');
 })();
+
+// 從組織圖鎖定的解除
+function clearStaffLock() {
+    _lockedStaffId = null;
+    filter.actorId = '';
+    const banner = document.getElementById('lockedStaffBanner');
+    if (banner) banner.style.display = 'none';
+    currentOffset = 0;
+    loadData();
+}
 </script>
 
 </body>
