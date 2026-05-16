@@ -196,21 +196,31 @@ async function loadCoaches(){
     }catch(e){document.getElementById('coachList').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><p>載入失敗</p></div>';}
 }
 function renderStats(){
-    const active=allCoaches.filter(c=>c.is_active!==false).length;
-    const inactive=allCoaches.length-active;
-    const specs={};allCoaches.forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
+    // 2026-05-16 路線 1：'pending' 從 active 數中扣除，並單獨顯示
+    const pending=allCoaches.filter(c=>c.status==='pending').length;
+    const active=allCoaches.filter(c=>c.is_active!==false&&c.status!=='pending').length;
+    const inactive=allCoaches.filter(c=>c.is_active===false).length;
+    const specs={};allCoaches.filter(c=>c.is_active!==false&&c.status!=='pending').forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
     document.getElementById('quickStats').innerHTML=
         '<div class="qs"><div class="qs-num">'+active+'</div><div class="qs-label">啟用</div></div>'+
+        (pending>0?'<div class="qs" style="cursor:pointer;" onclick="setStatusFilter(\'pending\')"><div class="qs-num" style="color:#f57c00;">'+pending+'</div><div class="qs-label">⏳ 待審核</div></div>':'')+
         '<div class="qs"><div class="qs-num">'+(specs.pilates||0)+'</div><div class="qs-label">🧘 皮拉提斯</div></div>'+
         '<div class="qs"><div class="qs-num">'+(specs.weight||0)+'</div><div class="qs-label">💪 重訓</div></div>'+
         '<div class="qs"><div class="qs-num">'+(specs.stretch||0)+'</div><div class="qs-label">🤸 伸展</div></div>'+
         (inactive>0?'<div class="qs"><div class="qs-num" style="color:#999;">'+inactive+'</div><div class="qs-label">📦 封存</div></div>':'');
 }
 function renderFilters(){
-    const activeCount=allCoaches.filter(c=>c.is_active!==false).length;
-    const inactiveCount=allCoaches.length-activeCount;
-    const specs={};allCoaches.filter(c=>statusFilter==='active'?c.is_active!==false:c.is_active===false).forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
+    // 2026-05-16 路線 1：新增 status='pending' 教練分類
+    const pendingCount=allCoaches.filter(c=>c.status==='pending').length;
+    const activeCount=allCoaches.filter(c=>c.is_active!==false&&c.status!=='pending').length;
+    const inactiveCount=allCoaches.filter(c=>c.is_active===false).length;
+    const specs={};allCoaches.filter(c=>{
+        if(statusFilter==='pending')return c.status==='pending';
+        if(statusFilter==='archived')return c.is_active===false;
+        return c.is_active!==false&&c.status!=='pending';
+    }).forEach(c=>{(c.specialties||[]).forEach(s=>{specs[s]=(specs[s]||0)+1;});});
     let h='<span class="filter-chip status-chip'+(statusFilter==='active'?' active':'')+'" onclick="setStatusFilter(\'active\',this)">✅ 啟用中<span class="cnt">'+activeCount+'</span></span>';
+    h+='<span class="filter-chip status-chip'+(statusFilter==='pending'?' active':'')+'" style="'+(statusFilter==='pending'?'background:#f57c00;border-color:#f57c00;color:#fff;':'border-color:#ffb74d;color:#f57c00;')+'" onclick="setStatusFilter(\'pending\',this)">⏳ 待審核<span class="cnt">'+pendingCount+'</span></span>';
     h+='<span class="filter-chip status-chip'+(statusFilter==='archived'?' active':'')+'" style="'+(statusFilter==='archived'?'background:#999;border-color:#999;':'border-color:#bbb;color:#999;')+'" onclick="setStatusFilter(\'archived\',this)">📦 封存<span class="cnt">'+inactiveCount+'</span></span>';
     h+='<div class="filter-divider"></div>';
     h+='<span class="filter-chip'+(currentFilter==='all'?' active':'')+'" onclick="setFilter(\'all\',this)">全部</span>';
@@ -221,8 +231,10 @@ function setStatusFilter(f,el){statusFilter=f;currentFilter='all';renderFilters(
 function setFilter(f,el){currentFilter=f;renderFilters();applyFilter();}
 function applyFilter(){
     filteredCoaches=allCoaches.filter(c=>{
-        if(statusFilter==='active'&&c.is_active===false)return false;
+        // 2026-05-16 路線 1：'pending' 教練只在「待審核」分頁顯示，不混在啟用中
+        if(statusFilter==='active'&&(c.is_active===false||c.status==='pending'))return false;
         if(statusFilter==='archived'&&c.is_active!==false)return false;
+        if(statusFilter==='pending'&&c.status!=='pending')return false;
         if(currentFilter!=='all'&&!(c.specialties||[]).includes(currentFilter))return false;
         if(searchTerm&&!((c.name||'').includes(searchTerm)||(c.real_name||'').includes(searchTerm)||(c.id||'').includes(searchTerm)))return false;
         return true;
@@ -234,8 +246,10 @@ function handleSearch(){if(searchTimeout)clearTimeout(searchTimeout);searchTimeo
 function renderCoaches(){
     const c=document.getElementById('coachList');
     if(filteredCoaches.length===0){
-        const emptyMsg=statusFilter==='archived'?'沒有已封存的教練':'找不到啟用中的教練';
-        const emptyIcon=statusFilter==='archived'?'📦':'👨‍🏫';
+        let emptyMsg, emptyIcon;
+        if(statusFilter==='archived'){emptyMsg='沒有已封存的教練';emptyIcon='📦';}
+        else if(statusFilter==='pending'){emptyMsg='目前沒有待審核的教練';emptyIcon='⏳';}
+        else{emptyMsg='找不到啟用中的教練';emptyIcon='👨‍🏫';}
         c.innerHTML='<div class="empty-state"><div class="empty-icon">'+emptyIcon+'</div><p>'+emptyMsg+'</p></div>';
     } else {
         c.innerHTML=filteredCoaches.map(co=>renderCoachCard(co)).join('');
@@ -243,8 +257,10 @@ function renderCoaches(){
 }
 function renderCoachCard(co){
         const init=(co.name||'?')[0],gk=genderKey(co.gender),isActive=co.is_active!==false,sid=escAttr(co.id),specs=(co.specialties||[]);
+        const isPending=co.status==='pending';
         let tags='';specs.forEach(s=>{tags+='<span class="a-tag '+(specClass[s]||'')+'">'+specIcons[s]+' '+(specNames[s]||s)+'</span>';});
-        tags+='<span class="a-tag '+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'啟用':'停用')+'</span>';
+        if(isPending){tags+='<span class="a-tag" style="background:#fff8e1;color:#f57c00;border:1px solid #ffb74d;">⏳ 待審核</span>';}
+        else{tags+='<span class="a-tag '+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'啟用':'停用')+'</span>';}
         let grid='';
         if(co.id)grid+=af('編號',escHtml(co.id));
         if(isVis('phone')&&co.phone)grid+=af('電話',getFD('phone',co.phone,'phone'));
@@ -262,6 +278,10 @@ function renderCoachCard(co){
         if(isVis('line_id_edu')&&co.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',co.line_id_edu)+'</span>');
         if(co.line_group_id)exp+=aff('教務群組ID','<span style="font-size:10px;">'+escHtml(co.line_group_id)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
+        if(isPending&&(modulePerms.edit||currentUser.role==='owner'||currentUser.role==='super_admin')){
+            acts+='<button class="btn btn-primary btn-sm" style="background:#4caf50;" onclick="event.stopPropagation();approveCoach(\''+sid+'\')">✅ 核准</button>';
+            acts+='<button class="btn btn-secondary btn-sm" style="background:#ffebee;color:#c62828;" onclick="event.stopPropagation();rejectCoach(\''+sid+'\')">❌ 拒絕</button>';
+        }
         if(modulePerms.fill||modulePerms.edit)acts+='<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();editCoach(\''+sid+'\')">✏️ 編輯</button>';
         return '<div class="a-card'+(isActive?'':' inactive')+'" id="card-'+sid+'" onclick="toggleCard(\''+sid+'\')"><div class="a-top"><div class="a-avatar '+gk+'">'+escHtml(init)+'</div><div class="a-info"><div class="a-name">'+escHtml(co.name)+(co.real_name&&co.real_name!==co.name?' <span style="font-size:12px;color:var(--text-muted);">('+escHtml(co.real_name)+')</span>':'')+'</div><div class="a-meta"><span>'+co.id+'</span>'+specs.map(s=>'<span>'+(specNames[s]||s)+'</span>').join('')+'</div></div></div><div class="a-tags">'+tags+'</div><div class="a-grid">'+grid+'</div><div class="a-expand"><div class="a-expand-grid">'+exp+'</div><div class="a-actions">'+acts+'</div></div><div class="a-toggle">▼ 展開更多</div></div>';
 }
@@ -276,7 +296,7 @@ function viewDetail(id){
     h+=ddf('編號',escHtml(co.id));h+=ddf('教練名稱',escHtml(co.name));
     if(co.real_name)h+=ddf('本名',escHtml(co.real_name));h+=ddf('性別',genderNames[co.gender]||'-');
     if(isVis('birthday'))h+=ddf('生日',getFD('birthday',co.birthday));
-    h+=ddf('狀態',co.is_active!==false?'啟用':'停用');
+    h+=ddf('狀態',co.status==='pending'?'⏳ 待審核':(co.status==='rejected'?'❌ 已拒絕':(co.is_active!==false?'啟用':'停用')));
     h+=ddf('課程類型',(co.specialties||[]).map(s=>(specIcons[s]||'')+' '+(specNames[s]||s)).join(', ')||'-',true);
     h+='</div></div><div class="detail-section"><div class="detail-section-title">聯絡方式</div><div class="detail-grid">';
     if(isVis('phone'))h+=ddf('電話',getFD('phone',co.phone,'phone'));
@@ -290,7 +310,14 @@ function viewDetail(id){
     h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(co.created_at));h+=ddf('更新',fmtDate(co.updated_at));h+='</div></div>';
     document.getElementById('detailBody').innerHTML=h;
     let fh='';
-    if(co.is_active===false){
+    if(co.status==='pending'){
+        // 2026-05-16 路線 1：待審核教練專屬 footer 按鈕
+        if(modulePerms.edit||currentUser.role==='owner'||currentUser.role==='super_admin'){
+            fh+='<button class="btn btn-primary" style="background:#4caf50;" onclick="approveCoach(\''+escAttr(co.id)+'\')">✅ 核准</button>';
+            fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="rejectCoach(\''+escAttr(co.id)+'\')">❌ 拒絕</button>';
+        }
+        if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-secondary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
+    }else if(co.is_active===false){
         fh+='<button class="btn btn-primary" onclick="restoreCoach(\''+escAttr(co.id)+'\')">♻️ 恢復</button>';
     }else{
         if(modulePerms.fill||modulePerms.edit)fh+='<button class="btn btn-primary" onclick="closeModal(\'detailModal\');editCoach(\''+escAttr(co.id)+'\')">✏️ 編輯</button>';
@@ -396,6 +423,34 @@ async function saveCoach(){
             await loadCoaches();
         }catch(e){showToast('❌ 更新失敗：'+e.message);}
     }
+}
+// 2026-05-16 路線 1：教練審核 (approveCoach / rejectCoach)
+// 對應 admin-service approveCoach / rejectCoach action
+async function approveCoach(id){
+    const co=allCoaches.find(x=>x.id===id);if(!co)return;
+    if(!confirm('確定要核准教練「'+co.name+'」（'+co.id+'）嗎？\n\n核准後將正式加入教練名單，並同步寫入 GAS sheet。'))return;
+    try{
+        showToast('⏳ 核准中...');
+        const{error}=await callEdge('approveCoach',{id:co.id}).then(()=>({error:null})).catch(e=>({error:e}));
+        if(error)throw error;
+        showToast('✅ 已核准');
+        try{closeModal('detailModal');}catch(e){}
+        await loadCoaches();
+    }catch(e){showToast('❌ 核准失敗：'+e.message);}
+}
+async function rejectCoach(id){
+    const co=allCoaches.find(x=>x.id===id);if(!co)return;
+    const reason=prompt('請輸入拒絕原因（可留空，留空表示不記錄理由）：','');
+    if(reason===null)return; // 使用者按取消
+    if(!confirm('確定要拒絕教練「'+co.name+'」（'+co.id+'）嗎？\n\n拒絕後該教練會被封存（is_active=false / status=rejected），無法再透過 LIFF 進入。'))return;
+    try{
+        showToast('⏳ 拒絕中...');
+        const{error}=await callEdge('rejectCoach',{id:co.id,reason:reason||null}).then(()=>({error:null})).catch(e=>({error:e}));
+        if(error)throw error;
+        showToast('✅ 已拒絕');
+        try{closeModal('detailModal');}catch(e){}
+        await loadCoaches();
+    }catch(e){showToast('❌ 拒絕失敗：'+e.message);}
 }
 async function archiveCoach(id){
     const co=allCoaches.find(x=>x.id===id);if(!co)return;
