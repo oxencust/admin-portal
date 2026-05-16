@@ -368,9 +368,13 @@ function attachOrgRoleSmartDefault(){
   });
 }
 async function generateStaffId(){
+    // 2026-05-16：後端 generateStaffId 已改用 next_person_id sequence（跨 staff+coaches 共用）
+    //   優先讀新欄位 nextId；舊欄位 data 為向後相容備援
     const yr=String(new Date().getFullYear()).slice(-2);
     const prefix='HD'+yr;
-    const{data}=await callEdge('generateStaffId',{prefix});
+    const res=await callEdge('generateStaffId',{prefix});
+    if(res&&res.nextId)return res.nextId;
+    const data=res&&res.data;
     if(data&&data.length>0){const lastSeq=parseInt(data[0].id.slice(5))||0;return prefix+String(lastSeq+1).padStart(5,'0');}
     return prefix+'00001';
 }
