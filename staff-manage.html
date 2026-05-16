@@ -261,7 +261,7 @@ function renderStaff(){
         if(isVis('emergency_phone')&&s.emergency_phone)exp+=af('緊急電話',getFD('emergency_phone',s.emergency_phone));
         if(s.emergency_relation)exp+=af('關係',escHtml(s.emergency_relation));
         if(s.leave_date)exp+=af('離職日',escHtml(s.leave_date));
-        if(s.availability)exp+=aff('備註',escHtml(s.availability));
+        if(s.remark)exp+=aff('備註',escHtml(s.remark));
         if(isVis('line_uid')&&s.line_uid)exp+=aff('衡點LINE','<span style="font-size:10px;">'+getFD('line_uid',s.line_uid)+'</span>');
         if(isVis('line_id_edu')&&s.line_id_edu)exp+=aff('教務LINE','<span style="font-size:10px;">'+getFD('line_id_edu',s.line_id_edu)+'</span>');
         let acts='<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewDetail(\''+sid+'\')">📋 詳細</button>';
@@ -296,7 +296,7 @@ function viewDetail(id){
     h+='</div></div>';
     if(isVis('emergency_contact')||isVis('emergency_phone')){h+='<div class="detail-section"><div class="detail-section-title">緊急聯絡人</div><div class="detail-grid">';if(isVis('emergency_contact'))h+=ddf('姓名',getFD('emergency_contact',s.emergency_contact));if(isVis('emergency_phone'))h+=ddf('電話',getFD('emergency_phone',s.emergency_phone));if(s.emergency_relation)h+=ddf('關係',escHtml(s.emergency_relation));h+='</div></div>';}
     if(s.personal_link){h+='<div class="detail-section"><div class="detail-section-title">排班連結</div><div class="detail-grid">';h+=ddf('連結','<a href="'+escAttr(s.personal_link)+'" target="_blank" style="color:var(--blue-dark);word-break:break-all;">'+escHtml(s.personal_link)+'</a>',true);h+='</div></div>';}
-    if(s.availability){h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';h+=ddf('備註',escHtml(s.availability),true);h+='</div></div>';}
+    if(s.remark){h+='<div class="detail-section"><div class="detail-section-title">備註</div><div class="detail-grid">';h+=ddf('備註',escHtml(s.remark),true);h+='</div></div>';}
     h+='<div class="detail-section"><div class="detail-section-title">系統</div><div class="detail-grid">';h+=ddf('建立',fmtDate(s.created_at));h+=ddf('更新',fmtDate(s.updated_at));h+='</div></div>';
     document.getElementById('detailBody').innerHTML=h;
     let fh='';
@@ -346,7 +346,7 @@ function editStaff(id){
     h+=fg('離職日','date','e_leave',s.leave_date,ro(s.leave_date));
     if(isFull('line_uid'))h+=fg('衡點LINE','text','e_luid',s.line_uid,false);
     if(isFull('line_id_edu'))h+=fg('教務LINE','text','e_ledu',s.line_id_edu,false);
-    h+=fta('備註','e_avail',s.availability,ro(s.availability));
+    h+=fta('備註','e_remark',s.remark,ro(s.remark));
     document.getElementById('editBody').innerHTML=h;openModal('editModal');
     attachOrgRoleSmartDefault();
 }
@@ -391,7 +391,7 @@ async function saveStaff(){
                 address:val('e_addr')||null,emergency_contact:val('e_ec')||null,emergency_phone:val('e_ep')||null,
                 emergency_relation:val('e_er')||null,hire_date:val('e_hire')||null,leave_date:val('e_leave')||null,
                 line_uid:val('e_luid')||null,line_id_edu:val('e_ledu')||null,
-                availability:val('e_avail')||null,personal_link:personalLink,
+                remark:val('e_remark')||null,personal_link:personalLink,
                 created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
             const{error}=await callEdge('addStaff',{staff:newStaff}).then(()=>({error:null})).catch(e=>({error:e}));
             if(error)throw error;
@@ -420,7 +420,7 @@ async function saveStaff(){
         chk('emergency_relation','e_er',s.emergency_relation);
         const hd=val('e_hire');if(hd!==(s.hire_date||''))u.hire_date=hd||null;
         const ld=val('e_leave');if(ld!==(s.leave_date||''))u.leave_date=ld||null;
-        chk('availability','e_avail',s.availability);
+        chk('remark','e_remark',s.remark);
         chk('line_uid','e_luid',s.line_uid);chk('line_id_edu','e_ledu',s.line_id_edu);
         if(Object.keys(u).length===0){showToast('沒有變更');closeModal('editModal');return;}
         try{
@@ -455,7 +455,7 @@ async function restoreStaff(id){
         await loadStaff();
     }catch(e){showToast('❌ 恢復失敗：'+e.message);}
 }
-function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('子部門','text','e_subdept','');h+='<p class="form-hint">選填，例如：行政、AI；同部門內可細分</p>';h+=fg('職稱','text','e_title','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('組織角色','e_orgrole',[['staff','一般員工'],['sub_dept_head','子部門組長'],['dept_head','部門主管'],['ceo','CEO（執行長）']],'staff');h+='<p class="form-hint">🏢 此欄位<b>只決定組織圖位置</b>，與「權限等級」獨立。</p>';h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('個人信箱','email','e_email','');h+=fg('公司信箱','email','e_corp_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_avail','');document.getElementById('editBody').innerHTML=h;openModal('editModal');attachOrgRoleSmartDefault();}
+function openAddModal(){if(!modulePerms.create){showToast('無新增權限');return;}editingStaff=null;document.getElementById('editTitle').textContent='新增人員';let h='';h+='<p class="form-hint" style="margin-bottom:14px;color:var(--green-dark);font-weight:600;">編號與排班連結將自動產生</p>';h+=fg('姓名 *','text','e_name','');h+=fg('暱稱','text','e_nick','');h+=fg('人員類型','text','e_type','');h+='<p class="form-hint">用逗號分隔多標籤，例如：行政,教練</p>';h+=fsel('性別','e_gender',[['','請選擇'],['male','男'],['female','女'],['other','其他']],'');h+=fg('部門','text','e_dept','');h+=fg('子部門','text','e_subdept','');h+='<p class="form-hint">選填，例如：行政、AI；同部門內可細分</p>';h+=fg('職稱','text','e_title','');h+=fsel('權限等級','e_perm',[['staff','營運人員'],['admin','部門主管'],['super_admin','最高管理員'],['viewer','檢視者']],'staff');h+=fsel('組織角色','e_orgrole',[['staff','一般員工'],['sub_dept_head','子部門組長'],['dept_head','部門主管'],['ceo','CEO（執行長）']],'staff');h+='<p class="form-hint">🏢 此欄位<b>只決定組織圖位置</b>，與「權限等級」獨立。</p>';h+=fsel('狀態','e_status',[['active','在職'],['inactive','停用']],'active');h+=fg('電話','tel','e_phone','');h+=fg('個人信箱','email','e_email','');h+=fg('公司信箱','email','e_corp_email','');h+=fg('生日','date','e_bday','');h+=fg('地址','text','e_addr','');h+=fg('緊急聯絡人','text','e_ec','');h+=fg('緊急電話','tel','e_ep','');h+=fg('緊急聯絡人關係','text','e_er','');h+=fg('到職日','date','e_hire','');h+=fg('離職日','date','e_leave','');h+=fg('衡點LINE','text','e_lid','');h+=fg('教務LINE','text','e_ledu','');h+=fta('備註','e_remark','');document.getElementById('editBody').innerHTML=h;openModal('editModal');attachOrgRoleSmartDefault();}
 
 function openModal(id){document.getElementById(id).classList.add('show');}
 function closeModal(id){const el=document.getElementById(id);if(el)el.classList.remove('show');}
