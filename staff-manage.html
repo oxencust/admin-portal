@@ -97,11 +97,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:linear-gradient(135deg,#e2
 <div class="modal-bg" id="detailModal"><div class="modal-panel"><div class="modal-head"><h2 id="detailTitle">人員資料</h2><button class="modal-close" onclick="closeModal('detailModal')">✕</button></div><div class="modal-body" id="detailBody"></div><div class="modal-footer" id="detailFooter"></div></div></div>
 <div class="modal-bg" id="editModal"><div class="modal-panel"><div class="modal-head"><h2 id="editTitle">編輯人員</h2><button class="modal-close" onclick="closeModal('editModal')">✕</button></div><div class="modal-body" id="editBody"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveStaff()">💾 儲存</button></div></div></div>
 <div class="modal-bg" id="inviteLinkModal"><div class="modal-panel" style="max-width:420px;"><div class="modal-head"><h2>✅ 新增完成</h2><button class="modal-close" onclick="closeModal('inviteLinkModal')">✕</button></div><div class="modal-body" id="inviteLinkBody" style="text-align:center;"></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('inviteLinkModal')">關閉</button></div></div></div>
+<div class="modal-bg" id="resumeModal"><div class="modal-panel"><div class="modal-head"><h2 id="resumeTitle">📄 原始履歷</h2><button class="modal-close" onclick="closeModal('resumeModal')">✕</button></div><div class="modal-body" id="resumeBody"><div class="empty-state"><div class="empty-icon">⏳</div><p>載入中...</p></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('resumeModal')">關閉</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
 // 2026-05-15 Wave 5 #9 cutover：admin-api → Zeabur (admin-hendia)
 // rollback: 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/admin-api'
 const EDGE_FUNCTION_URL='https://admin-hendia.zeabur.app/';
+const RESUME_API_URL='https://resume-hendia.zeabur.app/';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
 async function callEdge(action, params = {}) {
   // ── Sprint 0 Phase 1 + Phase 3: staffLineUid + LINE ID Token ──
@@ -305,6 +307,10 @@ function viewDetail(id){
         if(!s.line_id_edu&&(currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='super_admin'||currentUser.role==='owner'))fh+='<button class="btn btn-primary" style="background:#ff9800;" onclick="generateInviteLinkFor(\''+escAttr(s.id)+'\')">🔗 產生入口連結</button>';
         if(modulePerms.delete!==false&&(modulePerms.edit||currentUser.permission_level==='super_admin'||currentUser.permission_level==='owner'||currentUser.role==='owner'||currentUser.role==='super_admin'))fh+='<button class="btn btn-secondary" style="background:#ffebee;color:#c62828;" onclick="archiveStaff(\''+escAttr(s.id)+'\')">📦 封存</button>';
     }
+    // 📄 原始履歷 button — 需要 email 或 phone 才能配對；任何能進到本頁的管理員都可看
+    if(s.email||s.phone){
+        fh+='<button class="btn btn-secondary" style="background:var(--pink-light);color:var(--pink-dark);" onclick="openResumeModal(\''+escAttr(s.id)+'\')">📄 原始履歷</button>';
+    }
     document.getElementById('detailFooter').innerHTML=fh;openModal('detailModal');
 }
 function ddf(l,v,full){return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+l+'</div><div class="detail-field-value">'+(v||'-')+'</div></div>';}
@@ -487,6 +493,184 @@ async function generateInviteLinkFor(id){
         closeModal('detailModal');
         showInviteLinkModal(s.nickname||s.name,s.id,link);
     }catch(e){showToast('❌ 連線失敗：'+e.message);}
+}
+
+// ────────────────────────────────────────
+// 📄 原始履歷：依 email / phone 抓 recruitment_applications
+//   ‧ 不重複顯示員工卡上已有的欄位（姓名、電話、email、生日、性別）
+//   ‧ 多筆 → 全部依時間倒序顯示
+//   ‧ 0 筆 → 友善提示
+// ────────────────────────────────────────
+async function callResumeApi(action, params){
+  let _uid=null,_idToken=null;
+  try{
+    _uid=sessionStorage.getItem('staffLineUid');
+    if(!_uid){const _st=JSON.parse(sessionStorage.getItem('currentStaff')||'null');_uid=_st?.lineUid||_st?.line_id_edu||null;}
+    if(!_uid){const _u=new URLSearchParams(location.search);_uid=_u.get('line_id_edu')||_u.get('uid')||null;}
+  }catch(e){}
+  try{
+    if(window.liff&&liff.isLoggedIn&&liff.isLoggedIn()){_idToken=liff.getIDToken();if(_idToken)sessionStorage.setItem('staffIdToken',_idToken);}
+    if(!_idToken)_idToken=sessionStorage.getItem('staffIdToken');
+    if(_idToken){try{const _p=JSON.parse(atob(_idToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));if(_p.exp&&_p.exp*1000<Date.now())_idToken=null;}catch(e){_idToken=null;}}
+  }catch(e){}
+  const body={action,...(params||{})};
+  if(_uid&&!body.lineUid)body.lineUid=_uid;
+  const headers={'Content-Type':'application/json'};
+  if(_idToken)headers['X-Line-IdToken']=_idToken;
+  const res=await fetch(RESUME_API_URL,{method:'POST',headers,body:JSON.stringify(body)});
+  let json;try{json=await res.json();}catch(e){json={};}
+  if(!res.ok||json.success===false)throw new Error(json.error||('HTTP '+res.status));
+  return json;
+}
+
+async function openResumeModal(staffId){
+  const s=allStaff.find(x=>x.id===staffId)||archivedStaff.find(x=>x.id===staffId);if(!s)return;
+  if(!s.email&&!s.phone){showToast('此人員沒有 email 或電話，無法查履歷');return;}
+  document.getElementById('resumeTitle').textContent='📄 原始履歷 — '+(s.nickname||s.name);
+  document.getElementById('resumeBody').innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div><p>查詢中...</p></div>';
+  openModal('resumeModal');
+  try{
+    const r=await callResumeApi('findApplicationsByStaffContact',{email:s.email||'',phone:s.phone||''});
+    const apps=Array.isArray(r.applications)?r.applications:[];
+    if(apps.length===0){
+      document.getElementById('resumeBody').innerHTML=
+        '<div class="empty-state"><div class="empty-icon">📭</div><p>沒有找到符合的原始履歷</p>'+
+        '<p style="font-size:11px;margin-top:6px;color:var(--text-muted);">配對條件：email 或 phone 任一相符</p></div>';
+      return;
+    }
+    document.getElementById('resumeBody').innerHTML=apps.map((a,i)=>renderOneResume(a,apps.length>1?(i+1):null)).join('');
+  }catch(e){
+    document.getElementById('resumeBody').innerHTML=
+      '<div class="empty-state"><div class="empty-icon">❌</div><p>查詢失敗</p>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'+escHtml(e.message||String(e))+'</p></div>';
+  }
+}
+
+// 員工卡上已有 → 不重複顯示（用戶決策：完全不顯示）
+const _RESUME_OMIT_COLS=new Set(['id','name','phone','email','birthday','gender','source','created_at']);
+
+function _rd(label,value,full){
+  if(value===null||value===undefined||value==='')return '';
+  return '<div class="detail-field'+(full?' full':'')+'"><div class="detail-field-label">'+label+'</div><div class="detail-field-value" style="white-space:pre-wrap;word-break:break-word;">'+value+'</div></div>';
+}
+function _fmtSubmittedAt(iso){
+  if(!iso)return '-';
+  try{const d=new Date(iso);return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return iso;}
+}
+function _fmtImgList(urls){
+  if(!Array.isArray(urls)||urls.length===0)return '';
+  return urls.map(u=>'<a href="'+escAttr(u)+'" target="_blank" rel="noopener" style="display:inline-block;margin:2px 4px 2px 0;"><img src="'+escAttr(u)+'" style="max-width:64px;max-height:64px;border-radius:6px;border:1px solid var(--border);object-fit:cover;"></a>').join('');
+}
+function _fmtPdfList(urls){
+  if(!Array.isArray(urls)||urls.length===0)return '';
+  return urls.map((u,i)=>'<div style="margin:2px 0;"><a href="'+escAttr(u)+'" target="_blank" rel="noopener" style="color:var(--blue-dark);font-size:12px;word-break:break-all;">📎 PDF #'+(i+1)+'：'+escHtml(u)+'</a></div>').join('');
+}
+
+function renderOneResume(a,seq){
+  // 顯示順序貼齊「履歷表單章節」順序：職位 → 學歷 → 天賦 → 深度問答 → 人生價值觀 → 經驗 → 學習評分 → 檔案
+  let h='';
+  h+='<div class="detail-section">';
+  h+='<div class="detail-section-title">'+(seq?'第 '+seq+' 筆履歷　':'')+'提交資訊</div>';
+  h+='<div class="detail-grid">';
+  h+=_rd('提交時間',escHtml(_fmtSubmittedAt(a.submitted_at)));
+  h+=_rd('來源',a.source==='backfill_sheet'?'Google Sheet 補錄':'履歷表單');
+  h+='</div></div>';
+
+  // 職位
+  h+='<div class="detail-section"><div class="detail-section-title">應徵職位</div><div class="detail-grid">';
+  h+=_rd('完整職位',escHtml(a.position||''),true);
+  h+=_rd('部門',escHtml(a.department||''));
+  h+=_rd('職位',escHtml(a.position_title||''));
+  h+=_rd('專長 1',escHtml(a.specialty_1||''));
+  h+=_rd('專長 2',escHtml(a.specialty_2||''));
+  h+=_rd('醫學背景',escHtml(a.medical_background||''));
+  h+='</div></div>';
+
+  // 學歷（新欄位）
+  if(a.highest_education){
+    h+='<div class="detail-section"><div class="detail-section-title">學歷</div><div class="detail-grid">';
+    h+=_rd('最高學歷',escHtml(a.highest_education));
+    h+='</div></div>';
+  }
+
+  // 天賦分數
+  const hasTalent=[a.talent_dynamo,a.talent_blaze,a.talent_tempo,a.talent_steel].some(v=>v!==null&&v!==undefined);
+  if(hasTalent){
+    h+='<div class="detail-section"><div class="detail-section-title">天賦分數</div><div class="detail-grid">';
+    h+=_rd('Dynamo',escHtml(a.talent_dynamo));
+    h+=_rd('Blaze',escHtml(a.talent_blaze));
+    h+=_rd('Tempo',escHtml(a.talent_tempo));
+    h+=_rd('Steel',escHtml(a.talent_steel));
+    h+='</div></div>';
+  }
+  if(a.talent_chart_url){
+    h+='<div class="detail-section"><div class="detail-section-title">天賦雷達圖</div>';
+    h+='<a href="'+escAttr(a.talent_chart_url)+'" target="_blank" rel="noopener"><img src="'+escAttr(a.talent_chart_url)+'" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></a>';
+    h+='</div>';
+  }
+
+  // 深度問答
+  const hasDeep=a.work_3_years||a.leave_reason_3_years||a.longest_work_duration||a.last_job_leave_reason||a.family_interaction||a.parent_quote;
+  if(hasDeep){
+    h+='<div class="detail-section"><div class="detail-section-title">深度問答</div><div class="detail-grid">';
+    h+=_rd('3 年以上工作',escHtml(a.work_3_years||''));
+    h+=_rd('離職原因',escHtml(a.leave_reason_3_years||''),true);
+    h+=_rd('最久工作年資',escHtml(a.longest_work_duration||''));
+    h+=_rd('上一份離職原因',escHtml(a.last_job_leave_reason||''),true);
+    h+=_rd('家庭互動',escHtml(a.family_interaction||''),true);
+    h+=_rd('父母經典話',escHtml(a.parent_quote||''),true);
+    h+='</div></div>';
+  }
+
+  // 人生價值觀
+  const lv=[a.life_value_career,a.life_value_money,a.life_value_family,a.life_value_relationship,a.life_value_health,a.life_value_alone,a.life_value_friends];
+  if(lv.some(v=>v!==null&&v!==undefined)){
+    h+='<div class="detail-section"><div class="detail-section-title">人生價值觀（0-10）</div><div class="detail-grid">';
+    h+=_rd('事業',escHtml(a.life_value_career));
+    h+=_rd('金錢',escHtml(a.life_value_money));
+    h+=_rd('家庭',escHtml(a.life_value_family));
+    h+=_rd('感情',escHtml(a.life_value_relationship));
+    h+=_rd('健康',escHtml(a.life_value_health));
+    h+=_rd('獨處',escHtml(a.life_value_alone));
+    h+=_rd('朋友',escHtml(a.life_value_friends));
+    h+='</div></div>';
+  }
+  if(a.life_value_chart_url){
+    h+='<div class="detail-section"><div class="detail-section-title">人生價值觀雷達圖</div>';
+    h+='<a href="'+escAttr(a.life_value_chart_url)+'" target="_blank" rel="noopener"><img src="'+escAttr(a.life_value_chart_url)+'" style="max-width:100%;border-radius:8px;border:1px solid var(--border);"></a>';
+    h+='</div>';
+  }
+
+  // 經驗與目標
+  const hasExp=a.failure_experience||a.learning_initiative||a.new_skill_arrangement||a.future_goal;
+  if(hasExp){
+    h+='<div class="detail-section"><div class="detail-section-title">經驗與目標</div><div class="detail-grid">';
+    h+=_rd('失敗經驗',escHtml(a.failure_experience||''),true);
+    h+=_rd('主動學習',escHtml(a.learning_initiative||''),true);
+    h+=_rd('新技能安排',escHtml(a.new_skill_arrangement||''),true);
+    h+=_rd('未來目標',escHtml(a.future_goal||''),true);
+    h+='</div></div>';
+  }
+
+  // 學習評分
+  if(a.learning_behavior_score!=null||a.cross_skill_investment_score!=null||a.management_potential_score!=null){
+    h+='<div class="detail-section"><div class="detail-section-title">隱藏評分</div><div class="detail-grid">';
+    h+=_rd('學習行為',escHtml(a.learning_behavior_score));
+    h+=_rd('跨技能投入',escHtml(a.cross_skill_investment_score));
+    h+=_rd('管理潛力總分',escHtml(a.management_potential_score));
+    h+='</div></div>';
+  }
+
+  // 檔案
+  const hasFiles=(Array.isArray(a.image_urls)&&a.image_urls.length>0)||(Array.isArray(a.pdf_urls)&&a.pdf_urls.length>0);
+  if(hasFiles){
+    h+='<div class="detail-section"><div class="detail-section-title">附件</div>';
+    if(Array.isArray(a.image_urls)&&a.image_urls.length>0){h+='<div style="margin-bottom:8px;font-size:11px;color:var(--text-muted);">圖片 ('+a.image_urls.length+')</div>'+_fmtImgList(a.image_urls);}
+    if(Array.isArray(a.pdf_urls)&&a.pdf_urls.length>0){h+='<div style="margin:10px 0 4px;font-size:11px;color:var(--text-muted);">PDF ('+a.pdf_urls.length+')</div>'+_fmtPdfList(a.pdf_urls);}
+    h+='</div>';
+  }
+
+  return h+(seq?'<div style="height:1px;background:var(--border);margin:12px 0 20px;"></div>':'');
 }
 document.querySelectorAll('.modal-bg').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el&&el.id!=='editModal')el.classList.remove('show');});});
 document.addEventListener('DOMContentLoaded',()=>{if(initPermissions())loadStaff();});
