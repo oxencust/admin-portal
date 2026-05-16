@@ -139,6 +139,18 @@
         .module-card[data-color="purple"] .module-icon-wrap { background: rgba(167,139,202,0.2); }
         .module-name { font-size: 13px; font-weight: 600; pointer-events: none; }
         .module-dev-tag { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.08); color: #999; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 6px; pointer-events: none; }
+        /* P2+P3 補打卡待審 badge — 紅色圓點 + 數字，僅 punch 模組會出現 */
+        .module-pending-badge {
+            display: none;
+            position: absolute; top: 6px; right: 6px;
+            min-width: 20px; height: 20px; padding: 0 6px;
+            border-radius: 10px; background: #e05252; color: white;
+            font-size: 11px; font-weight: 700;
+            display: none; align-items: center; justify-content: center;
+            border: 2px solid white; box-shadow: 0 2px 6px rgba(224,82,82,0.35);
+            pointer-events: none; line-height: 1;
+        }
+        .module-pending-badge.show { display: flex; }
 
         .module-card.dragging { opacity: 0.9; transform: scale(1.08) !important; box-shadow: 0 16px 50px rgba(0,0,0,0.18) !important; z-index: 100; transition: none !important; }
         .module-card.drag-over { transform: scale(0.92); opacity: 0.5; }
@@ -1374,11 +1386,37 @@
             const devBtn = isSuperAdmin && !mod.developing
                 ? '<div class="dev-toggle-btn" onclick="event.stopPropagation();toggleDevModule(\''+mod.id+'\')" title="'+(devMods.includes(mod.id)?'取消開發中':'標記開發中')+'">'+(devMods.includes(mod.id)?'✓':'🔨')+'</div>'
                 : '';
-            card.innerHTML = `${hideBtn}${devBtn}${badgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
+            // P2+P3 待審補打卡 badge slot（只在 punch 模組顯示；初始隱藏，由 refreshPunchPendingBadge() 填入）
+            const pendingBadgeHtml = (mod.id === 'punch')
+                ? '<div class="module-pending-badge" data-pending-badge="punch"></div>'
+                : '';
+            card.innerHTML = `${hideBtn}${devBtn}${badgeHtml}${pendingBadgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
             grid.appendChild(card);
         });
 
         if (isEditMode) { grid.classList.add('edit-mode'); initDragAndDrop(); }
+
+        // P2+P3：渲染完模組後刷新 punch 待審 badge
+        refreshPunchPendingBadge();
+    }
+
+    // P2+P3 — 抓 pending 補打卡數量，更新 punch 模組角落的紅色 badge
+    async function refreshPunchPendingBadge() {
+        const el = document.querySelector('[data-pending-badge="punch"]');
+        if (!el) return; // 此使用者沒有 punch 模組權限
+        try {
+            const r = await callEdge('getPendingCorrectionCount');
+            const count = (r && r.data && r.data.count) || 0;
+            if (count > 0) {
+                el.textContent = count > 99 ? '99+' : String(count);
+                el.classList.add('show');
+            } else {
+                el.classList.remove('show');
+            }
+        } catch (e) {
+            // 靜默失敗（badge 沒出來就算了，主功能不受影響）
+            console.warn('[portal] refreshPunchPendingBadge failed:', e);
+        }
     }
 
     function renderUtilities() {
