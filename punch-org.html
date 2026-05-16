@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>組織打卡概覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #7ac19a; --green-dark: #5f846f; --green-light: rgba(122,193,154,.12);
+  --mint: #93c6c5;
+  --pink: #f2ac98;
+  --terracotta: #b16056;
+  --yellow: #ffe08b;
+  --blue: #9fcccc;
+  --grey: #b3bcc1;
+  --text: #2d3436;
+  --muted: #636e72;
+  --bg: #f5f7f6;
+  --danger: #e05252;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e2ede6 0%, #daedec 30%, #faece8 60%, #fcf4e3 100%);
+  background-attachment: fixed;
+  color: var(--text);
+}
+body::before {
+  content: ''; position: fixed; top: -20%; right: -10%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(147,198,197,0.22) 0%, transparent 60%);
+  border-radius: 50%; z-index: 0; pointer-events: none;
+}
+body::after {
+  content: ''; position: fixed; bottom: -10%; left: -15%;
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, rgba(242,172,152,0.18) 0%, transparent 60%);
+  border-radius: 50%; z-index: 0; pointer-events: none;
+}
+
+.glass {
+  background: rgba(255,255,255,0.62);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.55);
+}
+
+.page-wrap { width: 100%; max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; padding: 16px 14px 80px; }
+
+/* Header */
+.header { padding: 14px 16px; border-radius: 18px; margin-bottom: 12px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.header h1 { font-size: 18px; font-weight: 700; color: var(--green-dark); display: flex; align-items: center; gap: 8px; }
+.header-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.user-chip { font-size: 12px; color: var(--green-dark); background: var(--green-light); border: 1px solid rgba(122,193,154,0.35); padding: 5px 12px; border-radius: 20px; }
+.refresh-btn {
+  background: var(--green-light); border: 1px solid var(--green); color: var(--green-dark);
+  border-radius: 20px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit;
+  transition: .15s;
+}
+.refresh-btn:hover { background: rgba(122,193,154,0.25); }
+input.date-input {
+  padding: 5px 10px; border-radius: 14px; border: 1px solid #ddd; font-size: 12px;
+  font-family: inherit; background: white; outline: none;
+}
+input.date-input:focus { border-color: var(--green); }
+
+/* 今日總覽 */
+.summary { padding: 14px 18px; border-radius: 16px; margin-bottom: 14px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.summary-item { display: flex; gap: 8px; align-items: baseline; }
+.summary-item .num { font-size: 22px; font-weight: 700; color: var(--green-dark); }
+.summary-item .lbl { font-size: 12px; color: var(--muted); }
+.summary-item.warn .num { color: var(--danger); }
+.summary-item.leave .num { color: #c99300; }
+.summary-item.rest .num { color: var(--muted); }
+
+/* 組織樹（桌機） */
+.tree-wrap { padding: 18px; border-radius: 18px; overflow-x: auto; }
+.tree-level { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; position: relative; padding-top: 24px; }
+.tree-level.l1 { padding-top: 0; }
+.tree-level.l1::before { display: none; }
+.tree-level.l2::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 24px; background: var(--green); transform: translateX(-50%);
+}
+.dept-block { display: flex; flex-direction: column; align-items: center; gap: 16px; flex: 0 0 auto; min-width: 280px; }
+.dept-block .dept-label {
+  font-size: 12px; color: var(--muted); padding: 4px 12px;
+  background: var(--green-light); border: 1px solid rgba(122,193,154,0.35); border-radius: 14px;
+  margin-bottom: 4px;
+}
+.dept-members {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px; width: 100%; padding-top: 16px; position: relative;
+}
+.dept-members::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 16px; background: var(--mint); transform: translateX(-50%);
+}
+/* 同一部門多個並列主管 */
+.heads-row {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: 100%;
+}
+.dept-noheads {
+  font-size: 12px; color: var(--muted); padding: 8px 14px;
+  background: rgba(159,204,204,0.1);
+  border: 1px dashed rgba(159,204,204,0.45); border-radius: 12px;
+  width: 100%; text-align: center;
+}
+
+/* 卡片 */
+.card {
+  padding: 14px; border-radius: 14px; cursor: pointer;
+  transition: .18s; position: relative;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(122,193,154,0.22); }
+.card .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.card .card-name { font-size: 15px; font-weight: 600; color: var(--text); }
+.card .card-name .icon { margin-right: 4px; }
+.card .card-role-chip {
+  font-size: 10px; padding: 2px 8px; border-radius: 12px;
+  background: rgba(159,204,204,0.25); color: #4a8f8f; white-space: nowrap;
+}
+.card.l1 { min-width: 280px; padding: 18px; }
+.card.l1 .card-name { font-size: 17px; }
+.card.l2 { min-width: 280px; padding: 16px; }
+.card.l3 { padding: 12px; }
+.card.l3 .card-name { font-size: 13px; }
+
+.status-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 14px;
+  margin-bottom: 8px;
+}
+.status-chip .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status-working { background: rgba(122,193,154,0.18); color: var(--green-dark); }
+.status-working .dot { background: var(--green); }
+.status-off { background: rgba(99,110,114,0.12); color: var(--muted); }
+.status-off .dot { background: var(--muted); }
+.status-leave { background: rgba(255,224,139,0.5); color: #b08600; }
+.status-leave .dot { background: #d4a200; }
+.status-absent { background: rgba(224,82,82,0.15); color: var(--danger); }
+.status-absent .dot { background: var(--danger); }
+.status-rest { background: rgba(179,188,193,0.25); color: #555; }
+.status-rest .dot { background: var(--grey); }
+
+.card-rows { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.card-row { display: flex; justify-content: space-between; gap: 8px; }
+.card-row .label { color: var(--muted); }
+.card-row .value { color: var(--text); font-weight: 500; }
+.card-row .value.warn { color: var(--danger); }
+.card-row .value.muted { color: var(--muted); }
+
+/* 手機（< 768px）：摺疊清單 */
+@media (max-width: 768px) {
+  .tree-wrap { padding: 12px 8px; }
+  .tree-level { display: block; padding: 0; }
+  .tree-level.l2::before { display: none; }
+  .dept-block { min-width: 0; gap: 8px; align-items: stretch; }
+  .dept-members { grid-template-columns: 1fr; padding-top: 8px; gap: 8px; }
+  .dept-members::before { display: none; }
+  .dept-collapse-toggle {
+    width: 100%; text-align: left; background: var(--green-light);
+    border: 1px solid rgba(122,193,154,0.35); border-radius: 12px;
+    padding: 10px 14px; font-size: 14px; color: var(--green-dark); font-family: inherit;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .dept-collapse-toggle .arrow { transition: .2s; display: inline-block; }
+  .dept-collapse-toggle.collapsed .arrow { transform: rotate(-90deg); }
+  .dept-block.collapsed .dept-members,
+  .dept-block.collapsed .head-card-wrap { display: none; }
+  .card.l1, .card.l2, .card.l3 { min-width: 0; padding: 12px; }
+}
+
+/* Empty / Loading */
+.loading-mask {
+  position: fixed; inset: 0; background: rgba(255,255,255,.6); backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center; z-index: 99;
+}
+.loading-mask.show { display: flex; }
+.spinner {
+  width: 36px; height: 36px; border: 3px solid var(--green-light);
+  border-top-color: var(--green); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: rgba(45,52,54,0.92); color: white; padding: 10px 18px; border-radius: 20px;
+  font-size: 13px; opacity: 0; transition: .25s; z-index: 100; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+.empty {
+  text-align: center; padding: 40px 20px; border-radius: 16px;
+  color: var(--muted); font-size: 14px;
+}
+.empty .emoji { font-size: 36px; margin-bottom: 8px; }
+
+.unauth {
+  text-align: center; padding: 60px 20px; border-radius: 16px;
+  color: var(--danger); font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="header glass">
+    <div class="header-top">
+      <div>
+        <h1>🏢 衡點組織打卡概覽</h1>
+        <div class="header-sub" id="headerSub">載入中…</div>
+      </div>
+      <div class="header-actions">
+        <input type="date" id="datePicker" class="date-input">
+        <button class="refresh-btn" onclick="loadDashboard()">🔄 重新整理</button>
+        <span class="user-chip" id="userChip">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日總覽 -->
+  <div class="summary glass" id="summary" style="display:none;">
+    <div class="summary-item"><span class="num" id="sumWorking">-</span><span class="lbl">上班中</span></div>
+    <div class="summary-item"><span class="num" id="sumOff">-</span><span class="lbl">已下班</span></div>
+    <div class="summary-item leave"><span class="num" id="sumLeave">-</span><span class="lbl">請假</span></div>
+    <div class="summary-item rest"><span class="num" id="sumRest">-</span><span class="lbl">休假日</span></div>
+    <div class="summary-item warn"><span class="num" id="sumAbsent">-</span><span class="lbl">未打卡</span></div>
+    <div class="summary-item warn"><span class="num" id="sumAnomaly">-</span><span class="lbl">本週遲到</span></div>
+  </div>
+
+  <!-- 組織樹 -->
+  <div class="tree-wrap glass" id="treeWrap"></div>
+
+  <!-- Empty / Unauthorized -->
+  <div class="empty glass" id="emptyState" style="display:none;">
+    <div class="emoji">📭</div>
+    <div>目前無人員資料</div>
+  </div>
+  <div class="unauth glass" id="unauthState" style="display:none;">
+    <div style="font-size:36px;margin-bottom:8px;">🔒</div>
+    <div>您沒有權限檢視組織打卡概覽</div>
+    <div style="font-size:12px;margin-top:8px;color:var(--muted);">請聯絡 super_admin 開通</div>
+  </div>
+</div>
+
+<div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const ADMIN_API = 'https://admin-hendia.zeabur.app/';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uamlsaHB6dG5vd2FwbGdndmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MDA0ODYsImV4cCI6MjA4MTI3NjQ4Nn0.X3e9DF3iT2KUR9ma3_Ins01vG607R155v0xia8hO_Qg';
+
+// ═══════════════════════════════════════════════
+//  當前登入者
+// ═══════════════════════════════════════════════
+function getPortalUser() {
+  try {
+    const raw = sessionStorage.getItem('currentStaff') || localStorage.getItem('pwa_currentStaff');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+const portalUser = getPortalUser();
+
+// ═══════════════════════════════════════════════
+//  callEdge
+// ═══════════════════════════════════════════════
+async function callEdge(action, params = {}) {
+  let _uid = null;
+  let _idToken = null;
+  try {
+    _uid = sessionStorage.getItem('staffLineUid');
+    if (!_uid) {
+      const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+      _uid = _st?.lineUid || _st?.line_id_edu || null;
+    }
+    if (!_uid) {
+      const _u = new URLSearchParams(location.search);
+      _uid = _u.get('line_id_edu') || _u.get('uid') || null;
+    }
+  } catch (e) {}
+  try {
+    if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+      _idToken = liff.getIDToken();
+      if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+    }
+    if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+    if (_idToken) {
+      try {
+        const _p = JSON.parse(atob(_idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (_p.exp && _p.exp * 1000 < Date.now()) _idToken = null;
+      } catch (e) { _idToken = null; }
+    }
+  } catch (e) {}
+
+  const _body = { action, ...(params || {}) };
+  if (_uid && !_body.lineUid) _body.lineUid = _uid;
+
+  const _headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'apikey': SUPABASE_ANON_KEY
+  };
+  if (_idToken) _headers['X-Line-IdToken'] = _idToken;
+
+  const res = await fetch(ADMIN_API, {
+    method: 'POST',
+    headers: _headers,
+    body: JSON.stringify(_body)
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) {
+    const err = new Error(json.error || json.message || `API error: ${res.status}`);
+    err.code = json.code;
+    err.status = res.status;
+    throw err;
+  }
+  return json;
+}
+
+// ═══════════════════════════════════════════════
+//  Toast / Loading
+// ═══════════════════════════════════════════════
+let toastTimer = null;
+function toast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+function showLoading(show) {
+  document.getElementById('loadingMask').classList.toggle('show', !!show);
+}
+
+// ═══════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════
+function isoToHHMM(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  } catch { return '—'; }
+}
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+function statusMeta(s) {
+  switch (s) {
+    case 'working': return { cls: 'status-working', label: '上班中' };
+    case 'off':     return { cls: 'status-off',     label: '已下班' };
+    case 'leave':   return { cls: 'status-leave',   label: '請假' };
+    case 'rest_day':return { cls: 'status-rest',    label: '休假日' };
+    case 'absent':  return { cls: 'status-absent',  label: '未打卡' };
+    default:        return { cls: 'status-off',     label: s || '—' };
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════════
+function renderCard(person, level) {
+  const meta = statusMeta(person.today.status);
+  const inAt = isoToHHMM(person.today.in_at);
+  const outAt = isoToHHMM(person.today.out_at);
+  const monthH = (person.month?.total_hours ?? 0).toFixed(1);
+  const ano = person.week?.anomalies || 0;
+  const anoCls = ano > 0 ? 'warn' : 'muted';
+  const anoTxt = ano > 0 ? `${ano} 次` : '0';
+
+  // L2 chip 改顯示「部門主管」（部門名已在 dept-label 顯示，避免重複）
+  const roleChip = level === 'l1' ? '<span class="card-role-chip">CEO</span>'
+    : level === 'l2' ? `<span class="card-role-chip">部門主管</span>`
+    : person.job_title ? `<span class="card-role-chip">${person.job_title}</span>` : '';
+
+  const icon = level === 'l1' ? '👑' : (level === 'l2' ? '👤' : '👤');
+
+  return `
+    <div class="card glass ${level}" onclick="gotoDetail('${person.id}')">
+      <div class="card-head">
+        <div class="card-name"><span class="icon">${icon}</span>${person.name}</div>
+        ${roleChip}
+      </div>
+      <div class="status-chip ${meta.cls}"><span class="dot"></span>${meta.label}${person.today.leave_type ? '（' + person.today.leave_type + '）' : ''}</div>
+      <div class="card-rows">
+        <div class="card-row"><span class="label">⏰ 上 / 下</span><span class="value">${inAt} / ${outAt}</span></div>
+        <div class="card-row"><span class="label">📊 月時數</span><span class="value">${monthH} h</span></div>
+        <div class="card-row"><span class="label">⚠️ 本週遲到</span><span class="value ${anoCls}">${anoTxt}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+function buildTree(data) {
+  // 角色判定（後端已 normalize: admin → manager）
+  //   L1 CEO          = role === 'owner'
+  //   L2 部門主管      = role === 'manager'，按 department 分群（同部門多人 → 並列）
+  //   L3 一般員工      = 其他 role，按 department 掛在同一部門 group 下
+  //   未分部門         = department 為 null/'' → 顯示在最後的「未分部門」區塊
+  const ceo = data.find(s => s.role === 'owner');
+  const everyoneElse = data.filter(s => s.role !== 'owner');
+
+  // 收集部門 → { heads: [], members: [] }
+  // key: 部門名（trim 後），空值統一為 null
+  const norm = (d) => {
+    const t = (d == null ? '' : String(d)).trim();
+    return t || null;
+  };
+  const deptMap = new Map();
+  const ensure = (d) => {
+    if (!deptMap.has(d)) deptMap.set(d, { heads: [], members: [] });
+    return deptMap.get(d);
+  };
+
+  everyoneElse.forEach(p => {
+    const d = norm(p.department);
+    const bucket = ensure(d);
+    if (p.role === 'manager') bucket.heads.push(p);
+    else bucket.members.push(p);
+  });
+
+  const tw = document.getElementById('treeWrap');
+  if (!ceo && deptMap.size === 0) {
+    tw.style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+
+  let html = '';
+
+  // L1
+  if (ceo) {
+    html += `<div class="tree-level l1"><div>${renderCard(ceo, 'l1')}</div></div>`;
+  }
+
+  // L2 + L3：依部門名排序（中文 locale），未分部門 (null) 排最後
+  const deptList = [...deptMap.entries()].sort((a, b) => {
+    if (a[0] === null && b[0] === null) return 0;
+    if (a[0] === null) return 1;
+    if (b[0] === null) return -1;
+    return String(a[0]).localeCompare(String(b[0]), 'zh-Hant');
+  });
+
+  if (deptList.length > 0) {
+    html += `<div class="tree-level l2">`;
+    deptList.forEach(([dept, group]) => {
+      const deptName = dept || '未分部門';
+      const totalCount = group.heads.length + group.members.length;
+      const headsHtml = group.heads.length > 0
+        ? `<div class="head-card-wrap heads-row">${group.heads.map(h => renderCard(h, 'l2')).join('')}</div>`
+        : (dept ? `<div class="dept-noheads">此部門尚未指定主管</div>` : '');
+      const membersHtml = group.members.length > 0
+        ? `<div class="dept-members">${group.members.map(m => renderCard(m, 'l3')).join('')}</div>`
+        : '';
+      html += `
+        <div class="dept-block">
+          <button class="dept-collapse-toggle" onclick="toggleDept(this)" style="display:none;">
+            <span class="arrow">▼</span> ${deptName}（${totalCount} 人）
+          </button>
+          <div class="dept-label">${deptName}</div>
+          ${headsHtml}
+          ${membersHtml}
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  tw.innerHTML = html;
+  tw.style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+
+  // 手機版顯示折疊鈕
+  if (window.innerWidth <= 768) {
+    document.querySelectorAll('.dept-collapse-toggle').forEach(b => b.style.display = 'flex');
+  }
+}
+
+function toggleDept(btn) {
+  const block = btn.closest('.dept-block');
+  block.classList.toggle('collapsed');
+  btn.classList.toggle('collapsed');
+}
+
+function renderSummary(data, date) {
+  let working = 0, off = 0, leave = 0, rest = 0, absent = 0, anomaly = 0;
+  data.forEach(s => {
+    switch (s.today.status) {
+      case 'working': working++; break;
+      case 'off': off++; break;
+      case 'leave': leave++; break;
+      case 'rest_day': rest++; break;
+      case 'absent': absent++; break;
+    }
+    anomaly += s.week?.anomalies || 0;
+  });
+  document.getElementById('sumWorking').textContent = working;
+  document.getElementById('sumOff').textContent = off;
+  document.getElementById('sumLeave').textContent = leave;
+  document.getElementById('sumRest').textContent = rest;
+  document.getElementById('sumAbsent').textContent = absent;
+  document.getElementById('sumAnomaly').textContent = anomaly;
+  document.getElementById('summary').style.display = 'flex';
+  document.getElementById('headerSub').textContent =
+    `${date}・全公司 ${data.length} 人・您看到完整視野`;
+}
+
+// ═══════════════════════════════════════════════
+//  跳到打卡紀錄管理
+// ═══════════════════════════════════════════════
+function gotoDetail(staffId) {
+  // punch/index.html 會吃 ?staff_id=&from=org-view 自動套篩選
+  const url = `../punch/index.html?staff_id=${encodeURIComponent(staffId)}&from=org-view`;
+  window.location.href = url;
+}
+
+// ═══════════════════════════════════════════════
+//  Load
+// ═══════════════════════════════════════════════
+async function loadDashboard() {
+  const date = document.getElementById('datePicker').value || todayISO();
+  showLoading(true);
+  try {
+    const r = await callEdge('listOrgPunchDashboard', { date });
+    const data = r.data || [];
+    document.getElementById('unauthState').style.display = 'none';
+    renderSummary(data, date);
+    buildTree(data);
+  } catch (e) {
+    console.error(e);
+    if (e.status === 403) {
+      document.getElementById('treeWrap').style.display = 'none';
+      document.getElementById('summary').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('unauthState').style.display = 'block';
+    } else {
+      toast('❌ ' + (e.message || '載入失敗'));
+    }
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // user chip
+  const u = portalUser;
+  if (u) {
+    const role = String(u.role || u.permission_level || '—').toLowerCase();
+    const roleLabel = role === 'owner' ? 'CEO'
+      : (role === 'super_admin' ? '最高管理員'
+      : (role === 'admin' || role === 'manager') ? '部門主管'
+      : '一般人員');
+    document.getElementById('userChip').textContent = `👤 ${u.name || '未知'}・${roleLabel}`;
+  } else {
+    document.getElementById('userChip').textContent = '👤 未登入';
+  }
+
+  // date picker
+  const dp = document.getElementById('datePicker');
+  dp.value = todayISO();
+  dp.addEventListener('change', loadDashboard);
+
+  // 響應式 — 視窗 resize 時重新切換折疊鈕顯示
+  window.addEventListener('resize', () => {
+    const show = window.innerWidth <= 768;
+    document.querySelectorAll('.dept-collapse-toggle').forEach(b => b.style.display = show ? 'flex' : 'none');
+  });
+
+  loadDashboard();
+});
+</script>
+
+</body>
+</html>
