@@ -1739,13 +1739,18 @@
         if (mod.id === 'settings') {
             return currentUser.role === 'manager' || currentUser.role === 'admin';
         }
-        // P1 組織打卡概覽（取代既有 'punch' 模組）：owner / super_admin / admin / manager 才看得到
-        //   現有系統 admin/manager 在 UI 已被叫「部門主管」，所以權限收斂幾乎為零；
-        //   不另開 staff.org_role 欄位，組織關係交由 staff.role + staff.department 推導
-        //   （後端 admin-service.listOrgPunchDashboard 的 ALLOWED_ROLES 與此對齊）
+        // P1 組織打卡概覽 v3（取代既有 'punch' 模組）
+        //   兩個維度聯集放行（與 admin-service.listOrgPunchDashboard 完全對齊）：
+        //     A. 系統權限：role/permission_level IN ('owner','super_admin')
+        //     B. 組織位置：org_role IN ('ceo','dept_head','sub_dept_head')
+        //   org_role 來自 staff.org_role 欄位，與 role/permission_level 完全分離
         if (mod.id === 'punch') {
             const _r = String(currentUser.role || currentUser.permission_level || '').toLowerCase();
-            return _r === 'owner' || _r === 'super_admin' || _r === 'admin' || _r === 'manager';
+            const _staffData = currentUser.staff_data || {};
+            const _or = String(currentUser.org_role || _staffData.org_role || 'staff').toLowerCase();
+            const isSysAdmin = (_r === 'owner' || _r === 'super_admin');
+            const isOrgManager = (_or === 'ceo' || _or === 'dept_head' || _or === 'sub_dept_head');
+            return isSysAdmin || isOrgManager;
         }
 
         // 取得使用者 v2 modules_add（明確授權清單）
