@@ -529,7 +529,7 @@ function renderSummary(data, date) {
 // ═══════════════════════════════════════════════
 function gotoDetail(staffId) {
   // punch/index.html 會吃 ?staff_id=&from=org-view 自動套篩選
-  const url = `../punch/index.html?staff_id=${encodeURIComponent(staffId)}&from=org-view`;
+  const url = `punch/index.html?staff_id=${encodeURIComponent(staffId)}&from=org-view`;
   window.location.href = url;
 }
 
