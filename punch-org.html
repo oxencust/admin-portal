@@ -115,11 +115,29 @@ input.date-input:focus { border-color: var(--green); }
   width: 100%; text-align: center;
 }
 
-/* L2.5 子部門 group（同一個 dept-block 內，可有 0~N 個 sub-block） */
-.sub-dept-block {
+/* L2.5 子部門列（容器）：橫向並排，營運→左:行政 中:AI 右:新增的；超過寬度自動 wrap */
+.sub-dept-row {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
   width: 100%;
+  margin-top: 14px;
+  padding-top: 16px;
+  position: relative;
+}
+/* 從 dept 往下延伸一條短線連到 sub-dept-row */
+.sub-dept-row::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 16px; background: var(--mint); transform: translateX(-50%);
+}
+/* L2.5 子部門 group（單個 sub-block，現在是 sub-dept-row 的 flex item） */
+.sub-dept-block {
+  flex: 1 1 240px;
+  min-width: 240px;
+  max-width: 360px;
   padding: 12px;
-  margin-top: 12px;
   border-radius: 12px;
   background: rgba(159,204,204,0.05);
   border: 1px dashed rgba(159,204,204,0.30);
@@ -132,8 +150,36 @@ input.date-input:focus { border-color: var(--green); }
   letter-spacing: 0.5px;
 }
 .sub-dept-block .heads-row { width: 100%; }
-.sub-dept-block .dept-members::before { display: none; }
-.sub-dept-block .dept-members { padding-top: 4px; }
+/* B 分支樹：組長 → 員工
+   - dept-members 容器：頂端延一條垂直線，再橫一條 bar 跨員工，每張員工卡頂部接一條短線 */
+.sub-dept-block .dept-members {
+  grid-template-columns: 1fr;
+  padding-top: 22px;
+  position: relative;
+}
+/* 多於 1 員工時開啟橫向分支樣式 */
+.sub-dept-block .dept-members.branched {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+/* 從組長下方延伸的垂直主線 */
+.sub-dept-block .dept-members::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 10px; background: var(--mint); transform: translateX(-50%);
+  display: block;
+}
+/* 跨員工頂部的水平分支線（兩個以上才畫） */
+.sub-dept-block .dept-members.branched::after {
+  content: ''; position: absolute;
+  top: 10px; left: 14%; right: 14%;
+  height: 2px; background: var(--mint);
+}
+/* 每張員工卡頂部接一條短線到水平 bar */
+.sub-dept-block .dept-members > .card { position: relative; }
+.sub-dept-block .dept-members.branched > .card::before {
+  content: ''; position: absolute;
+  top: -10px; left: 50%; transform: translateX(-50%);
+  width: 2px; height: 10px; background: var(--mint);
+}
 
 /* 卡片 */
 .card {
@@ -196,8 +242,12 @@ input.date-input:focus { border-color: var(--green); }
   .dept-collapse-toggle.collapsed .arrow { transform: rotate(-90deg); }
   .dept-block.collapsed .dept-members,
   .dept-block.collapsed .head-card-wrap,
+  .dept-block.collapsed .sub-dept-row,
   .dept-block.collapsed .sub-dept-block { display: none; }
-  .sub-dept-block { padding: 8px; gap: 6px; }
+  /* 手機：sub-dept-row 變回垂直堆疊（橫向排在手機太擠） */
+  .sub-dept-row { flex-direction: column; gap: 8px; padding-top: 8px; }
+  .sub-dept-row::before { display: none; }
+  .sub-dept-block { padding: 8px; gap: 6px; max-width: none; }
   .card.l1, .card.l2, .card.l3 { min-width: 0; padding: 12px; }
 }
 
@@ -245,6 +295,7 @@ input.date-input:focus { border-color: var(--green); }
         <div class="header-sub" id="headerSub">載入中…</div>
       </div>
       <div class="header-actions">
+        <button class="refresh-btn" onclick="gotoHome()">← 返回首頁</button>
         <input type="date" id="datePicker" class="date-input">
         <button class="refresh-btn" onclick="loadDashboard()">🔄 重新整理</button>
         <span class="user-chip" id="userChip">—</span>
@@ -405,9 +456,8 @@ function renderCard(person, level) {
   const inAt = isoToHHMM(person.today.in_at);
   const outAt = isoToHHMM(person.today.out_at);
   const monthH = (person.month?.total_hours ?? 0).toFixed(1);
-  const ano = person.week?.anomalies || 0;
-  const anoCls = ano > 0 ? 'warn' : 'muted';
-  const anoTxt = ano > 0 ? `${ano} 次` : '0';
+  const todayLate = Number(person.today.late_minutes || 0);
+  const weekAno = Number(person.week?.anomalies || 0);
 
   // chip 文字隨 level：
   //   l1     → CEO
@@ -423,8 +473,23 @@ function renderCard(person, level) {
   // l2_sub 共用 l2 樣式（卡片大小一致），用 chip 文字區分
   const cardCls = level === 'l2_sub' ? 'l2' : level;
 
+  // 條件 rows（簡潔策略）：月時數移到 hover tooltip；今日遲到 / 本週遲到只在 > 0 才出現
+  let extraRows = '';
+  if (todayLate > 0) {
+    extraRows += `<div class="card-row"><span class="label">⏱ 今日遲到</span><span class="value warn">${todayLate} 分鐘</span></div>`;
+  }
+  if (weekAno > 0) {
+    extraRows += `<div class="card-row"><span class="label">⚠️ 本週遲到</span><span class="value warn">${weekAno} 次</span></div>`;
+  }
+
+  // 完整資訊放 title (hover tooltip)：月時數 + 排班時段（如有）
+  const sched = (person.today.scheduled_start && person.today.scheduled_end)
+    ? `\n排班：${String(person.today.scheduled_start).slice(0,5)}–${String(person.today.scheduled_end).slice(0,5)}`
+    : '';
+  const tipTxt = `${person.name}（${person.id}）\n本月時數：${monthH} h${sched}`;
+
   return `
-    <div class="card glass ${cardCls}" onclick="gotoDetail('${person.id}')">
+    <div class="card glass ${cardCls}" onclick="gotoDetail('${person.id}')" title="${tipTxt}">
       <div class="card-head">
         <div class="card-name"><span class="icon">${icon}</span>${person.name}</div>
         ${roleChip}
@@ -432,8 +497,7 @@ function renderCard(person, level) {
       <div class="status-chip ${meta.cls}"><span class="dot"></span>${meta.label}${person.today.leave_type ? '（' + person.today.leave_type + '）' : ''}</div>
       <div class="card-rows">
         <div class="card-row"><span class="label">⏰ 上 / 下</span><span class="value">${inAt} / ${outAt}</span></div>
-        <div class="card-row"><span class="label">📊 月時數</span><span class="value">${monthH} h</span></div>
-        <div class="card-row"><span class="label">⚠️ 本週遲到</span><span class="value ${anoCls}">${anoTxt}</span></div>
+        ${extraRows}
       </div>
     </div>
   `;
@@ -533,21 +597,27 @@ function buildTree(data) {
         : '';
 
       // 子部門 blocks（每個子部門 = 子部門名 + 子部門組長 + 子部門員工）
-      const subBlocksHtml = subDeptList.map(([subName, sg]) => {
-        const subHeadsHtml = sg.heads.length > 0
-          ? `<div class="head-card-wrap heads-row">${sg.heads.map(h => renderCard(h, 'l2_sub')).join('')}</div>`
-          : '';
-        const subMembersHtml = sg.members.length > 0
-          ? `<div class="dept-members">${sg.members.map(m => renderCard(m, 'l3')).join('')}</div>`
-          : '';
-        return `
-          <div class="sub-dept-block">
-            <div class="sub-dept-label">${subName}</div>
-            ${subHeadsHtml}
-            ${subMembersHtml}
-          </div>
-        `;
-      }).join('');
+      // 用 sub-dept-row 包起來 → 同部門下多個子部門橫向並排
+      // 例如：營運部 → [行政 | AI | （新增的）...]
+      const subBlocksHtml = subDeptList.length === 0 ? '' : `
+        <div class="sub-dept-row">
+          ${subDeptList.map(([subName, sg]) => {
+            const subHeadsHtml = sg.heads.length > 0
+              ? `<div class="head-card-wrap heads-row">${sg.heads.map(h => renderCard(h, 'l2_sub')).join('')}</div>`
+              : '';
+            const subMembersHtml = sg.members.length > 0
+              ? `<div class="dept-members${sg.members.length > 1 ? ' branched' : ''}">${sg.members.map(m => renderCard(m, 'l3')).join('')}</div>`
+              : '';
+            return `
+              <div class="sub-dept-block">
+                <div class="sub-dept-label">${subName}</div>
+                ${subHeadsHtml}
+                ${subMembersHtml}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
 
       html += `
         <div class="dept-block">
@@ -611,6 +681,10 @@ function gotoDetail(staffId) {
   // 它會吃 ?staff_id=&from=org-view 自動套篩選並顯示返回按鈕
   const url = `punch-admin.html?staff_id=${encodeURIComponent(staffId)}&from=org-view`;
   window.location.href = url;
+}
+function gotoHome() {
+  // portal 入口頁與本檔同層（admin-portal repo 根 index.html）
+  window.location.href = 'index.html';
 }
 
 // ═══════════════════════════════════════════════
