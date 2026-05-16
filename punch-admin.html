@@ -164,6 +164,114 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
 .toast.warning { background: rgba(245, 158, 11, 0.95); }
 .toast.error { background: rgba(224, 82, 82, 0.95); }
 
+/* 補打卡申請（P2+P3）section */
+.section-title {
+    font-size: 15px; font-weight: 600; color: var(--green-dark);
+    display: flex; align-items: center; gap: 10px;
+    margin: 22px 0 10px 4px;
+}
+.section-title .badge {
+    background: var(--danger); color: white;
+    font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px;
+    min-width: 22px; text-align: center;
+}
+.section-title .badge.zero { background: var(--green); }
+.corr-toolbar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    padding: 10px 14px; border-radius: 14px 14px 0 0; background: rgba(255,255,255,0.55);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.corr-toolbar .filter-chip {
+    cursor: pointer; font-size: 12px; padding: 4px 12px; border-radius: 12px;
+    background: rgba(99,110,114,0.08); color: var(--muted); border: 1px solid transparent;
+    transition: .15s;
+}
+.corr-toolbar .filter-chip.active {
+    background: var(--green-light); color: var(--green-dark); border-color: rgba(122,193,154,0.4);
+}
+.corr-toolbar .self-request-btn {
+    margin-left: auto; padding: 6px 14px; border-radius: 14px; font-size: 12px;
+    background: var(--green); color: white; border: 1px solid var(--green-dark);
+    cursor: pointer; font-family: inherit;
+}
+.corr-toolbar .self-request-btn:hover { background: var(--green-dark); }
+
+.corr-list { padding: 6px 14px 14px; }
+.corr-row {
+    display: grid;
+    grid-template-columns: 100px 120px 1fr 110px 90px auto;
+    gap: 12px; align-items: center; padding: 10px 4px;
+    border-bottom: 1px dashed rgba(0,0,0,0.08); font-size: 13px;
+}
+.corr-row:last-child { border-bottom: none; }
+.corr-row .who { font-weight: 600; color: var(--text); }
+.corr-row .who small { display: block; color: var(--muted); font-weight: 400; font-size: 10px; }
+.corr-row .what { color: var(--muted); }
+.corr-row .reason { color: var(--text); font-size: 12px; line-height: 1.4; max-height: 36px; overflow: hidden; }
+.corr-row .when { font-size: 11px; color: var(--muted); }
+.corr-row .status-pill {
+    font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600; text-align: center;
+}
+.corr-row .status-pill.pending  { background: rgba(255,224,139,.5); color: #b08600; }
+.corr-row .status-pill.approved { background: rgba(122,193,154,.2); color: var(--green-dark); }
+.corr-row .status-pill.auto_approved { background: rgba(147,198,197,.2); color: #3f7570; }
+.corr-row .status-pill.rejected { background: rgba(224,82,82,.15); color: var(--danger); }
+.corr-row .status-pill.cancelled { background: rgba(99,110,114,.12); color: var(--muted); }
+.corr-row .actions { display: flex; gap: 6px; }
+.corr-row .act-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 10px;
+    cursor: pointer; font-family: inherit; border: 1px solid transparent;
+}
+.corr-row .act-btn.approve { background: var(--green); color: white; border-color: var(--green-dark); }
+.corr-row .act-btn.approve:hover { background: var(--green-dark); }
+.corr-row .act-btn.reject { background: rgba(224,82,82,.12); color: var(--danger); border-color: rgba(224,82,82,.4); }
+.corr-row .act-btn.reject:hover { background: rgba(224,82,82,.25); }
+.corr-empty { text-align: center; padding: 24px 12px; color: var(--muted); font-size: 13px; }
+
+/* 補打卡 modal — 與 punch-org.html 風格一致 */
+.corr-modal-overlay {
+    position: fixed; inset: 0; background: rgba(45,52,54,0.4);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; z-index: 700;
+    padding: 16px;
+}
+.corr-modal-overlay.show { display: flex; }
+.corr-modal-box {
+    background: rgba(255,255,255,0.95);
+    border-radius: 18px; padding: 22px;
+    max-width: 420px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.6);
+}
+.corr-modal-box h3 { font-size: 16px; color: var(--green-dark); margin-bottom: 4px; }
+.corr-modal-box .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.corr-modal-box .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.corr-modal-box label { font-size: 12px; color: var(--muted); }
+.corr-modal-box input, .corr-modal-box select, .corr-modal-box textarea {
+    padding: 8px 12px; border-radius: 12px; border: 1px solid #d8d8d8;
+    font-size: 14px; font-family: inherit; outline: none; background: white;
+}
+.corr-modal-box input:focus, .corr-modal-box select:focus, .corr-modal-box textarea:focus { border-color: var(--green); }
+.corr-modal-box textarea { resize: vertical; min-height: 60px; }
+.corr-modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;
+}
+.corr-modal-btn {
+    padding: 8px 18px; border-radius: 14px; font-size: 13px; font-family: inherit;
+    cursor: pointer; border: 1px solid transparent;
+}
+.corr-modal-btn.primary { background: var(--green); color: white; border-color: var(--green-dark); }
+.corr-modal-btn.primary:hover { background: var(--green-dark); }
+.corr-modal-btn.secondary { background: rgba(99,110,114,0.1); color: var(--text); border-color: rgba(99,110,114,0.25); }
+.corr-modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+    .corr-row { grid-template-columns: 1fr 1fr; }
+    .corr-row .actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .corr-row .reason { grid-column: 1 / -1; }
+}
+
 /* 手機版：表格改卡片 */
 @media (max-width: 720px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
@@ -299,6 +407,71 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
         <button class="page-btn" id="nextBtn" onclick="nextPage()">下一頁 ›</button>
     </div>
 
+    <!-- ===== P2 + P3：補打卡申請（審核 + 自我申請） ===== -->
+    <div class="section-title">
+        📋 補打卡申請
+        <span class="badge zero" id="corrPendingBadge">0</span>
+    </div>
+    <div class="glass" id="corrPanel" style="border-radius:14px; overflow:hidden;">
+        <div class="corr-toolbar">
+            <div class="filter-chip active" data-corr-status="pending" onclick="setCorrStatus('pending', this)">待審 (pending)</div>
+            <div class="filter-chip" data-corr-status="approved" onclick="setCorrStatus('approved', this)">通過</div>
+            <div class="filter-chip" data-corr-status="rejected" onclick="setCorrStatus('rejected', this)">退回</div>
+            <div class="filter-chip" data-corr-status="" onclick="setCorrStatus('', this)">全部</div>
+            <button class="self-request-btn" onclick="openSelfRequestModal()">📤 我要申請補打卡</button>
+        </div>
+        <div class="corr-list" id="corrList">
+            <div class="corr-empty">載入中…</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 補打卡申請 modal（自我申請；status 由後端設為 pending） -->
+<div class="corr-modal-overlay" id="selfReqModal" onclick="if(event.target===this)closeSelfRequestModal()">
+    <div class="corr-modal-box">
+        <h3>📤 申請補打卡</h3>
+        <div class="sub">送出後狀態為「待審」，需由主管審核通過才會建立打卡紀錄。</div>
+        <div class="field">
+            <label>打卡類型</label>
+            <select id="srPunchType">
+                <option value="in">上班 (in)</option>
+                <option value="out">下班 (out)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>日期</label>
+            <input type="date" id="srDate">
+        </div>
+        <div class="field">
+            <label>時間（HH:MM）</label>
+            <input type="time" id="srTime">
+        </div>
+        <div class="field">
+            <label>原因（必填）</label>
+            <textarea id="srReason" placeholder="例：忘記打卡 / 出差忘了帶設備"></textarea>
+        </div>
+        <div class="corr-modal-actions">
+            <button class="corr-modal-btn secondary" onclick="closeSelfRequestModal()">取消</button>
+            <button class="corr-modal-btn primary" id="srSubmitBtn" onclick="submitSelfRequest()">送出申請</button>
+        </div>
+    </div>
+</div>
+
+<!-- 退回 modal — 退回必須填理由 -->
+<div class="corr-modal-overlay" id="rejectModal" onclick="if(event.target===this)closeRejectModal()">
+    <div class="corr-modal-box">
+        <h3>❌ 退回申請</h3>
+        <div class="sub" id="rejectModalSub">請填寫退回原因，會通知申請人</div>
+        <div class="field">
+            <label>退回原因</label>
+            <textarea id="rejectNote" placeholder="例：時間有誤，請重新確認"></textarea>
+        </div>
+        <div class="corr-modal-actions">
+            <button class="corr-modal-btn secondary" onclick="closeRejectModal()">取消</button>
+            <button class="corr-modal-btn primary" id="rejectSubmitBtn" onclick="submitReject()">確定退回</button>
+        </div>
+    </div>
 </div>
 
 <!-- Loading / Toast -->
@@ -786,6 +959,238 @@ function clearStaffLock() {
     currentOffset = 0;
     loadData();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  P2 + P3 — 補打卡申請 / 審核（透過 admin-service）
+// ═══════════════════════════════════════════════════════════════════════════
+const ADMIN_API_URL = 'https://admin-hendia.zeabur.app/';
+
+async function callAdminEdge(action, params = {}) {
+    let _uid = null, _idToken = null;
+    try {
+        _uid = sessionStorage.getItem('staffLineUid');
+        if (!_uid) {
+            const _st = JSON.parse(sessionStorage.getItem('currentStaff') || 'null');
+            _uid = _st?.lineUid || _st?.line_id_edu || null;
+        }
+        if (!_uid) {
+            const _u = new URLSearchParams(location.search);
+            _uid = _u.get('line_id_edu') || _u.get('uid') || null;
+        }
+    } catch(e) {}
+    try {
+        if (window.liff && liff.isLoggedIn && liff.isLoggedIn()) {
+            _idToken = liff.getIDToken();
+            if (_idToken) sessionStorage.setItem('staffIdToken', _idToken);
+        }
+        if (!_idToken) _idToken = sessionStorage.getItem('staffIdToken');
+        if (_idToken) {
+            try {
+                const _p = JSON.parse(atob(_idToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+                if (_p.exp && _p.exp * 1000 < Date.now()) _idToken = null;
+            } catch(e) { _idToken = null; }
+        }
+    } catch(e) {}
+    const _body = { action, ...(params || {}) };
+    if (_uid && !_body.lineUid) _body.lineUid = _uid;
+    const _headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+    };
+    if (_idToken) _headers['X-Line-IdToken'] = _idToken;
+    const res = await fetch(ADMIN_API_URL, {
+        method: 'POST',
+        headers: _headers,
+        body: JSON.stringify(_body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) {
+        const e = new Error(json.error || json.message || `API error: ${res.status}`);
+        e.status = res.status;
+        throw e;
+    }
+    return json;
+}
+
+let corrStatusFilter = 'pending';
+
+function setCorrStatus(status, el) {
+    corrStatusFilter = status;
+    document.querySelectorAll('.corr-toolbar .filter-chip').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+    corrLoadList();
+}
+
+async function corrLoadBadge() {
+    try {
+        const r = await callAdminEdge('getPendingCorrectionCount');
+        const c = (r.data && r.data.count) || 0;
+        const badge = document.getElementById('corrPendingBadge');
+        badge.textContent = c;
+        badge.classList.toggle('zero', c === 0);
+    } catch (e) {
+        console.warn('corrLoadBadge error:', e);
+    }
+}
+
+function corrFmtStatus(s) {
+    const map = {
+        pending: '待審',
+        approved: '已通過',
+        auto_approved: '主管直補',
+        rejected: '已退回',
+        cancelled: '已取消',
+    };
+    return map[s] || s || '—';
+}
+function corrFmtType(t) {
+    return ({ add: '補打卡', modify: '改時間', delete: '刪除' })[t] || t;
+}
+
+async function corrLoadList() {
+    const listEl = document.getElementById('corrList');
+    listEl.innerHTML = '<div class="corr-empty">載入中…</div>';
+    try {
+        const params = corrStatusFilter ? { status: corrStatusFilter, limit: 200 } : { limit: 200 };
+        const r = await callAdminEdge('listPunchCorrectionRequests', params);
+        const rows = r.data || [];
+        if (!rows.length) {
+            listEl.innerHTML = `<div class="corr-empty">${corrStatusFilter === 'pending' ? '🎉 目前沒有待審的申請' : '沒有資料'}</div>`;
+            return;
+        }
+        listEl.innerHTML = rows.map(corrRenderRow).join('');
+    } catch (e) {
+        console.error(e);
+        if (e.status === 403) {
+            listEl.innerHTML = '<div class="corr-empty">⛔ 沒有檢視權限</div>';
+        } else {
+            listEl.innerHTML = `<div class="corr-empty">❌ ${e.message || '載入失敗'}</div>`;
+        }
+    }
+}
+
+function corrRenderRow(row) {
+    const who = `${escapeHtml(row.staff_name || row.staff_id)}<small>${escapeHtml(row.staff_department || '')}${row.staff_sub_department ? ' / ' + escapeHtml(row.staff_sub_department) : ''}</small>`;
+    const what = `${corrFmtType(row.request_type)}・${escapeHtml(row.punch_type || '')}<br><span style="font-size:11px;color:var(--muted);">${escapeHtml(row.target_date)} ${row.target_time ? String(row.target_time).slice(0,5) : ''}</span>`;
+    const reason = escapeHtml(row.reason || '');
+    const when = `送出：${row.created_at ? new Date(row.created_at).toLocaleString('zh-TW', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}<br>${row.requested_by_name ? '由 ' + escapeHtml(row.requested_by_name) : ''}`;
+    const status = `<span class="status-pill ${row.status}">${corrFmtStatus(row.status)}</span>`;
+    let actions = '';
+    if (row.status === 'pending') {
+        actions = `
+            <button class="act-btn approve" onclick="approveCorrection('${row.id}')">✓ 通過</button>
+            <button class="act-btn reject" onclick="openRejectModal('${row.id}')">✕ 退回</button>
+        `;
+    } else if (row.review_note) {
+        actions = `<span style="font-size:11px;color:var(--muted);" title="${escapeHtml(row.review_note)}">📝 備註</span>`;
+    }
+    return `
+        <div class="corr-row">
+            <div class="who">${who}</div>
+            <div class="what">${what}</div>
+            <div class="reason">${reason}</div>
+            <div class="when">${when}</div>
+            <div>${status}</div>
+            <div class="actions">${actions}</div>
+        </div>
+    `;
+}
+
+async function approveCorrection(requestId) {
+    if (!confirm('確定通過此補打卡申請？\n（會立即建立或修改 punch_records）')) return;
+    try {
+        await callAdminEdge('approvePunchCorrection', { request_id: requestId });
+        toast('✅ 已通過');
+        corrLoadList();
+        corrLoadBadge();
+        loadData();
+    } catch (e) {
+        toast('❌ ' + (e.message || '審核失敗'), 'error');
+    }
+}
+
+// ── 退回 modal ──
+let _rejectingId = null;
+function openRejectModal(requestId) {
+    _rejectingId = requestId;
+    document.getElementById('rejectNote').value = '';
+    document.getElementById('rejectModal').classList.add('show');
+    setTimeout(() => document.getElementById('rejectNote').focus(), 50);
+}
+function closeRejectModal() {
+    _rejectingId = null;
+    document.getElementById('rejectModal').classList.remove('show');
+}
+async function submitReject() {
+    const note = document.getElementById('rejectNote').value.trim();
+    if (!note) { toast('退回必須填原因'); return; }
+    const btn = document.getElementById('rejectSubmitBtn');
+    btn.disabled = true;
+    try {
+        await callAdminEdge('rejectPunchCorrection', { request_id: _rejectingId, note });
+        toast('已退回');
+        closeRejectModal();
+        corrLoadList();
+        corrLoadBadge();
+    } catch (e) {
+        toast('❌ ' + (e.message || '退回失敗'), 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ── 我要申請 modal（自我申請；走 P3 流程，status=pending） ──
+function openSelfRequestModal() {
+    document.getElementById('srPunchType').value = 'in';
+    document.getElementById('srDate').value = ymd(new Date());
+    document.getElementById('srTime').value = '';
+    document.getElementById('srReason').value = '';
+    document.getElementById('selfReqModal').classList.add('show');
+    setTimeout(() => document.getElementById('srTime').focus(), 50);
+}
+function closeSelfRequestModal() {
+    document.getElementById('selfReqModal').classList.remove('show');
+}
+async function submitSelfRequest() {
+    const punchType = document.getElementById('srPunchType').value;
+    const targetDate = document.getElementById('srDate').value;
+    const targetTime = document.getElementById('srTime').value;
+    const reason = document.getElementById('srReason').value.trim();
+    if (!targetDate) { toast('請選日期'); return; }
+    if (!targetTime) { toast('請填時間'); return; }
+    if (!reason)     { toast('請填原因'); return; }
+
+    const btn = document.getElementById('srSubmitBtn');
+    btn.disabled = true;
+    try {
+        await callAdminEdge('requestPunchCorrection', {
+            staff_id: portalUser.id,
+            request_type: 'add',
+            punch_type: punchType,
+            target_date: targetDate,
+            target_time: targetTime,
+            reason,
+        });
+        toast('✅ 申請已送出，等待主管審核');
+        closeSelfRequestModal();
+        corrLoadList();
+        corrLoadBadge();
+    } catch (e) {
+        toast('❌ ' + (e.message || '送出失敗'), 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// 初始化補打卡申請 section（auth 通過後才呼叫）
+function initCorrectionPanel() {
+    if (!canAccess(portalUser)) return; // 雙保險
+    corrLoadList();
+    corrLoadBadge();
+}
+// 等 init() 跑完顯示 mainWrap 後再 fire
+setTimeout(initCorrectionPanel, 0);
 </script>
 
 </body>
