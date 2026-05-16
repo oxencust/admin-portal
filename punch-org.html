@@ -224,6 +224,59 @@ input.date-input:focus { border-color: var(--green); }
 .card-row .value.warn { color: var(--danger); }
 .card-row .value.muted { color: var(--muted); }
 
+/* Manager-only ✏️ correction button on each card */
+.card-edit-btn {
+  position: absolute; top: 6px; right: 6px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(147,198,197,0.18); border: 1px solid rgba(147,198,197,0.5);
+  color: var(--green-dark); font-size: 13px; line-height: 24px; text-align: center;
+  cursor: pointer; opacity: 0; transition: .15s;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  font-family: inherit;
+}
+.card:hover .card-edit-btn { opacity: 1; }
+.card-edit-btn:hover { background: rgba(147,198,197,0.35); transform: scale(1.08); }
+@media (max-width: 768px) { .card-edit-btn { opacity: 1; } }
+
+/* Correction Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(45,52,54,0.4);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; z-index: 200;
+  padding: 16px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: rgba(255,255,255,0.95);
+  border-radius: 18px; padding: 22px 22px 18px;
+  max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+.modal-title { font-size: 17px; font-weight: 700; color: var(--green-dark); margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.modal-form { display: flex; flex-direction: column; gap: 12px; }
+.modal-form .field { display: flex; flex-direction: column; gap: 4px; }
+.modal-form label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.modal-form input, .modal-form select, .modal-form textarea {
+  padding: 9px 12px; border-radius: 12px; border: 1px solid #d8d8d8;
+  font-size: 14px; font-family: inherit; outline: none; background: white;
+  transition: .15s;
+}
+.modal-form input:focus, .modal-form select:focus, .modal-form textarea:focus { border-color: var(--green); }
+.modal-form textarea { resize: vertical; min-height: 60px; }
+.modal-actions {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px;
+}
+.modal-btn {
+  padding: 8px 18px; border-radius: 14px; font-size: 13px; font-family: inherit;
+  cursor: pointer; border: 1px solid transparent; transition: .15s;
+}
+.modal-btn.primary { background: var(--green); color: white; border-color: var(--green-dark); }
+.modal-btn.primary:hover { background: var(--green-dark); }
+.modal-btn.secondary { background: rgba(99,110,114,0.1); color: var(--text); border-color: rgba(99,110,114,0.25); }
+.modal-btn.secondary:hover { background: rgba(99,110,114,0.18); }
+.modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* 手機（< 768px）：摺疊清單 */
 @media (max-width: 768px) {
   .tree-wrap { padding: 12px 8px; }
@@ -330,6 +383,39 @@ input.date-input:focus { border-color: var(--green); }
 
 <div class="loading-mask" id="loadingMask"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
+
+<!-- 主管直補打卡 modal -->
+<div class="modal-overlay" id="correctionModal" onclick="if(event.target===this)closeCorrectionModal()">
+  <div class="modal-box">
+    <div class="modal-title">✏️ 主管直補打卡</div>
+    <div class="modal-sub" id="correctionModalSub">員工：—</div>
+    <div class="modal-form">
+      <div class="field">
+        <label>打卡類型</label>
+        <select id="corrPunchType">
+          <option value="in">上班 (in)</option>
+          <option value="out">下班 (out)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>日期</label>
+        <input type="date" id="corrDate">
+      </div>
+      <div class="field">
+        <label>時間（HH:MM，台北時間）</label>
+        <input type="time" id="corrTime">
+      </div>
+      <div class="field">
+        <label>原因（必填）</label>
+        <textarea id="corrReason" placeholder="例：忘記打卡 / 系統故障 / 出差未帶 LINE 設備"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="closeCorrectionModal()">取消</button>
+        <button class="modal-btn primary" id="corrSubmitBtn" onclick="submitCorrection()">送出補打卡</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -488,8 +574,14 @@ function renderCard(person, level) {
     : '';
   const tipTxt = `${person.name}（${person.id}）\n本月時數：${monthH} h${sched}`;
 
+  // ✏️ 補打卡按鈕（只對 manager 顯示；attr 用 data-* 避免引號衝突）
+  const editBtn = isCurrentUserManager()
+    ? `<button class="card-edit-btn" title="主管直補打卡" onclick="event.stopPropagation();openCorrectionModal('${person.id}','${(person.name || '').replace(/'/g, "\\'")}')">✏️</button>`
+    : '';
+
   return `
     <div class="card glass ${cardCls}" onclick="gotoDetail('${person.id}')" title="${tipTxt}">
+      ${editBtn}
       <div class="card-head">
         <div class="card-name"><span class="icon">${icon}</span>${person.name}</div>
         ${roleChip}
@@ -501,6 +593,70 @@ function renderCard(person, level) {
       </div>
     </div>
   `;
+}
+
+// ═══════════════════════════════════════════════
+//  Manager check + Correction Modal
+// ═══════════════════════════════════════════════
+function isCurrentUserManager() {
+  const u = portalUser;
+  if (!u) return false;
+  const orgRole = String(u.org_role || (u.staff_data && u.staff_data.org_role) || '').toLowerCase();
+  return ['ceo', 'dept_head', 'sub_dept_head'].includes(orgRole);
+}
+
+function openCorrectionModal(staffId, staffName) {
+  const overlay = document.getElementById('correctionModal');
+  const sub = document.getElementById('correctionModalSub');
+  sub.textContent = `員工：${staffName}（${staffId}）`;
+  document.getElementById('corrPunchType').value = 'in';
+  document.getElementById('corrDate').value = todayISO();
+  document.getElementById('corrTime').value = '';
+  document.getElementById('corrReason').value = '';
+  overlay.dataset.staffId = staffId;
+  overlay.dataset.staffName = staffName;
+  overlay.classList.add('show');
+  // 自動 focus 到時間欄
+  setTimeout(() => document.getElementById('corrTime').focus(), 50);
+}
+
+function closeCorrectionModal() {
+  document.getElementById('correctionModal').classList.remove('show');
+}
+
+async function submitCorrection() {
+  const overlay = document.getElementById('correctionModal');
+  const staffId = overlay.dataset.staffId;
+  const punchType = document.getElementById('corrPunchType').value;
+  const targetDate = document.getElementById('corrDate').value;
+  const targetTime = document.getElementById('corrTime').value;
+  const reason = document.getElementById('corrReason').value.trim();
+
+  if (!targetDate) { toast('請選日期'); return; }
+  if (!targetTime) { toast('請填時間'); return; }
+  if (!reason)     { toast('請填原因'); return; }
+
+  const btn = document.getElementById('corrSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '送出中…';
+  try {
+    await callEdge('addPunchCorrection', {
+      staff_id: staffId,
+      punch_type: punchType,
+      target_date: targetDate,
+      target_time: targetTime,
+      reason,
+    });
+    toast('✅ 已直補打卡');
+    closeCorrectionModal();
+    loadDashboard();
+  } catch (e) {
+    console.error(e);
+    toast('❌ ' + (e.message || '送出失敗'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送出補打卡';
+  }
 }
 
 function buildTree(data) {
