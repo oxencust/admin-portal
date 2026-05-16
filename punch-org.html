@@ -115,6 +115,26 @@ input.date-input:focus { border-color: var(--green); }
   width: 100%; text-align: center;
 }
 
+/* L2.5 子部門 group（同一個 dept-block 內，可有 0~N 個 sub-block） */
+.sub-dept-block {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 12px;
+  background: rgba(159,204,204,0.05);
+  border: 1px dashed rgba(159,204,204,0.30);
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+}
+.sub-dept-label {
+  font-size: 12px; font-weight: 600; color: #4a8f8f;
+  padding: 3px 10px; border-radius: 10px;
+  background: rgba(159,204,204,0.18);
+  letter-spacing: 0.5px;
+}
+.sub-dept-block .heads-row { width: 100%; }
+.sub-dept-block .dept-members::before { display: none; }
+.sub-dept-block .dept-members { padding-top: 4px; }
+
 /* 卡片 */
 .card {
   padding: 14px; border-radius: 14px; cursor: pointer;
@@ -175,7 +195,9 @@ input.date-input:focus { border-color: var(--green); }
   .dept-collapse-toggle .arrow { transition: .2s; display: inline-block; }
   .dept-collapse-toggle.collapsed .arrow { transform: rotate(-90deg); }
   .dept-block.collapsed .dept-members,
-  .dept-block.collapsed .head-card-wrap { display: none; }
+  .dept-block.collapsed .head-card-wrap,
+  .dept-block.collapsed .sub-dept-block { display: none; }
+  .sub-dept-block { padding: 8px; gap: 6px; }
   .card.l1, .card.l2, .card.l3 { min-width: 0; padding: 12px; }
 }
 
@@ -387,15 +409,22 @@ function renderCard(person, level) {
   const anoCls = ano > 0 ? 'warn' : 'muted';
   const anoTxt = ano > 0 ? `${ano} 次` : '0';
 
-  // L2 chip 改顯示「部門主管」（部門名已在 dept-label 顯示，避免重複）
+  // chip 文字隨 level：
+  //   l1     → CEO
+  //   l2     → 部門主管（部門名已在 dept-label，避免重複）
+  //   l2_sub → 子部門組長（子部門名已在 sub-dept-label，避免重複）
+  //   l3     → 顯示 job_title（如有）
   const roleChip = level === 'l1' ? '<span class="card-role-chip">CEO</span>'
     : level === 'l2' ? `<span class="card-role-chip">部門主管</span>`
+    : level === 'l2_sub' ? `<span class="card-role-chip">子部門組長</span>`
     : person.job_title ? `<span class="card-role-chip">${person.job_title}</span>` : '';
 
-  const icon = level === 'l1' ? '👑' : (level === 'l2' ? '👤' : '👤');
+  const icon = level === 'l1' ? '👑' : '👤';
+  // l2_sub 共用 l2 樣式（卡片大小一致），用 chip 文字區分
+  const cardCls = level === 'l2_sub' ? 'l2' : level;
 
   return `
-    <div class="card glass ${level}" onclick="gotoDetail('${person.id}')">
+    <div class="card glass ${cardCls}" onclick="gotoDetail('${person.id}')">
       <div class="card-head">
         <div class="card-name"><span class="icon">${icon}</span>${person.name}</div>
         ${roleChip}
@@ -411,31 +440,52 @@ function renderCard(person, level) {
 }
 
 function buildTree(data) {
-  // 角色判定（後端已 normalize: admin → manager）
-  //   L1 CEO          = role === 'owner'
-  //   L2 部門主管      = role === 'manager'，按 department 分群（同部門多人 → 並列）
-  //   L3 一般員工      = 其他 role，按 department 掛在同一部門 group 下
+  // v3 角色判定（讀 staff.org_role；不再讀 role/permission_level，避免與權限混淆）
+  //   L1   CEO        = org_role === 'ceo'
+  //   L2   部門主管    = org_role === 'dept_head'，按 department 分群（同部門多人 → 並列）
+  //   L2.5 子部門組長  = org_role === 'sub_dept_head'，按 (department, sub_department) 分群
+  //   L3   一般員工    = org_role === 'staff'（或預設值），依 sub_department 優先、否則 department 掛入
   //   未分部門         = department 為 null/'' → 顯示在最後的「未分部門」區塊
-  const ceo = data.find(s => s.role === 'owner');
-  const everyoneElse = data.filter(s => s.role !== 'owner');
-
-  // 收集部門 → { heads: [], members: [] }
-  // key: 部門名（trim 後），空值統一為 null
-  const norm = (d) => {
-    const t = (d == null ? '' : String(d)).trim();
+  const norm = (s) => {
+    const t = (s == null ? '' : String(s)).trim();
     return t || null;
   };
+  const orgRoleOf = (p) => String(p.org_role || 'staff').toLowerCase();
+
+  const ceo = data.find(p => orgRoleOf(p) === 'ceo');
+  const everyoneElse = data.filter(p => orgRoleOf(p) !== 'ceo');
+
+  // 收集 dept → { heads: [], directMembers: [], subDepts: Map<subName, { heads:[], members:[] }> }
+  //   directMembers：屬於這個 dept 但 sub_department 為空的人
+  //   subDepts：屬於這個 dept 且 sub_department 非空的人（再分群）
   const deptMap = new Map();
-  const ensure = (d) => {
-    if (!deptMap.has(d)) deptMap.set(d, { heads: [], members: [] });
+  const ensureDept = (d) => {
+    if (!deptMap.has(d)) deptMap.set(d, { heads: [], directMembers: [], subDepts: new Map() });
     return deptMap.get(d);
+  };
+  const ensureSub = (deptBucket, sub) => {
+    if (!deptBucket.subDepts.has(sub)) deptBucket.subDepts.set(sub, { heads: [], members: [] });
+    return deptBucket.subDepts.get(sub);
   };
 
   everyoneElse.forEach(p => {
     const d = norm(p.department);
-    const bucket = ensure(d);
-    if (p.role === 'manager') bucket.heads.push(p);
-    else bucket.members.push(p);
+    const sub = norm(p.sub_department);
+    const role = orgRoleOf(p);
+    const dBucket = ensureDept(d);
+
+    if (role === 'dept_head') {
+      // 部門主管掛在 dept 層級（即使他也填了 sub_department，組織圖上仍以 dept_head 為主）
+      dBucket.heads.push(p);
+    } else if (role === 'sub_dept_head') {
+      // 子部門組長：必須有 sub_department 才能分群；沒填則退回 dept 直屬 members
+      if (sub) ensureSub(dBucket, sub).heads.push(p);
+      else dBucket.directMembers.push(p);
+    } else {
+      // 一般員工：有 sub_department 就掛子部門 group，否則掛 dept 直屬
+      if (sub) ensureSub(dBucket, sub).members.push(p);
+      else dBucket.directMembers.push(p);
+    }
   });
 
   const tw = document.getElementById('treeWrap');
@@ -452,7 +502,7 @@ function buildTree(data) {
     html += `<div class="tree-level l1"><div>${renderCard(ceo, 'l1')}</div></div>`;
   }
 
-  // L2 + L3：依部門名排序（中文 locale），未分部門 (null) 排最後
+  // L2：依部門名排序（中文 locale），未分部門 (null) 排最後
   const deptList = [...deptMap.entries()].sort((a, b) => {
     if (a[0] === null && b[0] === null) return 0;
     if (a[0] === null) return 1;
@@ -464,13 +514,41 @@ function buildTree(data) {
     html += `<div class="tree-level l2">`;
     deptList.forEach(([dept, group]) => {
       const deptName = dept || '未分部門';
-      const totalCount = group.heads.length + group.members.length;
+      const subDeptList = [...group.subDepts.entries()].sort((a, b) =>
+        String(a[0]).localeCompare(String(b[0]), 'zh-Hant')
+      );
+      const subTotalCount = subDeptList.reduce(
+        (n, [, sg]) => n + sg.heads.length + sg.members.length, 0
+      );
+      const totalCount = group.heads.length + group.directMembers.length + subTotalCount;
+
+      // dept 層級的主管（並列）
       const headsHtml = group.heads.length > 0
         ? `<div class="head-card-wrap heads-row">${group.heads.map(h => renderCard(h, 'l2')).join('')}</div>`
         : (dept ? `<div class="dept-noheads">此部門尚未指定主管</div>` : '');
-      const membersHtml = group.members.length > 0
-        ? `<div class="dept-members">${group.members.map(m => renderCard(m, 'l3')).join('')}</div>`
+
+      // dept 直屬員工（不屬於任何子部門）
+      const directMembersHtml = group.directMembers.length > 0
+        ? `<div class="dept-members">${group.directMembers.map(m => renderCard(m, 'l3')).join('')}</div>`
         : '';
+
+      // 子部門 blocks（每個子部門 = 子部門名 + 子部門組長 + 子部門員工）
+      const subBlocksHtml = subDeptList.map(([subName, sg]) => {
+        const subHeadsHtml = sg.heads.length > 0
+          ? `<div class="head-card-wrap heads-row">${sg.heads.map(h => renderCard(h, 'l2_sub')).join('')}</div>`
+          : '';
+        const subMembersHtml = sg.members.length > 0
+          ? `<div class="dept-members">${sg.members.map(m => renderCard(m, 'l3')).join('')}</div>`
+          : '';
+        return `
+          <div class="sub-dept-block">
+            <div class="sub-dept-label">${subName}</div>
+            ${subHeadsHtml}
+            ${subMembersHtml}
+          </div>
+        `;
+      }).join('');
+
       html += `
         <div class="dept-block">
           <button class="dept-collapse-toggle" onclick="toggleDept(this)" style="display:none;">
@@ -478,7 +556,8 @@ function buildTree(data) {
           </button>
           <div class="dept-label">${deptName}</div>
           ${headsHtml}
-          ${membersHtml}
+          ${directMembersHtml}
+          ${subBlocksHtml}
         </div>
       `;
     });
@@ -529,6 +608,7 @@ function renderSummary(data, date) {
 // ═══════════════════════════════════════════════
 function gotoDetail(staffId) {
   // punch/index.html 會吃 ?staff_id=&from=org-view 自動套篩選
+  // 此檔位於 admin-portal repo 根目錄，與 punch/ 同層 → 直接相對路徑（無 ../）
   const url = `punch/index.html?staff_id=${encodeURIComponent(staffId)}&from=org-view`;
   window.location.href = url;
 }
@@ -564,15 +644,20 @@ async function loadDashboard() {
 //  Init
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  // user chip
+  // user chip — v3：優先顯示「組織位置」(org_role)，沒有再退回「系統權限」(role)
   const u = portalUser;
   if (u) {
-    const role = String(u.role || u.permission_level || '—').toLowerCase();
-    const roleLabel = role === 'owner' ? 'CEO'
-      : (role === 'super_admin' ? '最高管理員'
-      : (role === 'admin' || role === 'manager') ? '部門主管'
-      : '一般人員');
-    document.getElementById('userChip').textContent = `👤 ${u.name || '未知'}・${roleLabel}`;
+    const orgRole = String(u.org_role || (u.staff_data && u.staff_data.org_role) || '').toLowerCase();
+    const sysRole = String(u.role || u.permission_level || '').toLowerCase();
+    const orgLabel = orgRole === 'ceo' ? 'CEO'
+      : orgRole === 'dept_head' ? '部門主管'
+      : orgRole === 'sub_dept_head' ? '子部門組長'
+      : '';
+    const sysLabel = sysRole === 'super_admin' ? '最高管理員'
+      : sysRole === 'owner' ? '系統擁有者'
+      : '一般人員';
+    const label = orgLabel || sysLabel;
+    document.getElementById('userChip').textContent = `👤 ${u.name || '未知'}・${label}`;
   } else {
     document.getElementById('userChip').textContent = '👤 未登入';
   }
