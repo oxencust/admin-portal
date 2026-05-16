@@ -442,6 +442,7 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
         <div class="field">
             <label>日期</label>
             <input type="date" id="srDate">
+            <div id="srDateHint" style="font-size:11px;color:#94a3b8;margin-top:4px;">可補日期：—</div>
         </div>
         <div class="field">
             <label>時間（HH:MM）</label>
@@ -453,7 +454,7 @@ table.punch-table tbody tr:last-child td { border-bottom: none; }
         </div>
         <div class="corr-modal-actions">
             <button class="corr-modal-btn secondary" onclick="closeSelfRequestModal()">取消</button>
-            <button class="corr-modal-btn primary" id="srSubmitBtn" onclick="submitSelfRequest()">送出申請</button>
+            <button class="corr-modal-btn primary" id="srSubmitBtn" onclick="submitSelfRequest(false)">送出申請</button>
         </div>
     </div>
 </div>
@@ -1008,6 +1009,7 @@ async function callAdminEdge(action, params = {}) {
     if (!res.ok || !json.success) {
         const e = new Error(json.error || json.message || `API error: ${res.status}`);
         e.status = res.status;
+        e.code = json.code;
         throw e;
     }
     return json;
@@ -1141,18 +1143,31 @@ async function submitReject() {
 }
 
 // ── 我要申請 modal（自我申請；走 P3 流程，status=pending） ──
+const SR_CORRECTION_WINDOW_DAYS = 60;
+function srMinDateISO() {
+    const d = new Date();
+    d.setDate(d.getDate() - SR_CORRECTION_WINDOW_DAYS);
+    return ymd(d);
+}
 function openSelfRequestModal() {
     document.getElementById('srPunchType').value = 'in';
-    document.getElementById('srDate').value = ymd(new Date());
+    const today = ymd(new Date());
+    const minD  = srMinDateISO();
+    const dateEl = document.getElementById('srDate');
+    dateEl.min   = minD;
+    dateEl.max   = today;
+    dateEl.value = today;
     document.getElementById('srTime').value = '';
     document.getElementById('srReason').value = '';
+    const hint = document.getElementById('srDateHint');
+    if (hint) hint.textContent = `可補日期：${minD} ~ ${today}（最多 ${SR_CORRECTION_WINDOW_DAYS} 天，不能補未來）`;
     document.getElementById('selfReqModal').classList.add('show');
     setTimeout(() => document.getElementById('srTime').focus(), 50);
 }
 function closeSelfRequestModal() {
     document.getElementById('selfReqModal').classList.remove('show');
 }
-async function submitSelfRequest() {
+async function submitSelfRequest(allowDuplicate) {
     const punchType = document.getElementById('srPunchType').value;
     const targetDate = document.getElementById('srDate').value;
     const targetTime = document.getElementById('srTime').value;
@@ -1160,6 +1175,12 @@ async function submitSelfRequest() {
     if (!targetDate) { toast('請選日期'); return; }
     if (!targetTime) { toast('請填時間'); return; }
     if (!reason)     { toast('請填原因'); return; }
+
+    // 客戶端日期區間校驗
+    const today = ymd(new Date());
+    const minD  = srMinDateISO();
+    if (targetDate > today) { toast('不能補未來日期'); return; }
+    if (targetDate < minD)  { toast(`最多只能往前 ${SR_CORRECTION_WINDOW_DAYS} 天`); return; }
 
     const btn = document.getElementById('srSubmitBtn');
     btn.disabled = true;
@@ -1171,12 +1192,23 @@ async function submitSelfRequest() {
             target_date: targetDate,
             target_time: targetTime,
             reason,
+            allow_duplicate: !!allowDuplicate,
         });
         toast('✅ 申請已送出，等待主管審核');
         closeSelfRequestModal();
         corrLoadList();
         corrLoadBadge();
     } catch (e) {
+        // 重複打卡 → confirm 後重送
+        if (e && e.code === 'DUPLICATE_PUNCH_EXISTS') {
+            const msg = (e.message || '該員工該日該類型已有打卡紀錄。') +
+                        '\n\n仍要送出嗎？（按「確定」= 仍送出 / 按「取消」= 放棄）';
+            btn.disabled = false;
+            if (window.confirm(msg)) {
+                await submitSelfRequest(true);
+            }
+            return;
+        }
         toast('❌ ' + (e.message || '送出失敗'), 'error');
     } finally {
         btn.disabled = false;
