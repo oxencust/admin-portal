@@ -206,6 +206,69 @@
         .utility-btn:active { transform: scale(0.97); }
         .utility-empty { width: 100%; text-align: center; font-size: 12px; color: #bbb; padding: 10px; }
 
+        /* ═══════════════════════════════════════════════════════
+           入口分類 / 搜尋 / 釘選（v4 重設計）
+           ═══════════════════════════════════════════════════════ */
+        .portal-search-wrap { margin: 8px 0 14px; }
+        .portal-search-box {
+            position: relative; background: rgba(255,255,255,0.75);
+            border-radius: 14px; border: 1px solid rgba(0,0,0,0.06);
+            padding: 0 14px; display: flex; align-items: center; gap: 10px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .portal-search-box:focus-within { border-color: var(--green); box-shadow: 0 4px 16px rgba(122,193,154,.12); }
+        .portal-search-icon { font-size: 15px; color: #999; flex-shrink: 0; }
+        .portal-search-input { flex: 1; border: none; background: transparent; outline: none; font-family: inherit; font-size: 14px; padding: 12px 0; color: #2d3436; }
+        .portal-search-input::placeholder { color: #bbb; }
+        .portal-kbd-hint { font-size: 11px; color: #999; background: rgba(0,0,0,0.04); padding: 3px 7px; border-radius: 6px; flex-shrink: 0; font-family: 'SF Mono', Menlo, monospace; }
+        .portal-search-clear { border: none; background: none; color: #999; cursor: pointer; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 13px; }
+        .portal-search-box.has-value .portal-search-clear { display: flex; }
+        .portal-search-box.has-value .portal-kbd-hint { display: none; }
+
+        .cat-section { margin-top: 18px; }
+        .cat-section:first-child { margin-top: 6px; }
+        .cat-section.no-match { display: none; }
+        .cat-section.empty { display: none; }
+        .cat-header { display: flex; align-items: center; gap: 10px; margin: 0 4px 10px; }
+        .cat-icon { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+        .cat-section[data-cat="people"]    .cat-icon { background: rgba(122,193,154,.22); }
+        .cat-section[data-cat="schedule"]  .cat-icon { background: rgba(159,204,204,.28); }
+        .cat-section[data-cat="record"]    .cat-icon { background: rgba(242,172,152,.22); }
+        .cat-section[data-cat="settings"]  .cat-icon { background: rgba(167,139,202,.22); }
+        .cat-section[data-cat="__pinned__"] .cat-icon { background: rgba(255,224,139,.4); color: #c89414; }
+        .cat-title { font-size: 13px; font-weight: 700; color: #2d3436; letter-spacing: .5px; }
+        .cat-count { font-size: 11px; color: #999; padding: 2px 8px; background: rgba(0,0,0,0.05); border-radius: 10px; font-weight: 600; }
+        .cat-divider { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,0,0,0.06), transparent); }
+
+        /* 釘選按鈕（★） */
+        .mod-pin {
+            position: absolute; top: 6px; left: 6px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: rgba(255,255,255,0.85); color: #bbb;
+            border: 1px solid rgba(0,0,0,0.06);
+            font-size: 13px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; opacity: 0; transition: opacity .15s, transform .15s, color .15s;
+            z-index: 3;
+        }
+        .module-card:hover .mod-pin,
+        .module-card:focus-within .mod-pin { opacity: 1; }
+        .mod-pin:hover { transform: scale(1.15); color: #f0ad4e; }
+        .mod-pin.is-pinned { opacity: 1; color: #f0ad4e; }
+        .mod-pin.is-pinned:hover { color: #d9941e; transform: scale(.92); }
+        /* 編輯模式時隱藏 ★（避免和 hide-btn / drag handle 衝突） */
+        .module-grid.edit-mode .mod-pin { display: none; }
+
+        /* 搜尋無結果 */
+        .portal-empty-state { text-align: center; padding: 50px 20px; color: #999; display: none; }
+        .portal-empty-state.show { display: block; }
+        .portal-empty-state .pes-icon { font-size: 38px; opacity: .4; margin-bottom: 6px; }
+        .portal-empty-state .pes-title { font-size: 14px; font-weight: 600; color: #636e72; }
+        .portal-empty-state .pes-hint { font-size: 12px; margin-top: 6px; }
+
+        /* 搜尋命中字串高亮 */
+        .module-name mark { background: rgba(255,224,139,.6); color: inherit; border-radius: 3px; padding: 0 2px; }
+
         .footer { text-align: center; padding: 24px; font-size: 11px; color: #aaa; }
 
         /* Login fallback */
@@ -371,11 +434,34 @@
         </div>
 
         <div class="main">
+            <!-- 搜尋（v4） -->
+            <div class="portal-search-wrap">
+                <div class="portal-search-box" id="portalSearchBox">
+                    <span class="portal-search-icon">🔍</span>
+                    <input class="portal-search-input" id="portalSearchInput" placeholder="搜尋模組名稱或說明…" autocomplete="off" />
+                    <button class="portal-search-clear" id="portalSearchClear" title="清除">✕</button>
+                    <span class="portal-kbd-hint">⌘K</span>
+                </div>
+            </div>
+
             <div class="section-header" style="margin-top: 6px;">
                 <div class="section-title">功能模組</div>
                 <button class="section-edit-btn" id="editModuleBtn" onclick="toggleEditMode()">編輯</button>
             </div>
+
+            <!-- 編輯模式 / 搜尋時：flat grid -->
             <div class="module-grid" id="moduleGrid"></div>
+
+            <!-- 一般檢視：分類 sections + 我的最愛 -->
+            <div id="categorizedModules"></div>
+
+            <!-- 搜尋無結果 -->
+            <div class="portal-empty-state" id="portalEmptyState">
+                <div class="pes-icon">🔍</div>
+                <div class="pes-title">找不到符合的模組</div>
+                <div class="pes-hint">試試其他關鍵字，或按 ⌘K 重新聚焦</div>
+            </div>
+
             <div class="hidden-section" id="hiddenSection">
                 <div class="hidden-title">已隱藏的模組（點擊加回）</div>
                 <div class="hidden-grid" id="hiddenGrid"></div>
@@ -653,6 +739,41 @@
         analyst: ['sc_moti-analyze']
     };
 
+    // ─── v4：入口分類定義 ─────────────────────────────────────
+    // 順序即顯示順序；其他未分類模組會落入 __other__
+    const CATEGORIES = [
+        { key: 'people',   icon: '👤', title: '人員與會員' },
+        { key: 'schedule', icon: '📅', title: '課程與班表' },
+        { key: 'record',   icon: '📊', title: '回報與紀錄' },
+        { key: 'settings', icon: '🔧', title: '系統設定' },
+        { key: '__other__', icon: '📦', title: '其他' }   // fallback：DB 未填 category 的兜底
+    ];
+
+    // ─── v4：釘選（我的最愛）狀態，per-user localStorage ───────
+    const PIN_SOFT_CAP = 8;
+    function loadPinned() { try { const s=localStorage.getItem(getStorageKey('pinned_modules')); return s?JSON.parse(s):[]; } catch{return[];} }
+    function savePinned(arr) { try { localStorage.setItem(getStorageKey('pinned_modules'), JSON.stringify(arr)); } catch{} }
+    function isPinned(id) { return loadPinned().includes(id); }
+    function togglePin(id) {
+        const arr = loadPinned();
+        const i = arr.indexOf(id);
+        if (i >= 0) {
+            arr.splice(i, 1); savePinned(arr);
+            showToast('已從我的最愛移除');
+        } else {
+            if (arr.length >= PIN_SOFT_CAP) {
+                showToast(`我的最愛建議 ${PIN_SOFT_CAP} 個以內，請先取消其他釘選`);
+                return;
+            }
+            arr.push(id); savePinned(arr);
+            showToast('已加到我的最愛 ★');
+        }
+        renderModules();
+    }
+
+    // ─── v4：搜尋狀態 ──────────────────────────────────────────
+    let _searchQuery = '';
+
     // 從 Supabase 載入模組清單
     async function loadModulesFromDB() {
         try {
@@ -673,7 +794,8 @@
                         roles: m.roles || [],
                         customParams: m.custom_params || {},
                         developing: m.is_developing || false,
-                        sort_order: m.sort_order
+                        sort_order: m.sort_order,
+                        category: m.category || null   // v4：入口分類欄位
                     }));
 
                 // 套用使用者自訂名稱與圖示
@@ -1087,6 +1209,43 @@
 
     document.addEventListener('DOMContentLoaded', initApp);
 
+    // ─── v4：搜尋輸入 + ⌘K / Ctrl+K 快捷鍵 ───
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('portalSearchInput');
+        const box = document.getElementById('portalSearchBox');
+        const clearBtn = document.getElementById('portalSearchClear');
+        if (!input || !box || !clearBtn) return;
+
+        input.addEventListener('input', e => {
+            _searchQuery = e.target.value || '';
+            box.classList.toggle('has-value', _searchQuery.length > 0);
+            renderModules();
+        });
+        clearBtn.addEventListener('click', () => {
+            input.value = ''; _searchQuery = '';
+            box.classList.remove('has-value');
+            renderModules();
+            input.focus();
+        });
+        document.addEventListener('keydown', e => {
+            // ⌘K / Ctrl+K 聚焦
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                // 只在主畫面（mainApp 可見、modulePage 隱藏）才攔截
+                const main = document.getElementById('mainApp');
+                const modulePage = document.getElementById('modulePage');
+                if (main && main.style.display !== 'none'
+                    && (!modulePage || modulePage.style.display === 'none')) {
+                    e.preventDefault();
+                    input.focus(); input.select();
+                }
+            } else if (e.key === 'Escape' && _searchQuery && document.activeElement === input) {
+                input.value = ''; _searchQuery = '';
+                box.classList.remove('has-value');
+                renderModules();
+            }
+        });
+    });
+
     async function initApp() {
         try {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -1340,64 +1499,145 @@
         return ordered;
     }
 
-    function renderModules() {
-        const grid = document.getElementById('moduleGrid');
-        grid.innerHTML = '';
-        const hidden = loadHiddenModules();
+    // 建一張模組卡（共用：flat grid + 分類 section + 我的最愛）
+    function _buildModuleCard(mod, opts) {
         const devMods = loadDevModules();
-        const ordered = getOrderedModules().filter(m => !hidden.includes(m.id));
+        const isDev = mod.developing || devMods.includes(mod.id);
         const isSuperAdmin = currentUser && (currentUser.role === 'owner' || currentUser.role === 'super_admin');
+        const card = document.createElement('a');
+        card.className = 'module-card glass-strong' + (isDev ? ' developing' : '');
+        card.dataset.color = mod.color;
+        card.dataset.id = mod.id;
+        card.href = 'javascript:void(0)';
+        card.onclick = (e) => {
+            if (e.target.closest('.mod-pin, .hide-btn, .dev-toggle-btn')) return;
+            if (isEditMode) return;
+            if (isDev) { showDevModal(); return; }
+            navigateToModule(mod);
+        };
 
-        ordered.forEach(mod => {
-            const isDev = mod.developing || devMods.includes(mod.id);
-            const card = document.createElement('a');
-            card.className = 'module-card glass-strong' + (isDev ? ' developing' : '');
-            card.dataset.color = mod.color;
-            card.dataset.id = mod.id;
-            card.href = 'javascript:void(0)';
-            card.onclick = () => {
-                if (isEditMode) return;
-                if (isDev) { showDevModal(); return; }
-                navigateToModule(mod);
-            };
-
-            // 長按（手機）或右鍵（電腦）→ 自訂名稱與圖示
-            let longPressTimer = null;
-            card.addEventListener('touchstart', () => {
-                longPressTimer = setTimeout(() => { longPressTimer = 'fired'; showCustomizeModuleModal(mod.id); }, 800);
-            }, { passive: true });
-            card.addEventListener('touchend', (e) => {
-                if (longPressTimer === 'fired') { e.preventDefault(); e.stopPropagation(); }
-                if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
-                longPressTimer = null;
-            });
-            card.addEventListener('touchmove', () => {
-                if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }, { passive: true });
-            card.addEventListener('contextmenu', (e) => {
-                if (isEditMode) return;
-                e.preventDefault();
-                showCustomizeModuleModal(mod.id);
-            });
-
-            const badgeHtml = isDev ? '<div class="module-dev-tag">開發中</div>' : '';
-            const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
-            const devBtn = isSuperAdmin && !mod.developing
-                ? '<div class="dev-toggle-btn" onclick="event.stopPropagation();toggleDevModule(\''+mod.id+'\')" title="'+(devMods.includes(mod.id)?'取消開發中':'標記開發中')+'">'+(devMods.includes(mod.id)?'✓':'🔨')+'</div>'
-                : '';
-            // P2+P3 待審補打卡 badge slot（只在 punch 模組顯示；初始隱藏，由 refreshPunchPendingBadge() 填入）
-            const pendingBadgeHtml = (mod.id === 'punch')
-                ? '<div class="module-pending-badge" data-pending-badge="punch"></div>'
-                : '';
-            card.innerHTML = `${hideBtn}${devBtn}${badgeHtml}${pendingBadgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${mod.name}</div>`;
-            grid.appendChild(card);
+        // 長按（手機）或右鍵（電腦）→ 自訂名稱與圖示
+        let longPressTimer = null;
+        card.addEventListener('touchstart', () => {
+            longPressTimer = setTimeout(() => { longPressTimer = 'fired'; showCustomizeModuleModal(mod.id); }, 800);
+        }, { passive: true });
+        card.addEventListener('touchend', (e) => {
+            if (longPressTimer === 'fired') { e.preventDefault(); e.stopPropagation(); }
+            if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
+            longPressTimer = null;
+        });
+        card.addEventListener('touchmove', () => {
+            if (typeof longPressTimer === 'number') clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }, { passive: true });
+        card.addEventListener('contextmenu', (e) => {
+            if (isEditMode) return;
+            e.preventDefault();
+            showCustomizeModuleModal(mod.id);
         });
 
-        if (isEditMode) { grid.classList.add('edit-mode'); initDragAndDrop(); }
+        const badgeHtml = isDev ? '<div class="module-dev-tag">開發中</div>' : '';
+        const hideBtn = '<div class="hide-btn" onclick="event.stopPropagation();hideModule(\''+mod.id+'\')">✕</div>';
+        const devBtn = isSuperAdmin && !mod.developing
+            ? '<div class="dev-toggle-btn" onclick="event.stopPropagation();toggleDevModule(\''+mod.id+'\')" title="'+(devMods.includes(mod.id)?'取消開發中':'標記開發中')+'">'+(devMods.includes(mod.id)?'✓':'🔨')+'</div>'
+            : '';
+        const pendingBadgeHtml = (mod.id === 'punch')
+            ? '<div class="module-pending-badge" data-pending-badge="punch"></div>'
+            : '';
+        // ★ 釘選按鈕（v4），編輯模式時 CSS 自動隱藏
+        const pinned = isPinned(mod.id);
+        const pinBtn = '<button class="mod-pin '+(pinned?'is-pinned':'')+'" '
+                     + 'onclick="event.stopPropagation();event.preventDefault();togglePin(\''+mod.id+'\')" '
+                     + 'title="'+(pinned?'取消釘選':'加到我的最愛')+'">'+(pinned?'★':'☆')+'</button>';
+
+        // 搜尋命中時，模組名稱加 <mark> 高亮
+        let nameHtml = mod.name;
+        if (opts && opts.highlightQuery) {
+            const q = opts.highlightQuery;
+            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+            nameHtml = mod.name.replace(re, '<mark>$1</mark>');
+        }
+
+        card.innerHTML = `${pinBtn}${hideBtn}${devBtn}${badgeHtml}${pendingBadgeHtml}<div class="module-icon-wrap">${mod.icon}</div><div class="module-name">${nameHtml}</div>`;
+        return card;
+    }
+
+    function renderModules() {
+        const grid = document.getElementById('moduleGrid');
+        const catContainer = document.getElementById('categorizedModules');
+        const emptyState = document.getElementById('portalEmptyState');
+        grid.innerHTML = '';
+        catContainer.innerHTML = '';
+        emptyState.classList.remove('show');
+
+        const hidden = loadHiddenModules();
+        const ordered = getOrderedModules().filter(m => !hidden.includes(m.id));
+
+        const q = _searchQuery.trim().toLowerCase();
+        const useFlat = isEditMode || q.length > 0;   // 編輯模式或搜尋中 → 走 flat grid
+
+        if (useFlat) {
+            // ── Flat 模式（保留原行為，新增搜尋過濾 + 高亮）─────────
+            grid.style.display = '';
+            catContainer.style.display = 'none';
+
+            let list = ordered;
+            if (q) {
+                list = ordered.filter(m => {
+                    const hay = ((m.name || '') + ' ' + (m.desc || '')).toLowerCase();
+                    return hay.includes(q);
+                });
+            }
+            list.forEach(mod => grid.appendChild(_buildModuleCard(mod, { highlightQuery: q || null })));
+            if (q && list.length === 0) emptyState.classList.add('show');
+
+            if (isEditMode) { grid.classList.add('edit-mode'); initDragAndDrop(); }
+            else { grid.classList.remove('edit-mode'); }
+        } else {
+            // ── 分類模式（一般檢視）──────────────────────────────
+            grid.style.display = 'none';
+            catContainer.style.display = '';
+
+            // 1. 我的最愛（釘選）
+            const pinnedIds = loadPinned();
+            const pinnedMods = pinnedIds.map(id => ordered.find(m => m.id === id)).filter(Boolean);
+            if (pinnedMods.length > 0) {
+                const sec = _buildCatSection({ key: '__pinned__', icon: '★', title: '我的最愛' }, pinnedMods);
+                catContainer.appendChild(sec);
+            }
+
+            // 2. 4 大分類 + __other__
+            CATEGORIES.forEach(cat => {
+                const mods = ordered.filter(m => {
+                    const c = m.category || '__other__';
+                    return c === cat.key;
+                });
+                if (mods.length === 0) return;   // 空分類整段隱藏
+                const sec = _buildCatSection(cat, mods);
+                catContainer.appendChild(sec);
+            });
+        }
 
         // P2+P3：渲染完模組後刷新 punch 待審 badge
         refreshPunchPendingBadge();
+    }
+
+    function _buildCatSection(cat, mods) {
+        const sec = document.createElement('section');
+        sec.className = 'cat-section';
+        sec.dataset.cat = cat.key;
+        sec.innerHTML = `
+            <div class="cat-header">
+                <div class="cat-icon">${cat.icon}</div>
+                <div class="cat-title">${cat.title}</div>
+                <div class="cat-count">${mods.length}</div>
+                <div class="cat-divider"></div>
+            </div>
+            <div class="module-grid"></div>
+        `;
+        const grid = sec.querySelector('.module-grid');
+        mods.forEach(mod => grid.appendChild(_buildModuleCard(mod, {})));
+        return sec;
     }
 
     // P2+P3 — 抓 pending 補打卡數量，更新 punch 模組角落的紅色 badge
