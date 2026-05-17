@@ -741,10 +741,11 @@
 
     // ─── v4：入口分類定義 ─────────────────────────────────────
     // 順序即顯示順序；其他未分類模組會落入 __other__
+    // DB key 與 UI title 解耦：'schedule'/'record' 為穩定 DB key，title 可隨需求改
     const CATEGORIES = [
         { key: 'people',   icon: '👤', title: '人員與會員' },
-        { key: 'schedule', icon: '📅', title: '課程與班表' },
-        { key: 'record',   icon: '📊', title: '回報與紀錄' },
+        { key: 'schedule', icon: '📅', title: '課程與排程' },  // 教練視角：課程 / 體驗 / Moti / 代課協調
+        { key: 'record',   icon: '📋', title: '紀錄與排班' },  // 行政視角：班表 / 查詢 / 簽到 / 稽核 / 報表
         { key: 'settings', icon: '🔧', title: '系統設定' },
         { key: '__other__', icon: '📦', title: '其他' }   // fallback：DB 未填 category 的兜底
     ];
