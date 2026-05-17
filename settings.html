@@ -440,7 +440,11 @@ const ROLES = {
     analyst: '分析師'
 };
 
-const MODULES = [
+// ─── MODULES（v5 2026-05-17：改為從 portal_modules 動態載入）────
+// 以下是 fallback：若 callEdge('getModules') 失敗（離線 / 邊緣函式錯誤），
+// 退回這份硬編清單，避免整頁壞掉。DB 載入成功時會被覆寫為完整 23 支。
+// 不再手動維護新增模組於此 — 新模組由 portal_modules 表 + 對應 migration 加入即可。
+let MODULES = [
     { id:'member', name:'學員管理', icon:'👤' },
     { id:'coach', name:'教練管理', icon:'👨‍🏫' },
     { id:'staff-manage', name:'營運人員', icon:'👥' },
@@ -463,13 +467,39 @@ const MODULES = [
     { id:'trial-schedule-admin', name:'體驗排程管理', icon:'📋' },
 ];
 
-const ROLE_DEFAULTS = {
-    super_admin: MODULES.map(m => m.id),
-    manager: MODULES.filter(m => m.id !== 'settings').map(m => m.id),
-    employee: ['member','substitute','punch','moti-booking','leave-manage','personal-schedule','class-record-query','consultation'],
-    coach: ['substitute-coach','trial-schedule','trial-feedback','class-record'],
-    analyst: ['moti-analyze','moti-testees','moti-booking'],
-};
+// ─── ROLE_DEFAULTS 也改為 let + 重算（依賴 MODULES 內容）────────
+// super_admin / manager 的預設模組是「全部」/「除權限設定外全部」，
+// 所以 MODULES 變動後必須重算。其他角色是固定 ID 清單，不受影響。
+function computeRoleDefaults() {
+    return {
+        super_admin: MODULES.map(m => m.id),
+        manager: MODULES.filter(m => m.id !== 'settings').map(m => m.id),
+        employee: ['member','substitute','punch','moti-booking','leave-manage','personal-schedule','class-record-query','consultation'],
+        coach: ['substitute-coach','trial-schedule','trial-feedback','class-record'],
+        analyst: ['moti-analyze','moti-testees','moti-booking'],
+    };
+}
+let ROLE_DEFAULTS = computeRoleDefaults();
+
+// ─── 從 portal_modules 動態載入（v5 新增）────────────────────────
+// 失敗時保留 fallback MODULES，不阻斷頁面。
+async function loadModulesFromDB() {
+    try {
+        const result = await callEdge('getModules');
+        if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
+            MODULES = result.data
+                .filter(m => m.is_active)
+                .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
+            ROLE_DEFAULTS = computeRoleDefaults();
+            console.log('[permissions] 載入 ' + MODULES.length + ' 支模組（DB）');
+        } else {
+            console.warn('[permissions] DB 回傳空資料，使用 fallback 模組清單 (' + MODULES.length + ' 支)');
+        }
+    } catch (e) {
+        console.error('[permissions] 載入模組失敗，使用 fallback:', e);
+    }
+}
 
 // ====================================================================
 //  DATA LEVELS & FIELDS
@@ -1461,7 +1491,12 @@ function showToast(m) {
 //  BOOTSTRAP
 // ====================================================================
 document.addEventListener('DOMContentLoaded', async () => {
-    if (await initPermissions()) await loadAllPeople();
+    if (await initPermissions()) {
+        // v5 2026-05-17：先載入模組清單（從 portal_modules），再載入人員。
+        // 確保使用者點開任何人之前，MODULES / ROLE_DEFAULTS 都已是 DB 最新狀態。
+        await loadModulesFromDB();
+        await loadAllPeople();
+    }
 });
 </script>
 </body>
